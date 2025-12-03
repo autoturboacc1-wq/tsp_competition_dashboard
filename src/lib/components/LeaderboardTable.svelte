@@ -18,12 +18,12 @@
 
   function getRankStyle(rank: number): string {
     if (rank === 1)
-      return "bg-yellow-100 dark:bg-gradient-to-r dark:from-gold-600/20 dark:to-gold-500/10 border-yellow-400 dark:border-gold-500/50 text-yellow-900 dark:text-gold-400 shadow-sm dark:shadow-gold-500/10";
+      return "bg-yellow-100 dark:bg-gradient-to-r dark:from-yellow-500/20 dark:to-yellow-600/10 border-yellow-400 dark:border-yellow-500/50 text-yellow-900 dark:text-yellow-200 shadow-sm dark:shadow-yellow-500/10";
     if (rank === 2)
-      return "bg-gray-100 dark:bg-gradient-to-r dark:from-gray-700/50 dark:to-gray-600/30 border-gray-400 dark:border-gray-500 text-gray-900 dark:text-gray-200";
+      return "bg-gray-100 dark:bg-gradient-to-r dark:from-gray-600/30 dark:to-gray-700/20 border-gray-400 dark:border-gray-400 text-gray-900 dark:text-white";
     if (rank === 3)
-      return "bg-orange-100 dark:bg-gradient-to-r dark:from-orange-900/40 dark:to-orange-800/20 border-orange-400 dark:border-orange-600 text-orange-900 dark:text-orange-300";
-    return "bg-white dark:bg-dark-surface border-gray-200 dark:border-dark-border text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-border/50";
+      return "bg-orange-100 dark:bg-gradient-to-r dark:from-orange-600/20 dark:to-orange-700/10 border-orange-400 dark:border-orange-500 text-orange-900 dark:text-orange-200";
+    return "bg-white dark:bg-dark-surface border-gray-200 dark:border-dark-border text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-border/50";
   }
 
   function getRankIcon(rank: number): string {
