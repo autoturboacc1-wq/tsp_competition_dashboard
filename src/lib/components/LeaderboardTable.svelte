@@ -38,7 +38,7 @@
         <th scope="col" class="px-6 py-3">Rank</th>
         <th scope="col" class="px-6 py-3">Nickname</th>
         <th scope="col" class="px-6 py-3 text-right">Points</th>
-        <th scope="col" class="px-6 py-3 text-right">Profit (THB)</th>
+        <th scope="col" class="px-6 py-3 text-right">Profit (USD)</th>
       </tr>
     </thead>
     <tbody>
