@@ -3,14 +3,16 @@
     import { leaderboardData } from "$lib/mock/leaderboard";
 </script>
 
-<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-gray-50 dark:bg-dark-bg py-8 px-4 sm:px-6 lg:px-8">
     <div class="max-w-4xl mx-auto">
         <div
             class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4"
         >
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">Leaderboard</h1>
-                <p class="mt-1 text-sm text-gray-500">
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+                    Leaderboard
+                </h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-300">
                     Top traders ranked by points and profit.
                 </p>
             </div>
@@ -23,7 +25,7 @@
             </a>
         </div>
 
-        <div class="bg-white rounded-lg shadow">
+        <div class="bg-white dark:bg-dark-surface rounded-lg shadow">
             <LeaderboardTable data={leaderboardData} />
         </div>
     </div>

@@ -3,26 +3,32 @@
 </script>
 
 <div
-    class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4"
+    class="min-h-screen bg-gray-50 dark:bg-dark-bg flex flex-col items-center justify-center p-4"
 >
     <div class="max-w-2xl w-full text-center space-y-8">
-        <h1 class="text-5xl font-extrabold text-gray-900 tracking-tight">
-            Community Trading Competition
+        <h1
+            class="text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight"
+        >
+            Elite Gold Competition
         </h1>
 
-        <p class="text-xl text-gray-600 leading-relaxed">
+        <p class="text-xl text-gray-600 dark:text-gray-200 leading-relaxed">
             Welcome to the ultimate trading showdown! Compete with fellow
             traders, climb the ranks based on your points and profit, and prove
             your skills in the market.
         </p>
 
         <div
-            class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-left mx-auto max-w-lg"
+            class="bg-white dark:bg-dark-surface p-6 rounded-xl shadow-sm border border-gray-100 dark:border-dark-border text-left mx-auto max-w-lg"
         >
-            <h2 class="text-lg font-semibold text-gray-800 mb-2">
+            <h2
+                class="text-lg font-semibold text-gray-800 dark:text-white mb-2"
+            >
                 How it works:
             </h2>
-            <ul class="list-disc list-inside space-y-2 text-gray-600">
+            <ul
+                class="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-200"
+            >
                 <li>
                     Earn <strong>Points</strong> for activity and successful trades.
                 </li>
