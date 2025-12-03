@@ -23,7 +23,7 @@
       return "bg-gray-100 dark:bg-gradient-to-r dark:from-gray-600/30 dark:to-gray-700/20 border-gray-400 dark:border-gray-400 text-gray-900 dark:text-white";
     if (rank === 3)
       return "bg-orange-100 dark:bg-gradient-to-r dark:from-orange-600/20 dark:to-orange-700/10 border-orange-400 dark:border-orange-500 text-orange-900 dark:text-orange-200";
-    return "bg-white dark:bg-dark-surface border-gray-200 dark:border-dark-border text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-border/50";
+    return "bg-white dark:bg-dark-surface border-gray-200 dark:border-dark-border text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-dark-border/50";
   }
 
   function getRankIcon(rank: number): string {
@@ -39,7 +39,7 @@
 >
   <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
     <thead
-      class="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-dark-surface border-b border-gray-200 dark:border-dark-border"
+      class="text-xs text-gray-700 dark:text-white uppercase bg-gray-50 dark:bg-dark-surface border-b border-gray-200 dark:border-dark-border"
     >
       <tr>
         <th scope="col" class="px-6 py-3">Rank</th>
@@ -67,10 +67,10 @@
             <td class="px-6 py-4 font-bold whitespace-nowrap">
               <span class="text-lg">{getRankIcon(rank)}</span>
             </td>
-            <td class="px-6 py-4 font-medium whitespace-nowrap">
+            <td class="px-6 py-4 font-medium whitespace-nowrap dark:text-white">
               {entry.nickname}
             </td>
-            <td class="px-6 py-4 text-right font-bold">
+            <td class="px-6 py-4 text-right font-bold dark:text-white">
               {entry.points.toLocaleString()}
             </td>
             <td
