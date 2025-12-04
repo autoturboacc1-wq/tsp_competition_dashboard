@@ -259,6 +259,34 @@
                                         ${trader.stats.avgWin}
                                     </div>
                                 </div>
+                                <div
+                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                >
+                                    <div
+                                        class="text-xs text-gray-500 dark:text-gray-300"
+                                    >
+                                        Best Trade
+                                    </div>
+                                    <div
+                                        class="text-xl font-bold text-green-600 dark:text-green-400"
+                                    >
+                                        +${trader.stats.bestTrade}
+                                    </div>
+                                </div>
+                                <div
+                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                >
+                                    <div
+                                        class="text-xs text-gray-500 dark:text-gray-300"
+                                    >
+                                        Worst Trade
+                                    </div>
+                                    <div
+                                        class="text-xl font-bold text-red-600 dark:text-red-400"
+                                    >
+                                        ${trader.stats.worstTrade}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

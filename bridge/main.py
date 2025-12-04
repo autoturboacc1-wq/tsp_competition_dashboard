@@ -110,6 +110,8 @@ def sync_participant(participant):
         losses = 0
         total_trades = 0
         total_points = 0
+        best_trade = -float('inf')
+        worst_trade = float('inf')
         symbol_cache = {}
         
         # For Max DD calculation (Balance based)
@@ -172,6 +174,12 @@ def sync_participant(participant):
                 elif deal.profit < 0:
                     losses += 1
                     gross_loss += abs(deal.profit)
+                
+                # Track Best/Worst Trade
+                if deal.profit > best_trade:
+                    best_trade = deal.profit
+                if deal.profit < worst_trade:
+                    worst_trade = deal.profit
                 
                 # Calculate Real Points
                 if positions[pid]['open_price'] > 0:
@@ -289,7 +297,9 @@ def sync_participant(participant):
             "avg_loss": round(avg_loss, 2),
             "trading_style": trading_style,
             "favorite_pair": favorite_pair,
-            "avg_holding_time": avg_holding_time_str
+            "avg_holding_time": avg_holding_time_str,
+            "best_trade": float(best_trade) if best_trade != -float('inf') else 0,
+            "worst_trade": float(worst_trade) if worst_trade != float('inf') else 0
         }
         
         print(f"Calculated Stats for {participant['nickname']}: WinRate={win_rate:.1f}%, HoldingTime={avg_holding_time_str}, Trades={total_trades}")
