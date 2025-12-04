@@ -163,6 +163,8 @@ def sync_participant(participant):
                 positions[pid]['open_time'] = deal.time
                 positions[pid]['open_price'] = deal.price
                 positions[pid]['lot'] = deal.volume
+                positions[pid]['sl'] = deal.sl
+                positions[pid]['tp'] = deal.tp
                 # Determine type: 0=Buy, 1=Sell
                 positions[pid]['type'] = 'BUY' if deal.type == mt5.ORDER_TYPE_BUY else 'SELL'
                 
