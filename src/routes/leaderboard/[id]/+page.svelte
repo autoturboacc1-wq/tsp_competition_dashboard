@@ -1,11 +1,18 @@
 <script lang="ts">
     import { page } from "$app/stores";
-    import { leaderboardData } from "$lib/mock/leaderboard";
-    import { onMount } from "svelte";
+    import type { PageData } from "./$types";
+
+    export let data: PageData;
 
     $: id = $page.params.id;
-    $: trader = leaderboardData.find((t) => t.id === id);
-    $: rank = leaderboardData.findIndex((t) => t.id === id) + 1;
+    $: trader = data.trader;
+    // Rank calculation would ideally come from server or context,
+    // for now we might lose the global rank context in this view unless passed.
+    // Let's assume for now we just show the data.
+    // To get rank, we might need to fetch the leaderboard or pass it.
+    // For this specific UI, it calculates rank from the imported mock list.
+    // We'll leave rank as 0 or pass it from server if possible.
+    $: rank = data.rank;
 
     function formatMoney(amount: number) {
         return amount.toLocaleString("en-US", {
@@ -22,6 +29,7 @@
     }
 </script>
 
+```
 <div class="min-h-screen bg-gray-50 dark:bg-dark-bg py-8 px-4 sm:px-6 lg:px-8">
     <div class="max-w-5xl mx-auto">
         <!-- Back Button -->

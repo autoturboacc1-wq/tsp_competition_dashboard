@@ -1,6 +1,8 @@
 <script lang="ts">
     import LeaderboardTable from "$lib/components/LeaderboardTable.svelte";
-    import { leaderboardData } from "$lib/mock/leaderboard";
+    import type { PageData } from "./$types";
+
+    export let data: PageData;
 </script>
 
 <div class="min-h-screen bg-gray-50 dark:bg-dark-bg py-8 px-4 sm:px-6 lg:px-8">
@@ -26,7 +28,7 @@
         </div>
 
         <div class="bg-white dark:bg-dark-surface rounded-lg shadow">
-            <LeaderboardTable data={leaderboardData} />
+            <LeaderboardTable data={data.leaderboard} />
         </div>
     </div>
 </div>
