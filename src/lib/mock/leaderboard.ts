@@ -14,6 +14,13 @@ export type TraderStats = {
   totalTrades: number;
   avgWin: number;
   avgLoss: number;
+  bestTrade?: number;
+  worstTrade?: number;
+  winRateBuy?: number;
+  winRateSell?: number;
+  tradingStyle?: string;
+  favoritePair?: string;
+  avgHoldingTime?: string;
 };
 
 export type LeaderboardEntry = {
@@ -58,7 +65,21 @@ export const leaderboardData: LeaderboardEntry[] = [
     nickname: 'TraderPro99',
     points: 1500,
     profit: 1200.50,
-    stats: { winRate: 65.5, profitFactor: 2.1, maxDrawdown: 12.5, totalTrades: 145, avgWin: 150, avgLoss: -80 },
+    stats: {
+      winRate: 65.5,
+      profitFactor: 2.1,
+      maxDrawdown: 12.5,
+      totalTrades: 145,
+      avgWin: 150,
+      avgLoss: -80,
+      bestTrade: 500,
+      worstTrade: -200,
+      winRateBuy: 60,
+      winRateSell: 70,
+      tradingStyle: 'Intraday',
+      favoritePair: 'XAUUSD',
+      avgHoldingTime: '2h 30m'
+    },
     equityCurve: generateEquity(10000, 20),
     history: generateHistory(10)
   },
@@ -110,7 +131,14 @@ export const leaderboardData: LeaderboardEntry[] = [
       maxDrawdown: Number((Math.random() * 50).toFixed(1)),
       totalTrades: Math.floor(Math.random() * 100),
       avgWin: 100,
-      avgLoss: -50
+      avgLoss: -50,
+      bestTrade: 200,
+      worstTrade: -100,
+      winRateBuy: 50,
+      winRateSell: 50,
+      tradingStyle: 'Scalping',
+      favoritePair: 'EURUSD',
+      avgHoldingTime: '15m'
     },
     equityCurve: generateEquity(10000, 20),
     history: generateHistory(5)

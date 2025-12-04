@@ -202,6 +202,59 @@
                                 </div>
                             </div>
 
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <div
+                                        class="flex justify-between text-xs mb-1"
+                                    >
+                                        <span
+                                            class="text-gray-500 dark:text-gray-300"
+                                            >Long Win Rate</span
+                                        >
+                                        <span
+                                            class="font-medium text-green-600 dark:text-green-400"
+                                            >{Number(
+                                                trader.stats.winRateBuy,
+                                            ).toFixed(1)}%</span
+                                        >
+                                    </div>
+                                    <div
+                                        class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1.5"
+                                    >
+                                        <div
+                                            class="bg-green-500 h-1.5 rounded-full"
+                                            style="width: {trader.stats
+                                                .winRateBuy}%"
+                                        ></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div
+                                        class="flex justify-between text-xs mb-1"
+                                    >
+                                        <span
+                                            class="text-gray-500 dark:text-gray-300"
+                                            >Short Win Rate</span
+                                        >
+                                        <span
+                                            class="font-medium text-red-600 dark:text-red-400"
+                                            >{Number(
+                                                trader.stats.winRateSell,
+                                            ).toFixed(1)}%</span
+                                        >
+                                    </div>
+                                    <div
+                                        class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1.5"
+                                    >
+                                        <div
+                                            class="bg-red-500 h-1.5 rounded-full"
+                                            style="width: {trader.stats
+                                                .winRateSell}%"
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="grid grid-cols-2 gap-4 pt-2">
                                 <div
                                     class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"

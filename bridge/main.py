@@ -112,6 +112,13 @@ def sync_participant(participant):
         total_points = 0
         best_trade = -float('inf')
         worst_trade = float('inf')
+        
+        # Long/Short Stats
+        buy_trades = 0
+        buy_wins = 0
+        sell_trades = 0
+        sell_wins = 0
+        
         symbol_cache = {}
         
         # For Max DD calculation (Balance based)
@@ -181,6 +188,16 @@ def sync_participant(participant):
                 if deal.profit < worst_trade:
                     worst_trade = deal.profit
                 
+                # Track Long/Short Stats
+                if positions[pid]['type'] == 'BUY':
+                    buy_trades += 1
+                    if deal.profit > 0:
+                        buy_wins += 1
+                elif positions[pid]['type'] == 'SELL':
+                    sell_trades += 1
+                    if deal.profit > 0:
+                        sell_wins += 1
+                
                 # Calculate Real Points
                 if positions[pid]['open_price'] > 0:
                     sym = deal.symbol
@@ -214,6 +231,9 @@ def sync_participant(participant):
 
         # Calculate aggregates
         win_rate = (wins / total_trades * 100) if total_trades > 0 else 0
+        win_rate_buy = (buy_wins / buy_trades * 100) if buy_trades > 0 else 0
+        win_rate_sell = (sell_wins / sell_trades * 100) if sell_trades > 0 else 0
+        
         profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (gross_profit if gross_profit > 0 else 0)
         
         # Max DD % (Approximate based on Peak Balance)
@@ -299,7 +319,9 @@ def sync_participant(participant):
             "favorite_pair": favorite_pair,
             "avg_holding_time": avg_holding_time_str,
             "best_trade": float(best_trade) if best_trade != -float('inf') else 0,
-            "worst_trade": float(worst_trade) if worst_trade != float('inf') else 0
+            "worst_trade": float(worst_trade) if worst_trade != float('inf') else 0,
+            "win_rate_buy": round(win_rate_buy, 2),
+            "win_rate_sell": round(win_rate_sell, 2)
         }
         
         print(f"Calculated Stats for {participant['nickname']}: WinRate={win_rate:.1f}%, HoldingTime={avg_holding_time_str}, Trades={total_trades}")
