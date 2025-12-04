@@ -41,6 +41,7 @@ export type LeaderboardEntry = {
   stats: TraderStats;
   equityCurve: number[]; // Array of balance points for chart
   history: TradeHistory[];
+  dailyHistory?: { date: string; profit: number }[];
 };
 
 // Helper to generate random history
@@ -67,6 +68,18 @@ function generateEquity(startBalance: number, count: number): number[] {
     curve.push(Number(balance.toFixed(2)));
   }
   return curve;
+}
+
+// Helper to generate daily history
+function generateDailyHistory(count: number): { date: string; profit: number }[] {
+  return Array.from({ length: count }).map((_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (count - 1 - i));
+    return {
+      date: date.toISOString().split('T')[0],
+      profit: Number((Math.random() * 1000 - 400).toFixed(2))
+    };
+  });
 }
 
 export const leaderboardData: LeaderboardEntry[] = [
@@ -101,7 +114,8 @@ export const leaderboardData: LeaderboardEntry[] = [
       sessionNewYorkWinRate: 40
     },
     equityCurve: generateEquity(10000, 20),
-    history: generateHistory(10)
+    history: generateHistory(10),
+    dailyHistory: generateDailyHistory(30)
   },
   {
     id: '2',
@@ -110,7 +124,8 @@ export const leaderboardData: LeaderboardEntry[] = [
     profit: 980.00,
     stats: { winRate: 55.0, profitFactor: 1.8, maxDrawdown: 25.0, totalTrades: 89, avgWin: 200, avgLoss: -150 },
     equityCurve: generateEquity(10000, 20),
-    history: generateHistory(10)
+    history: generateHistory(10),
+    dailyHistory: generateDailyHistory(30)
   },
   {
     id: '3',
@@ -119,7 +134,8 @@ export const leaderboardData: LeaderboardEntry[] = [
     profit: -150.00,
     stats: { winRate: 40.0, profitFactor: 0.8, maxDrawdown: 45.0, totalTrades: 200, avgWin: 50, avgLoss: -60 },
     equityCurve: generateEquity(10000, 20),
-    history: generateHistory(10)
+    history: generateHistory(10),
+    dailyHistory: generateDailyHistory(30)
   },
   {
     id: '4',
@@ -128,7 +144,8 @@ export const leaderboardData: LeaderboardEntry[] = [
     profit: 500.25,
     stats: { winRate: 50.0, profitFactor: 1.2, maxDrawdown: 10.0, totalTrades: 50, avgWin: 100, avgLoss: -90 },
     equityCurve: generateEquity(10000, 20),
-    history: generateHistory(10)
+    history: generateHistory(10),
+    dailyHistory: generateDailyHistory(30)
   },
   {
     id: '5',
@@ -137,7 +154,8 @@ export const leaderboardData: LeaderboardEntry[] = [
     profit: 2000.00,
     stats: { winRate: 70.0, profitFactor: 3.5, maxDrawdown: 5.0, totalTrades: 30, avgWin: 500, avgLoss: -100 },
     equityCurve: generateEquity(10000, 20),
-    history: generateHistory(10)
+    history: generateHistory(10),
+    dailyHistory: generateDailyHistory(30)
   },
   // ... Adding more simple entries to fill the list
   ...Array.from({ length: 10 }).map((_, i) => ({
@@ -161,6 +179,7 @@ export const leaderboardData: LeaderboardEntry[] = [
       avgHoldingTime: '15m'
     },
     equityCurve: generateEquity(10000, 20),
-    history: generateHistory(5)
+    history: generateHistory(5),
+    dailyHistory: generateDailyHistory(30)
   }))
 ];

@@ -533,6 +533,69 @@
                         </div>
                     </div>
 
+                    <!-- Consistency Heatmap -->
+                    <div
+                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 mb-6"
+                    >
+                        <h3
+                            class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+                        >
+                            Consistency Heatmap
+                        </h3>
+                        <div class="flex flex-wrap gap-1">
+                            {#each trader.dailyHistory || [] as day}
+                                <div
+                                    class="w-4 h-4 rounded-sm cursor-pointer transition-colors duration-200 relative group"
+                                    class:bg-gray-200={day.profit === 0}
+                                    class:dark:bg-dark-border={day.profit === 0}
+                                    class:bg-green-200={day.profit > 0 &&
+                                        day.profit <= 100}
+                                    class:bg-green-400={day.profit > 100 &&
+                                        day.profit <= 500}
+                                    class:bg-green-600={day.profit > 500}
+                                    class:bg-red-200={day.profit < 0 &&
+                                        day.profit >= -100}
+                                    class:bg-red-400={day.profit < -100 &&
+                                        day.profit >= -500}
+                                    class:bg-red-600={day.profit < -500}
+                                >
+                                    <!-- Tooltip -->
+                                    <div
+                                        class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none"
+                                    >
+                                        <div class="font-semibold">
+                                            {day.date}
+                                        </div>
+                                        <div
+                                            class={day.profit >= 0
+                                                ? "text-green-400"
+                                                : "text-red-400"}
+                                        >
+                                            {day.profit >= 0 ? "+" : ""}{Number(
+                                                day.profit,
+                                            ).toFixed(2)}
+                                        </div>
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                        <div
+                            class="flex items-center gap-2 mt-4 text-xs text-gray-500"
+                        >
+                            <span>Less</span>
+                            <div class="w-3 h-3 bg-red-600 rounded-sm"></div>
+                            <div class="w-3 h-3 bg-red-400 rounded-sm"></div>
+                            <div class="w-3 h-3 bg-red-200 rounded-sm"></div>
+                            <div
+                                class="w-3 h-3 bg-gray-200 dark:bg-dark-border rounded-sm"
+                            ></div>
+                            <div class="w-3 h-3 bg-green-200 rounded-sm"></div>
+                            <div class="w-3 h-3 bg-green-400 rounded-sm"></div>
+                            <div class="w-3 h-3 bg-green-600 rounded-sm"></div>
+                            <span>More</span>
+                        </div>
+                    </div>
+
                     <div
                         class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6"
                     >

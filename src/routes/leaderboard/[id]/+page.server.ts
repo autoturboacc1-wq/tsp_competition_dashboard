@@ -39,11 +39,18 @@ export const load: PageServerLoad = async ({ params }) => {
                 .eq('participant_id', id)
                 .order('date', { ascending: true });
 
+            // Fetch daily history for heatmap
+            const { data: dailyStats } = await supabase
+                .from('daily_stats')
+                .select('date, profit')
+                .eq('participant_id', id)
+                .order('date', { ascending: true });
+
             return {
                 trader: {
                     id: participant.id,
                     nickname: participant.nickname,
-                    points: stats?.points || 0,
+                    points: stats?.points || 0, // Points logic to be implemented
                     profit: stats?.profit || 0,
                     stats: {
                         winRate: stats?.win_rate || 0,
@@ -78,6 +85,10 @@ export const load: PageServerLoad = async ({ params }) => {
                         profit: h.profit,
                         openTime: h.open_time,
                         closeTime: h.close_time
+                    })) || [],
+                    dailyHistory: dailyStats?.map(d => ({
+                        date: d.date,
+                        profit: d.profit
                     })) || []
                 },
                 rank: await (async () => {
