@@ -89,9 +89,8 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Main Chart Area -->
-                <div class="lg:col-span-2 space-y-6">
-                    <!-- Equity Curve Mockup -->
+                <!-- 1. Equity Curve (Top Left on Desktop, 1st on Mobile) -->
+                <div class="lg:col-span-2">
                     <div
                         class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6"
                     >
@@ -167,93 +166,10 @@
                             </svg>
                         </div>
                     </div>
-
-                    <!-- Trade History -->
-                    <div
-                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border overflow-hidden"
-                    >
-                        <div
-                            class="px-6 py-4 border-b border-gray-100 dark:border-dark-border"
-                        >
-                            <h3
-                                class="text-lg font-semibold text-gray-900 dark:text-white"
-                            >
-                                Recent History
-                            </h3>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table
-                                class="w-full text-sm text-left text-gray-500 dark:text-gray-400"
-                            >
-                                <thead
-                                    class="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-dark-surface"
-                                >
-                                    <tr>
-                                        <th class="px-6 py-3">Symbol</th>
-                                        <th class="px-6 py-3">Type</th>
-                                        <th class="px-6 py-3 text-right">Lot</th
-                                        >
-                                        <th class="px-6 py-3 text-right"
-                                            >Profit</th
-                                        >
-                                        <th class="px-6 py-3 text-right"
-                                            >Time</th
-                                        >
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {#each trader.history as trade}
-                                        <tr
-                                            class="border-b dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-border/30"
-                                        >
-                                            <td
-                                                class="px-6 py-4 font-medium text-gray-900 dark:text-white"
-                                                >{trade.symbol}</td
-                                            >
-                                            <td class="px-6 py-4">
-                                                <span
-                                                    class="px-2 py-1 rounded text-xs font-bold {trade.type ===
-                                                    'BUY'
-                                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                                                        : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'}"
-                                                >
-                                                    {trade.type}
-                                                </span>
-                                            </td>
-                                            <td class="px-6 py-4 text-right"
-                                                >{trade.lot.toFixed(2)}</td
-                                            >
-                                            <td
-                                                class="px-6 py-4 text-right font-mono {trade.profit >=
-                                                0
-                                                    ? 'text-green-600 dark:text-green-400'
-                                                    : 'text-red-600 dark:text-red-400'}"
-                                            >
-                                                {trade.profit >= 0
-                                                    ? "+"
-                                                    : ""}{trade.profit.toFixed(
-                                                    2,
-                                                )}
-                                            </td>
-                                            <td
-                                                class="px-6 py-4 text-right text-xs text-gray-400 dark:text-gray-500"
-                                            >
-                                                {new Date(
-                                                    trade.closeTime,
-                                                ).toLocaleTimeString("th-TH", {
-                                                    timeZone: "Asia/Bangkok",
-                                                })}
-                                            </td>
-                                        </tr>
-                                    {/each}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
 
-                <!-- Sidebar Stats -->
-                <div class="space-y-6">
+                <!-- 2. Sidebar Stats (Right on Desktop, 2nd on Mobile) -->
+                <div class="lg:col-span-1 lg:row-span-2 space-y-6 h-fit">
                     <div
                         class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6"
                     >
@@ -378,6 +294,91 @@
                                     >{trader.stats.avgHoldingTime}</span
                                 >
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Trade History (Bottom Left on Desktop, 3rd on Mobile) -->
+                <div class="lg:col-span-2">
+                    <div
+                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border overflow-hidden"
+                    >
+                        <div
+                            class="px-6 py-4 border-b border-gray-100 dark:border-dark-border"
+                        >
+                            <h3
+                                class="text-lg font-semibold text-gray-900 dark:text-white"
+                            >
+                                Recent History
+                            </h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table
+                                class="w-full text-sm text-left text-gray-500 dark:text-gray-400"
+                            >
+                                <thead
+                                    class="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-dark-surface"
+                                >
+                                    <tr>
+                                        <th class="px-6 py-3">Symbol</th>
+                                        <th class="px-6 py-3">Type</th>
+                                        <th class="px-6 py-3 text-right">Lot</th
+                                        >
+                                        <th class="px-6 py-3 text-right"
+                                            >Profit</th
+                                        >
+                                        <th class="px-6 py-3 text-right"
+                                            >Time</th
+                                        >
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {#each trader.history as trade}
+                                        <tr
+                                            class="border-b dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-border/30"
+                                        >
+                                            <td
+                                                class="px-6 py-4 font-medium text-gray-900 dark:text-white"
+                                                >{trade.symbol}</td
+                                            >
+                                            <td class="px-6 py-4">
+                                                <span
+                                                    class="px-2 py-1 rounded text-xs font-bold {trade.type ===
+                                                    'BUY'
+                                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                                                        : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'}"
+                                                >
+                                                    {trade.type}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 text-right"
+                                                >{trade.lot.toFixed(2)}</td
+                                            >
+                                            <td
+                                                class="px-6 py-4 text-right font-mono {trade.profit >=
+                                                0
+                                                    ? 'text-green-600 dark:text-green-400'
+                                                    : 'text-red-600 dark:text-red-400'}"
+                                            >
+                                                {trade.profit >= 0
+                                                    ? "+"
+                                                    : ""}{trade.profit.toFixed(
+                                                    2,
+                                                )}
+                                            </td>
+                                            <td
+                                                class="px-6 py-4 text-right text-xs text-gray-400 dark:text-gray-500"
+                                            >
+                                                {new Date(
+                                                    trade.closeTime,
+                                                ).toLocaleTimeString("th-TH", {
+                                                    timeZone: "Asia/Bangkok",
+                                                })}
+                                            </td>
+                                        </tr>
+                                    {/each}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
