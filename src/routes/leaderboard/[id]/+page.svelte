@@ -335,12 +335,43 @@
                                     <div
                                         class="text-xs text-gray-500 dark:text-gray-300"
                                     >
+                                        RR Ratio
+                                    </div>
+                                    <div
+                                        class="text-xl font-bold {trader.stats
+                                            .rrRatio >= 1
+                                            ? 'text-green-600 dark:text-green-400'
+                                            : 'text-red-600 dark:text-red-400'}"
+                                    >
+                                        {trader.stats.rrRatio}
+                                    </div>
+                                </div>
+                                <div
+                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                >
+                                    <div
+                                        class="text-xs text-gray-500 dark:text-gray-300"
+                                    >
                                         Avg Win
                                     </div>
                                     <div
                                         class="text-xl font-bold text-green-600 dark:text-green-400"
                                     >
                                         ${trader.stats.avgWin}
+                                    </div>
+                                </div>
+                                <div
+                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                >
+                                    <div
+                                        class="text-xs text-gray-500 dark:text-gray-300"
+                                    >
+                                        Avg Loss
+                                    </div>
+                                    <div
+                                        class="text-xl font-bold text-red-600 dark:text-red-400"
+                                    >
+                                        ${trader.stats.avgLoss}
                                     </div>
                                 </div>
                                 <div

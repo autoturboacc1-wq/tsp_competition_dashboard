@@ -24,6 +24,7 @@ create table public.daily_stats (
   win_rate numeric,
   max_drawdown numeric,
   profit_factor numeric,
+  rr_ratio numeric,
   total_trades integer,
   avg_win numeric,
   avg_loss numeric,

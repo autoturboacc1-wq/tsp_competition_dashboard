@@ -249,13 +249,10 @@ def sync_participant(participant):
 
         # Avg Win / Loss
         avg_win = (gross_profit / wins) if wins > 0 else 0
-        avg_loss = (gross_loss / losses) if losses > 0 else 0 # Keep positive for display usually, or negative? 
-        # Usually Avg Loss is displayed as negative or just the magnitude. Let's keep it as is (positive magnitude if we used abs above? No we used abs for gross_loss).
-        # Wait, gross_loss is abs. So avg_loss should be abs.
-        avg_loss = -avg_loss # Make it negative to match standard representation if needed, or keep positive. 
-        # Let's check UI. "Avg Win $0". Usually implies magnitude.
-        # Let's return signed value.
         avg_loss = -(gross_loss / losses) if losses > 0 else 0
+        
+        # RR Ratio (Avg Win / |Avg Loss|)
+        rr_ratio = abs(avg_win / avg_loss) if avg_loss != 0 else 0
 
         # Holding Time
         total_duration = 0
@@ -389,6 +386,7 @@ def sync_participant(participant):
             "win_rate": win_rate,
             "total_trades": total_trades,
             "profit_factor": round(profit_factor, 2),
+            "rr_ratio": round(rr_ratio, 2),
             "max_drawdown": round(max_dd_percent, 2),
             "avg_win": round(avg_win, 2),
             "avg_loss": round(avg_loss, 2),

@@ -59,6 +59,7 @@ export const load: PageServerLoad = async ({ params }) => {
                         totalTrades: stats?.total_trades || 0,
                         avgWin: stats?.avg_win || 0,
                         avgLoss: stats?.avg_loss || 0,
+                        rrRatio: stats?.rr_ratio || 0,
                         bestTrade: stats?.best_trade || 0,
                         worstTrade: stats?.worst_trade || 0,
                         winRateBuy: stats?.win_rate_buy || 0,
