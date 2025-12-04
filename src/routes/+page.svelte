@@ -6,11 +6,12 @@
     class="min-h-screen bg-gray-50 dark:bg-dark-bg flex flex-col items-center justify-center p-4"
 >
     <div class="max-w-2xl w-full text-center space-y-8">
-        	<div class="text-center">
-		<h1 class="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-			EliteGold
-		</h1>
-		<p class="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
+        <h1
+            class="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl"
+        >
+            EliteGold
+        </h1>
+        <p class="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
             Welcome to the ultimate trading showdown! Compete with fellow
             traders, climb the ranks based on your points and profit, and prove
             your skills in the market.
