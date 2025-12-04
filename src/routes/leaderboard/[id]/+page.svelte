@@ -282,9 +282,14 @@
                                         Worst Trade
                                     </div>
                                     <div
-                                        class="text-xl font-bold text-red-600 dark:text-red-400"
+                                        class="text-xl font-bold {trader.stats
+                                            .worstTrade >= 0
+                                            ? 'text-green-600 dark:text-green-400'
+                                            : 'text-red-600 dark:text-red-400'}"
                                     >
-                                        ${trader.stats.worstTrade}
+                                        {trader.stats.worstTrade >= 0
+                                            ? "+"
+                                            : ""}${trader.stats.worstTrade}
                                     </div>
                                 </div>
                             </div>
