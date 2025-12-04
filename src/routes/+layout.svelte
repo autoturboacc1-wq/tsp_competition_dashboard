@@ -54,7 +54,7 @@
 	>
 		<div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
 			<p class="text-center text-sm text-gray-500 dark:text-gray-300">
-				&copy; {new Date().getFullYear()} Elite Gold Competition. All rights
+				&copy; {new Date().getFullYear()} EliteGold Competition. All rights
 				reserved.
 			</p>
 		</div>
