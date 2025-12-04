@@ -283,8 +283,8 @@ def sync_participant(participant):
                     "lot_size": float(pos['lot']),
                     "open_price": float(pos['open_price']),
                     "close_price": float(pos['close_price']),
-                    "open_time": datetime.fromtimestamp(pos['open_time'], tz=timezone.utc).isoformat(),
-                    "close_time": datetime.fromtimestamp(pos['close_time'], tz=timezone.utc).isoformat(),
+                    "open_time": datetime.fromtimestamp(pos['open_time'] - 10800, tz=timezone.utc).isoformat(), # Adjust UTC+3 to UTC
+                    "close_time": datetime.fromtimestamp(pos['close_time'] - 10800, tz=timezone.utc).isoformat(), # Adjust UTC+3 to UTC
                     "profit": float(pos['profit']),
                     "position_id": pid
                 })
