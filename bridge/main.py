@@ -109,6 +109,8 @@ def sync_participant(participant):
         wins = 0
         losses = 0
         total_trades = 0
+        total_points = 0
+        symbol_cache = {}
         
         # For Max DD calculation (Balance based)
         running_balance = 0 # This should ideally start from initial balance, but we can track relative DD
@@ -170,6 +172,28 @@ def sync_participant(participant):
                 elif deal.profit < 0:
                     losses += 1
                     gross_loss += abs(deal.profit)
+                
+                # Calculate Real Points
+                if positions[pid]['open_price'] > 0:
+                    sym = deal.symbol
+                    if sym:
+                        if sym not in symbol_cache:
+                            info = mt5.symbol_info(sym)
+                            if info is None:
+                                # Try to select the symbol in Market Watch if info is missing
+                                mt5.symbol_select(sym, True)
+                                info = mt5.symbol_info(sym)
+                            symbol_cache[sym] = info
+                        
+                        sym_info = symbol_cache[sym]
+                        
+                        if sym_info and sym_info.point > 0:
+                            if positions[pid]['type'] == 'BUY':
+                                p_diff = deal.price - positions[pid]['open_price']
+                            else:
+                                p_diff = positions[pid]['open_price'] - deal.price
+                            
+                            total_points += (p_diff / sym_info.point)
                 
                 # DD Calculation on closed equity/balance curve
                 current_profit_curve += deal.profit
@@ -256,7 +280,7 @@ def sync_participant(participant):
             "balance": account_info.balance,
             "equity": account_info.equity,
             "profit": total_profit, 
-            "points": int(total_profit * 10), 
+            "points": int(total_points), 
             "win_rate": win_rate,
             "total_trades": total_trades,
             "profit_factor": round(profit_factor, 2),
