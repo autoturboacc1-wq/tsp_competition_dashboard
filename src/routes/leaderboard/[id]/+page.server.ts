@@ -79,13 +79,18 @@ export const load: PageServerLoad = async ({ params }) => {
                         sessionNewYorkWinRate: stats?.session_newyork_win_rate || 0
                     },
                     equityCurve: equityData?.map(d => d.equity) || [],
-                    history: history?.map(h => ({
-                        symbol: h.symbol,
-                        type: h.type,
-                        lot: h.lot_size,
-                        profit: h.profit,
-                        openTime: h.open_time,
-                        closeTime: h.close_time
+                    history: history?.map(t => ({
+                        id: t.id,
+                        symbol: t.symbol,
+                        type: t.type,
+                        lot: t.lot_size,
+                        openPrice: t.open_price,
+                        closePrice: t.close_price,
+                        sl: t.sl,
+                        tp: t.tp,
+                        openTime: t.open_time,
+                        closeTime: t.close_time,
+                        profit: t.profit
                     })) || [],
                     dailyHistory: dailyStats?.map(d => ({
                         date: d.date,

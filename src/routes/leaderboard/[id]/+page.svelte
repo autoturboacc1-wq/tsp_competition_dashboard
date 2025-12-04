@@ -1,11 +1,13 @@
 <script lang="ts">
+    import { onMount, onDestroy } from "svelte";
     import { page } from "$app/stores";
+    import { createChart, ColorType } from "lightweight-charts";
     import type { PageData } from "./$types";
 
     export let data: PageData;
 
     $: id = $page.params.id;
-    $: trader = data.trader;
+    let trader = data.trader;
     // Rank calculation would ideally come from server or context,
     // for now we might lose the global rank context in this view unless passed.
     // Let's assume for now we just show the data.
@@ -64,6 +66,140 @@
 
     function handleMouseLeave() {
         hoverIndex = null;
+    }
+    // Chart Modal State
+    let showChartModal = false;
+    let selectedTrade: any = null;
+    let chartContainerRef: HTMLDivElement;
+    let chart: any;
+    let candlestickSeries: any;
+
+    async function openChart(trade: any) {
+        selectedTrade = trade;
+        showChartModal = true;
+
+        // Wait for modal to render
+        setTimeout(async () => {
+            if (!chartContainerRef) return;
+
+            // Calculate time range (e.g., +/- 4 hours around open/close)
+            const openTime = new Date(trade.openTime).getTime();
+            const closeTime = new Date(trade.closeTime).getTime();
+            const buffer = 4 * 60 * 60 * 1000; // 4 hours
+
+            const from = new Date(openTime - buffer).toISOString();
+            const to = new Date(closeTime + buffer).toISOString();
+
+            // Fetch candles
+            const res = await fetch(
+                `/api/candles?symbol=${trade.symbol}&from=${from}&to=${to}`,
+            );
+            const candles = await res.json();
+
+            if (candles.error || !candles.length) {
+                console.error("No candles found");
+                return;
+            }
+
+            // Initialize Chart
+            if (chart) chart.remove();
+
+            chart = createChart(chartContainerRef, {
+                layout: {
+                    background: { type: ColorType.Solid, color: "#111827" },
+                    textColor: "#D1D5DB",
+                },
+                grid: {
+                    vertLines: { color: "#374151" },
+                    horzLines: { color: "#374151" },
+                },
+                width: chartContainerRef.clientWidth,
+                height: 400,
+                timeScale: {
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+            });
+
+            candlestickSeries = chart.addCandlestickSeries({
+                upColor: "#10B981",
+                downColor: "#EF4444",
+                borderVisible: false,
+                wickUpColor: "#10B981",
+                wickDownColor: "#EF4444",
+            });
+
+            // Format data for lightweight-charts
+            const chartData = candles.map((c: any) => ({
+                time: new Date(c.time).getTime() / 1000,
+                open: c.open,
+                high: c.high,
+                low: c.low,
+                close: c.close,
+            }));
+
+            candlestickSeries.setData(chartData);
+
+            // Add Entry Line
+            const entryLine = chart.addLineSeries({
+                color: "#10B981", // Green
+                lineWidth: 2,
+                lineStyle: 2, // Dashed
+                title: "Entry",
+            });
+            entryLine.setData([
+                { time: chartData[0].time, value: trade.openPrice },
+                {
+                    time: chartData[chartData.length - 1].time,
+                    value: trade.openPrice,
+                },
+            ]);
+
+            // Add SL Line
+            if (trade.sl > 0) {
+                const slLine = chart.addLineSeries({
+                    color: "#EF4444", // Red
+                    lineWidth: 2,
+                    lineStyle: 2, // Dashed
+                    title: "SL",
+                });
+                slLine.setData([
+                    { time: chartData[0].time, value: trade.sl },
+                    {
+                        time: chartData[chartData.length - 1].time,
+                        value: trade.sl,
+                    },
+                ]);
+            }
+
+            // Add TP Line
+            if (trade.tp > 0) {
+                const tpLine = chart.addLineSeries({
+                    color: "#3B82F6", // Blue
+                    lineWidth: 2,
+                    lineStyle: 2, // Dashed
+                    title: "TP",
+                });
+                tpLine.setData([
+                    { time: chartData[0].time, value: trade.tp },
+                    {
+                        time: chartData[chartData.length - 1].time,
+                        value: trade.tp,
+                    },
+                ]);
+            }
+
+            chart.timeScale().fitContent();
+        }, 100);
+    }
+
+    function closeChartModal() {
+        showChartModal = false;
+        selectedTrade = null;
+        if (chart) {
+            chart.remove();
+            chart = null;
+        }
     }
 </script>
 
@@ -850,7 +986,8 @@
                                 <tbody>
                                     {#each trader.history as trade}
                                         <tr
-                                            class="border-b dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-border/30"
+                                            class="border-b dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-border/30 cursor-pointer transition-colors"
+                                            on:click={() => openChart(trade)}
                                         >
                                             <td
                                                 class="px-6 py-4 font-medium text-gray-900 dark:text-white"
@@ -901,3 +1038,81 @@
         {/if}
     </div>
 </div>
+
+<!-- Chart Modal -->
+{#if showChartModal}
+    <div
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+    >
+        <div
+            class="bg-white dark:bg-dark-surface rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden border border-gray-200 dark:border-dark-border"
+        >
+            <!-- Header -->
+            <div
+                class="p-4 border-b border-gray-200 dark:border-dark-border flex justify-between items-center"
+            >
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                        {selectedTrade?.symbol} - {selectedTrade?.type}
+                    </h3>
+                    <p class="text-sm text-gray-500">
+                        Open: {selectedTrade?.openPrice} | Close: {selectedTrade?.closePrice}
+                        | Profit: ${selectedTrade?.profit}
+                    </p>
+                </div>
+                <button
+                    on:click={closeChartModal}
+                    class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-lg transition-colors"
+                >
+                    <svg
+                        class="w-6 h-6 text-gray-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12"
+                        />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Chart Container -->
+            <div class="p-4 bg-gray-900">
+                <div
+                    bind:this={chartContainerRef}
+                    class="w-full h-[400px]"
+                ></div>
+            </div>
+
+            <!-- Legend -->
+            <div class="p-4 bg-gray-50 dark:bg-dark-bg/50 flex gap-4 text-sm">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span class="text-gray-600 dark:text-gray-300"
+                        >Entry: {selectedTrade?.openPrice}</span
+                    >
+                </div>
+                {#if selectedTrade?.sl}
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <span class="text-gray-600 dark:text-gray-300"
+                            >SL: {selectedTrade?.sl}</span
+                        >
+                    </div>
+                {/if}
+                {#if selectedTrade?.tp}
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                        <span class="text-gray-600 dark:text-gray-300"
+                            >TP: {selectedTrade?.tp}</span
+                        >
+                    </div>
+                {/if}
+            </div>
+        </div>
+    </div>
+{/if}

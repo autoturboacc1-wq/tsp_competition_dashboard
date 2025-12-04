@@ -301,7 +301,8 @@ def sync_participant(participant):
         for pid, pos in positions.items():
             if pos['open_time'] > 0 and pos['close_time'] > 0:
                 # Convert timestamp to hour (UTC)
-                open_hour = datetime.utcfromtimestamp(pos['open_time']).hour
+                # Adjust UTC+3 to UTC by subtracting 10800 seconds
+                open_hour = datetime.utcfromtimestamp(pos['open_time'] - 10800).hour
                 profit = pos['profit']
                 is_win = profit > 0
                 
@@ -374,7 +375,7 @@ def sync_participant(participant):
             favorite_pair = c.most_common(1)[0][0]
 
         # 4. Update Daily Stats in Supabase
-        today = datetime.now().date().isoformat()
+        today = datetime.now(timezone.utc).date().isoformat()
         
         stats_data = {
             "participant_id": participant['id'],
@@ -424,6 +425,8 @@ def sync_participant(participant):
                     "lot_size": float(pos['lot']),
                     "open_price": float(pos['open_price']),
                     "close_price": float(pos['close_price']),
+                    "sl": float(pos.get('sl', 0)),
+                    "tp": float(pos.get('tp', 0)),
                     "open_time": datetime.fromtimestamp(pos['open_time'] - 10800, tz=timezone.utc).isoformat(), # Adjust UTC+3 to UTC
                     "close_time": datetime.fromtimestamp(pos['close_time'] - 10800, tz=timezone.utc).isoformat(), # Adjust UTC+3 to UTC
                     "profit": float(pos['profit']),
@@ -444,6 +447,38 @@ def sync_participant(participant):
             print(f"Updated stats for {participant['nickname']}")
         except Exception as e:
             print(f"Error updating stats: {e}")
+
+def sync_market_data():
+    """Fetch M15 candles for XAUUSD and sync to Supabase"""
+    symbol = "XAUUSD"
+    timeframe = mt5.TIMEFRAME_M15
+    count = 1000 # Last 1000 candles
+    
+    rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, count)
+    if rates is None:
+        print(f"Failed to copy rates for {symbol}")
+        return
+
+    market_data = []
+    for rate in rates:
+        # Convert timestamp to UTC
+        dt = datetime.fromtimestamp(rate['time'] - 10800, tz=timezone.utc) # Adjust UTC+3 to UTC
+        market_data.append({
+            "symbol": symbol,
+            "time": dt.isoformat(),
+            "open": float(rate['open']),
+            "high": float(rate['high']),
+            "low": float(rate['low']),
+            "close": float(rate['close']),
+            "volume": int(rate['tick_volume'])
+        })
+    
+    if market_data:
+        try:
+            data, count = supabase.table('market_data').upsert(market_data, on_conflict='symbol,time').execute()
+            print(f"Synced {len(market_data)} candles for {symbol}")
+        except Exception as e:
+            print(f"Error syncing market data: {e}")
 
 def sync_participants_from_csv():
     csv_file = 'participants.csv'
@@ -516,6 +551,12 @@ def main():
         start_time = time.time()
         print(f"\n--- Sync Cycle Start: {datetime.now().strftime('%H:%M:%S')} ---")
 
+        # Sync Market Data (XAUUSD)
+        try:
+            sync_market_data()
+        except Exception as e:
+            print(f"Error syncing market data: {e}")
+
         try:
             response = supabase.table('participants').select("*").execute()
             participants = response.data
@@ -533,9 +574,14 @@ def main():
 
         elapsed = time.time() - start_time
         print(f"--- Sync Cycle Complete in {elapsed:.2f}s ---")
+        # Sync participants
+        sync_participants_from_csv()
         
-        print(f"Sleeping for {SYNC_INTERVAL}s...")
-        time.sleep(SYNC_INTERVAL)
+        # Sync market data (once per loop or less frequently if needed)
+        sync_market_data()
+        
+        print("Sleeping for 60 seconds...")
+        time.sleep(60)
 
     mt5.shutdown()
 
