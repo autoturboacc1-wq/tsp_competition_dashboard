@@ -27,6 +27,9 @@ create table public.daily_stats (
   total_trades integer,
   avg_win numeric,
   avg_loss numeric,
+  trading_style text,
+  favorite_pair text,
+  avg_holding_time text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique(participant_id, date)
 );
@@ -43,7 +46,9 @@ create table public.trades (
   open_time timestamp with time zone not null,
   close_time timestamp with time zone not null,
   profit numeric not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+  position_id bigint not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(participant_id, position_id)
 );
 
 -- Row Level Security (RLS)

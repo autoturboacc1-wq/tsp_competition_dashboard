@@ -351,7 +351,7 @@
                         <h3
                             class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
                         >
-                            Trading Style
+                            Trading Style: {trader.stats.tradingStyle}
                         </h3>
                         <div class="space-y-3">
                             <div
@@ -362,7 +362,7 @@
                                 >
                                 <span
                                     class="font-medium text-gray-900 dark:text-white"
-                                    >XAUUSD</span
+                                    >{trader.stats.favoritePair}</span
                                 >
                             </div>
                             <div
@@ -373,7 +373,7 @@
                                 >
                                 <span
                                     class="font-medium text-gray-900 dark:text-white"
-                                    >4h 12m</span
+                                    >{trader.stats.avgHoldingTime}</span
                                 >
                             </div>
                         </div>

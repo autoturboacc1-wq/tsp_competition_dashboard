@@ -25,7 +25,7 @@ export const load: PageServerLoad = async () => {
                     stats: {
                         winRate: entry.win_rate,
                         profitFactor: entry.profit_factor,
-                        maxDrawdown: 0, // Not yet in daily_stats, maybe add later
+                        maxDrawdown: entry.max_drawdown || 0,
                         totalTrades: entry.total_trades,
                         avgWin: entry.avg_win,
                         avgLoss: entry.avg_loss
