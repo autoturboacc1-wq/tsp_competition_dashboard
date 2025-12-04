@@ -11,11 +11,22 @@ export const load: PageServerLoad = async () => {
                 *,
                 participants (nickname, avatar_url)
             `)
+            .order('date', { ascending: false })
             .order('points', { ascending: false });
 
         if (!error && data && data.length > 0) {
+            // Filter to keep only the latest entry per participant
+            const latestEntries = new Map();
+            data.forEach(entry => {
+                if (!latestEntries.has(entry.participant_id)) {
+                    latestEntries.set(entry.participant_id, entry);
+                }
+            });
+
+            const sortedData = Array.from(latestEntries.values()).sort((a, b) => b.points - a.points);
+
             return {
-                leaderboard: data.map(entry => ({
+                leaderboard: sortedData.map(entry => ({
                     id: entry.participant_id,
                     nickname: entry.participants?.nickname || 'Unknown',
                     points: entry.points,

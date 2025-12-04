@@ -340,11 +340,16 @@ def sync_participants_from_csv():
                     "server": p['server']
                 }
                 
-                if res.data:
-                    # Update existing
+                if res.data and len(res.data) > 0:
+                    # Update existing (Use the first one found)
                     pid = res.data[0]['id']
                     supabase.table('participants').update(data).eq('id', pid).execute()
-                    # print(f"Updated config for {nickname}")
+                    
+                    # If duplicates exist, delete them (Cleanup)
+                    if len(res.data) > 1:
+                        print(f"Warning: Found duplicate entries for account {account_id}. Cleaning up...")
+                        for dup in res.data[1:]:
+                            supabase.table('participants').delete().eq('id', dup['id']).execute()
                 else:
                     # Insert new
                     supabase.table('participants').insert(data).execute()
