@@ -35,7 +35,7 @@
 </script>
 
 <div
-  class="w-full overflow-x-auto shadow-xl rounded-xl border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface/50 backdrop-blur-sm"
+  class="hidden md:block w-full overflow-x-auto shadow-xl rounded-xl border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface/50 backdrop-blur-sm"
 >
   <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
     <thead
