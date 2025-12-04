@@ -29,7 +29,6 @@
     }
 </script>
 
-```
 <div class="min-h-screen bg-gray-50 dark:bg-dark-bg py-8 px-4 sm:px-6 lg:px-8">
     <div class="max-w-5xl mx-auto">
         <!-- Back Button -->
@@ -270,7 +269,9 @@
                                     >
                                     <span
                                         class="font-medium text-gray-900 dark:text-white"
-                                        >{trader.stats.winRate}%</span
+                                        >{Number(trader.stats.winRate).toFixed(
+                                            2,
+                                        )}%</span
                                     >
                                 </div>
                                 <div

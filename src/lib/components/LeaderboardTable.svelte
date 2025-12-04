@@ -18,11 +18,11 @@
 
   function getRankStyle(rank: number): string {
     if (rank === 1)
-      return "bg-yellow-100 dark:bg-gradient-to-r dark:from-yellow-500/20 dark:to-yellow-600/10 border-yellow-400 dark:border-yellow-500/50 text-yellow-900 dark:text-yellow-200 shadow-sm dark:shadow-yellow-500/10";
+      return "bg-yellow-100 dark:bg-yellow-400 border-yellow-400 dark:border-yellow-500 text-yellow-900 dark:text-black shadow-sm dark:shadow-yellow-500/50 font-bold";
     if (rank === 2)
-      return "bg-gray-100 dark:bg-gradient-to-r dark:from-gray-600/30 dark:to-gray-700/20 border-gray-400 dark:border-gray-400 text-gray-900 dark:text-white";
+      return "bg-gray-100 dark:bg-gray-300 border-gray-400 dark:border-gray-400 text-gray-900 dark:text-black font-bold";
     if (rank === 3)
-      return "bg-orange-100 dark:bg-gradient-to-r dark:from-orange-600/20 dark:to-orange-700/10 border-orange-400 dark:border-orange-500 text-orange-900 dark:text-orange-200";
+      return "bg-orange-100 dark:bg-orange-400 border-orange-400 dark:border-orange-500 text-orange-900 dark:text-black font-bold";
     return "bg-white dark:bg-dark-surface border-gray-200 dark:border-dark-border text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-dark-border/50";
   }
 
@@ -67,10 +67,10 @@
             <td class="px-6 py-4 font-bold whitespace-nowrap">
               <span class="text-lg">{getRankIcon(rank)}</span>
             </td>
-            <td class="px-6 py-4 font-medium whitespace-nowrap dark:text-white">
+            <td class="px-6 py-4 font-medium whitespace-nowrap">
               {entry.nickname}
             </td>
-            <td class="px-6 py-4 text-right font-bold dark:text-white">
+            <td class="px-6 py-4 text-right font-bold">
               {entry.points.toLocaleString()}
             </td>
             <td
