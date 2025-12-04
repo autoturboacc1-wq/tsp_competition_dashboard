@@ -23,6 +23,8 @@ export type TraderStats = {
   avgHoldingTime?: string;
   avgHoldingTimeWin?: string;
   avgHoldingTimeLoss?: string;
+  maxConsecutiveWins?: number;
+  maxConsecutiveLosses?: number;
 };
 
 export type LeaderboardEntry = {
@@ -82,7 +84,9 @@ export const leaderboardData: LeaderboardEntry[] = [
       favoritePair: 'XAUUSD',
       avgHoldingTime: '2h 30m',
       avgHoldingTimeWin: '1h 15m',
-      avgHoldingTimeLoss: '3h 45m'
+      avgHoldingTimeLoss: '3h 45m',
+      maxConsecutiveWins: 5,
+      maxConsecutiveLosses: 2
     },
     equityCurve: generateEquity(10000, 20),
     history: generateHistory(10)

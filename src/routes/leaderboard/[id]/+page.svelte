@@ -255,6 +255,37 @@
                                 </div>
                             </div>
 
+                            <div class="grid grid-cols-2 gap-4">
+                                <div
+                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                >
+                                    <div
+                                        class="text-xs text-gray-500 dark:text-gray-300"
+                                    >
+                                        Max Consec. Wins
+                                    </div>
+                                    <div
+                                        class="text-xl font-bold text-green-600 dark:text-green-400"
+                                    >
+                                        {trader.stats.maxConsecutiveWins}
+                                    </div>
+                                </div>
+                                <div
+                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                >
+                                    <div
+                                        class="text-xs text-gray-500 dark:text-gray-300"
+                                    >
+                                        Max Consec. Losses
+                                    </div>
+                                    <div
+                                        class="text-xl font-bold text-red-600 dark:text-red-400"
+                                    >
+                                        {trader.stats.maxConsecutiveLosses}
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="grid grid-cols-2 gap-4 pt-2">
                                 <div
                                     class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"

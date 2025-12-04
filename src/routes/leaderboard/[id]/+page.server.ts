@@ -60,7 +60,9 @@ export const load: PageServerLoad = async ({ params }) => {
                         favoritePair: stats?.favorite_pair || '-',
                         avgHoldingTime: stats?.avg_holding_time || '-',
                         avgHoldingTimeWin: stats?.avg_holding_time_win || '-',
-                        avgHoldingTimeLoss: stats?.avg_holding_time_loss || '-'
+                        avgHoldingTimeLoss: stats?.avg_holding_time_loss || '-',
+                        maxConsecutiveWins: stats?.max_consecutive_wins || 0,
+                        maxConsecutiveLosses: stats?.max_consecutive_losses || 0
                     },
                     equityCurve: equityData?.map(d => d.equity) || [],
                     history: history?.map(h => ({

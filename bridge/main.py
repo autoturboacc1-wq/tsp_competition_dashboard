@@ -266,6 +266,30 @@ def sync_participant(participant):
         loss_duration = 0
         loss_duration_count = 0
         
+        # Consecutive Stats
+        # We need to sort positions by close time to calculate consecutive wins/losses accurately
+        sorted_positions = sorted(
+            [p for p in positions.values() if p['close_time'] > 0],
+            key=lambda x: x['close_time']
+        )
+        
+        max_consecutive_wins = 0
+        max_consecutive_losses = 0
+        current_consecutive_wins = 0
+        current_consecutive_losses = 0
+        
+        for pos in sorted_positions:
+            if pos['profit'] > 0:
+                current_consecutive_wins += 1
+                current_consecutive_losses = 0
+                if current_consecutive_wins > max_consecutive_wins:
+                    max_consecutive_wins = current_consecutive_wins
+            elif pos['profit'] < 0:
+                current_consecutive_losses += 1
+                current_consecutive_wins = 0
+                if current_consecutive_losses > max_consecutive_losses:
+                    max_consecutive_losses = current_consecutive_losses
+        
         for pid, pos in positions.items():
             if pos['open_time'] > 0 and pos['close_time'] > 0:
                 duration = pos['close_time'] - pos['open_time']
@@ -340,7 +364,9 @@ def sync_participant(participant):
             "win_rate_buy": round(win_rate_buy, 2),
             "win_rate_sell": round(win_rate_sell, 2),
             "avg_holding_time_win": avg_holding_time_win_str,
-            "avg_holding_time_loss": avg_holding_time_loss_str
+            "avg_holding_time_loss": avg_holding_time_loss_str,
+            "max_consecutive_wins": max_consecutive_wins,
+            "max_consecutive_losses": max_consecutive_losses
         }
         
         print(f"Calculated Stats for {participant['nickname']}: WinRate={win_rate:.1f}%, HoldingTime={avg_holding_time_str}, Trades={total_trades}")
