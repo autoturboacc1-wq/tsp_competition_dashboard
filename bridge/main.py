@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
 import requests
 from collections import Counter
+import csv
 
 # Load environment variables
 load_dotenv()
@@ -303,7 +304,62 @@ def sync_participant(participant):
         except Exception as e:
             print(f"Error updating stats: {e}")
 
+def sync_participants_from_csv():
+    csv_file = 'participants.csv'
+    if not os.path.exists(csv_file):
+        print(f"Warning: {csv_file} not found. Skipping CSV sync.")
+        return
+
+    print(f"Syncing participants from {csv_file} to Supabase...")
+    
+    try:
+        with open(csv_file, mode='r', encoding='utf-8-sig') as f:
+            reader = csv.DictReader(f)
+            participants = list(reader)
+            
+            if not participants:
+                print("No participants found in CSV.")
+                return
+
+            # Prepare data for upsert
+            # We need to handle this carefully. Supabase upsert works best if we have the primary key.
+            # But here we might only have account_id as a unique identifier from the user's perspective.
+            # We'll query existing participants by account_id to get their IDs if they exist.
+            
+            for p in participants:
+                account_id = p['account_id']
+                nickname = p['nickname']
+                
+                # Check if exists
+                res = supabase.table('participants').select("id").eq('account_id', account_id).execute()
+                
+                data = {
+                    "nickname": nickname,
+                    "account_id": account_id,
+                    "investor_password": p['investor_password'],
+                    "server": p['server']
+                }
+                
+                if res.data:
+                    # Update existing
+                    pid = res.data[0]['id']
+                    supabase.table('participants').update(data).eq('id', pid).execute()
+                    # print(f"Updated config for {nickname}")
+                else:
+                    # Insert new
+                    supabase.table('participants').insert(data).execute()
+                    print(f"Registered new participant: {nickname}")
+                    
+            print(f"Successfully synced {len(participants)} participants from CSV.")
+
+    except Exception as e:
+        print(f"Error syncing participants from CSV: {e}")
+
+
 def main():
+    # 0. Sync Participants from CSV first
+    sync_participants_from_csv()
+
     if not init_mt5():
         return
 

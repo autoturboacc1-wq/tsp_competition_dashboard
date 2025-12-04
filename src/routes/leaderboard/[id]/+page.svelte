@@ -240,7 +240,9 @@
                                             >
                                                 {new Date(
                                                     trade.closeTime,
-                                                ).toLocaleTimeString()}
+                                                ).toLocaleTimeString("th-TH", {
+                                                    timeZone: "Asia/Bangkok",
+                                                })}
                                             </td>
                                         </tr>
                                     {/each}
