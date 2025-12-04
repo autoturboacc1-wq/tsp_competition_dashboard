@@ -21,6 +21,8 @@ export type TraderStats = {
   tradingStyle?: string;
   favoritePair?: string;
   avgHoldingTime?: string;
+  avgHoldingTimeWin?: string;
+  avgHoldingTimeLoss?: string;
 };
 
 export type LeaderboardEntry = {
@@ -78,7 +80,9 @@ export const leaderboardData: LeaderboardEntry[] = [
       winRateSell: 70,
       tradingStyle: 'Intraday',
       favoritePair: 'XAUUSD',
-      avgHoldingTime: '2h 30m'
+      avgHoldingTime: '2h 30m',
+      avgHoldingTimeWin: '1h 15m',
+      avgHoldingTimeLoss: '3h 45m'
     },
     equityCurve: generateEquity(10000, 20),
     history: generateHistory(10)

@@ -34,6 +34,8 @@ create table public.daily_stats (
   worst_trade numeric,
   win_rate_buy numeric,
   win_rate_sell numeric,
+  avg_holding_time_win text,
+  avg_holding_time_loss text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique(participant_id, date)
 );

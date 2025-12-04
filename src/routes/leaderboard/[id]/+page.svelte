@@ -380,6 +380,28 @@
                                     >{trader.stats.avgHoldingTime}</span
                                 >
                             </div>
+                            <div
+                                class="flex items-center justify-between text-sm"
+                            >
+                                <span class="text-gray-600 dark:text-gray-300"
+                                    >Avg Hold (Win)</span
+                                >
+                                <span
+                                    class="font-medium text-green-600 dark:text-green-400"
+                                    >{trader.stats.avgHoldingTimeWin}</span
+                                >
+                            </div>
+                            <div
+                                class="flex items-center justify-between text-sm"
+                            >
+                                <span class="text-gray-600 dark:text-gray-300"
+                                    >Avg Hold (Loss)</span
+                                >
+                                <span
+                                    class="font-medium text-red-600 dark:text-red-400"
+                                    >{trader.stats.avgHoldingTimeLoss}</span
+                                >
+                            </div>
                         </div>
                     </div>
                 </div>

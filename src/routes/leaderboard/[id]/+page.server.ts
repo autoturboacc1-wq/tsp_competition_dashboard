@@ -58,7 +58,9 @@ export const load: PageServerLoad = async ({ params }) => {
                         winRateSell: stats?.win_rate_sell || 0,
                         tradingStyle: stats?.trading_style || 'Unknown',
                         favoritePair: stats?.favorite_pair || '-',
-                        avgHoldingTime: stats?.avg_holding_time || '-'
+                        avgHoldingTime: stats?.avg_holding_time || '-',
+                        avgHoldingTimeWin: stats?.avg_holding_time_win || '-',
+                        avgHoldingTimeLoss: stats?.avg_holding_time_loss || '-'
                     },
                     equityCurve: equityData?.map(d => d.equity) || [],
                     history: history?.map(h => ({

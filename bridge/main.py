@@ -260,14 +260,29 @@ def sync_participant(participant):
         # Holding Time
         total_duration = 0
         duration_count = 0
+        
+        win_duration = 0
+        win_duration_count = 0
+        loss_duration = 0
+        loss_duration_count = 0
+        
         for pid, pos in positions.items():
             if pos['open_time'] > 0 and pos['close_time'] > 0:
                 duration = pos['close_time'] - pos['open_time']
                 if duration >= 0:
                     total_duration += duration
                     duration_count += 1
+                    
+                    if pos['profit'] > 0:
+                        win_duration += duration
+                        win_duration_count += 1
+                    elif pos['profit'] < 0:
+                        loss_duration += duration
+                        loss_duration_count += 1
         
         avg_holding_seconds = (total_duration / duration_count) if duration_count > 0 else 0
+        avg_win_holding_seconds = (win_duration / win_duration_count) if win_duration_count > 0 else 0
+        avg_loss_holding_seconds = (loss_duration / loss_duration_count) if loss_duration_count > 0 else 0
         
         # Format Holding Time
         def format_duration(seconds):
@@ -279,6 +294,8 @@ def sync_participant(participant):
             return f"{int(m)}m {int(s)}s"
             
         avg_holding_time_str = format_duration(avg_holding_seconds)
+        avg_holding_time_win_str = format_duration(avg_win_holding_seconds)
+        avg_holding_time_loss_str = format_duration(avg_loss_holding_seconds)
         
         # Trading Style
         # Scalping < 30m, Intraday < 24h, Swing > 24h
@@ -321,7 +338,9 @@ def sync_participant(participant):
             "best_trade": float(best_trade) if best_trade != -float('inf') else 0,
             "worst_trade": float(worst_trade) if worst_trade != float('inf') else 0,
             "win_rate_buy": round(win_rate_buy, 2),
-            "win_rate_sell": round(win_rate_sell, 2)
+            "win_rate_sell": round(win_rate_sell, 2),
+            "avg_holding_time_win": avg_holding_time_win_str,
+            "avg_holding_time_loss": avg_holding_time_loss_str
         }
         
         print(f"Calculated Stats for {participant['nickname']}: WinRate={win_rate:.1f}%, HoldingTime={avg_holding_time_str}, Trades={total_trades}")
