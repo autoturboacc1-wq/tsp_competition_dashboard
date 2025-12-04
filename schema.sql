@@ -38,6 +38,12 @@ create table public.daily_stats (
   avg_holding_time_loss text,
   max_consecutive_wins integer,
   max_consecutive_losses integer,
+  session_asian_profit numeric,
+  session_london_profit numeric,
+  session_newyork_profit numeric,
+  session_asian_win_rate numeric,
+  session_london_win_rate numeric,
+  session_newyork_win_rate numeric,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique(participant_id, date)
 );

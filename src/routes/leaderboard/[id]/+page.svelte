@@ -380,6 +380,159 @@
                         </div>
                     </div>
 
+                    <!-- Session Performance -->
+                    <div
+                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 mb-6"
+                    >
+                        <h3
+                            class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+                        >
+                            Session Performance
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Asian Session -->
+                            <div
+                                class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg border border-gray-100 dark:border-dark-border"
+                            >
+                                <div class="flex flex-col mb-2 h-8 justify-end">
+                                    <span
+                                        class="text-xs font-semibold text-gray-500 dark:text-gray-400"
+                                        >ASIA</span
+                                    >
+                                </div>
+                                <div class="flex flex-col mb-1">
+                                    <span
+                                        class="text-sm text-gray-600 dark:text-gray-300"
+                                        >Win Rate</span
+                                    >
+                                    <span
+                                        class="font-bold text-gray-900 dark:text-white"
+                                        >{Number(
+                                            trader.stats.sessionAsianWinRate,
+                                        ).toFixed(1)}%</span
+                                    >
+                                </div>
+                                <div
+                                    class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1 mb-3"
+                                >
+                                    <div
+                                        class="bg-blue-500 h-1 rounded-full"
+                                        style="width: {trader.stats
+                                            .sessionAsianWinRate}%"
+                                    ></div>
+                                </div>
+                                <div class="flex justify-end items-center">
+                                    <span
+                                        class="font-bold {trader.stats
+                                            .sessionAsianProfit >= 0
+                                            ? 'text-green-600 dark:text-green-400'
+                                            : 'text-red-600 dark:text-red-400'}"
+                                    >
+                                        {trader.stats.sessionAsianProfit >= 0
+                                            ? "+"
+                                            : ""}{Number(
+                                            trader.stats.sessionAsianProfit,
+                                        ).toFixed(2)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- London Session -->
+                            <div
+                                class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg border border-gray-100 dark:border-dark-border"
+                            >
+                                <div class="flex flex-col mb-2 h-8 justify-end">
+                                    <span
+                                        class="text-xs font-semibold text-gray-500 dark:text-gray-400"
+                                        >LONDON</span
+                                    >
+                                </div>
+                                <div class="flex flex-col mb-1">
+                                    <span
+                                        class="text-sm text-gray-600 dark:text-gray-300"
+                                        >Win Rate</span
+                                    >
+                                    <span
+                                        class="font-bold text-gray-900 dark:text-white"
+                                        >{Number(
+                                            trader.stats.sessionLondonWinRate,
+                                        ).toFixed(1)}%</span
+                                    >
+                                </div>
+                                <div
+                                    class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1 mb-3"
+                                >
+                                    <div
+                                        class="bg-purple-500 h-1 rounded-full"
+                                        style="width: {trader.stats
+                                            .sessionLondonWinRate}%"
+                                    ></div>
+                                </div>
+                                <div class="flex justify-end items-center">
+                                    <span
+                                        class="font-bold {trader.stats
+                                            .sessionLondonProfit >= 0
+                                            ? 'text-green-600 dark:text-green-400'
+                                            : 'text-red-600 dark:text-red-400'}"
+                                    >
+                                        {trader.stats.sessionLondonProfit >= 0
+                                            ? "+"
+                                            : ""}{Number(
+                                            trader.stats.sessionLondonProfit,
+                                        ).toFixed(2)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- New York Session -->
+                            <div
+                                class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg border border-gray-100 dark:border-dark-border"
+                            >
+                                <div class="flex flex-col mb-2 h-8 justify-end">
+                                    <span
+                                        class="text-xs font-semibold text-gray-500 dark:text-gray-400"
+                                        >NEW YORK</span
+                                    >
+                                </div>
+                                <div class="flex flex-col mb-1">
+                                    <span
+                                        class="text-sm text-gray-600 dark:text-gray-300"
+                                        >Win Rate</span
+                                    >
+                                    <span
+                                        class="font-bold text-gray-900 dark:text-white"
+                                        >{Number(
+                                            trader.stats.sessionNewYorkWinRate,
+                                        ).toFixed(1)}%</span
+                                    >
+                                </div>
+                                <div
+                                    class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1 mb-3"
+                                >
+                                    <div
+                                        class="bg-orange-500 h-1 rounded-full"
+                                        style="width: {trader.stats
+                                            .sessionNewYorkWinRate}%"
+                                    ></div>
+                                </div>
+                                <div class="flex justify-end items-center">
+                                    <span
+                                        class="font-bold {trader.stats
+                                            .sessionNewYorkProfit >= 0
+                                            ? 'text-green-600 dark:text-green-400'
+                                            : 'text-red-600 dark:text-red-400'}"
+                                    >
+                                        {trader.stats.sessionNewYorkProfit >= 0
+                                            ? "+"
+                                            : ""}{Number(
+                                            trader.stats.sessionNewYorkProfit,
+                                        ).toFixed(2)}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div
                         class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6"
                     >

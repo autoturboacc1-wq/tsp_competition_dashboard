@@ -62,7 +62,13 @@ export const load: PageServerLoad = async ({ params }) => {
                         avgHoldingTimeWin: stats?.avg_holding_time_win || '-',
                         avgHoldingTimeLoss: stats?.avg_holding_time_loss || '-',
                         maxConsecutiveWins: stats?.max_consecutive_wins || 0,
-                        maxConsecutiveLosses: stats?.max_consecutive_losses || 0
+                        maxConsecutiveLosses: stats?.max_consecutive_losses || 0,
+                        sessionAsianProfit: stats?.session_asian_profit || 0,
+                        sessionLondonProfit: stats?.session_london_profit || 0,
+                        sessionNewYorkProfit: stats?.session_newyork_profit || 0,
+                        sessionAsianWinRate: stats?.session_asian_win_rate || 0,
+                        sessionLondonWinRate: stats?.session_london_win_rate || 0,
+                        sessionNewYorkWinRate: stats?.session_newyork_win_rate || 0
                     },
                     equityCurve: equityData?.map(d => d.equity) || [],
                     history: history?.map(h => ({

@@ -25,6 +25,12 @@ export type TraderStats = {
   avgHoldingTimeLoss?: string;
   maxConsecutiveWins?: number;
   maxConsecutiveLosses?: number;
+  sessionAsianProfit?: number;
+  sessionLondonProfit?: number;
+  sessionNewYorkProfit?: number;
+  sessionAsianWinRate?: number;
+  sessionLondonWinRate?: number;
+  sessionNewYorkWinRate?: number;
 };
 
 export type LeaderboardEntry = {
@@ -86,7 +92,13 @@ export const leaderboardData: LeaderboardEntry[] = [
       avgHoldingTimeWin: '1h 15m',
       avgHoldingTimeLoss: '3h 45m',
       maxConsecutiveWins: 5,
-      maxConsecutiveLosses: 2
+      maxConsecutiveLosses: 2,
+      sessionAsianProfit: 150.50,
+      sessionLondonProfit: 500.00,
+      sessionNewYorkProfit: -200.00,
+      sessionAsianWinRate: 60,
+      sessionLondonWinRate: 75,
+      sessionNewYorkWinRate: 40
     },
     equityCurve: generateEquity(10000, 20),
     history: generateHistory(10)

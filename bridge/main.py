@@ -290,6 +290,42 @@ def sync_participant(participant):
                 if current_consecutive_losses > max_consecutive_losses:
                     max_consecutive_losses = current_consecutive_losses
         
+        # Session Stats
+        # Asian: 00:00 - 08:00 UTC
+        # London: 07:00 - 16:00 UTC
+        # New York: 12:00 - 21:00 UTC
+        
+        session_stats = {
+            'asian': {'profit': 0, 'wins': 0, 'total': 0},
+            'london': {'profit': 0, 'wins': 0, 'total': 0},
+            'newyork': {'profit': 0, 'wins': 0, 'total': 0}
+        }
+        
+        for pid, pos in positions.items():
+            if pos['open_time'] > 0 and pos['close_time'] > 0:
+                # Convert timestamp to hour (UTC)
+                open_hour = datetime.utcfromtimestamp(pos['open_time']).hour
+                profit = pos['profit']
+                is_win = profit > 0
+                
+                # Asian Session (0-8)
+                if 0 <= open_hour < 8:
+                    session_stats['asian']['profit'] += profit
+                    session_stats['asian']['total'] += 1
+                    if is_win: session_stats['asian']['wins'] += 1
+                
+                # London Session (7-16)
+                if 7 <= open_hour < 16:
+                    session_stats['london']['profit'] += profit
+                    session_stats['london']['total'] += 1
+                    if is_win: session_stats['london']['wins'] += 1
+                
+                # New York Session (12-21)
+                if 12 <= open_hour < 21:
+                    session_stats['newyork']['profit'] += profit
+                    session_stats['newyork']['total'] += 1
+                    if is_win: session_stats['newyork']['wins'] += 1
+
         for pid, pos in positions.items():
             if pos['open_time'] > 0 and pos['close_time'] > 0:
                 duration = pos['close_time'] - pos['open_time']
@@ -366,7 +402,13 @@ def sync_participant(participant):
             "avg_holding_time_win": avg_holding_time_win_str,
             "avg_holding_time_loss": avg_holding_time_loss_str,
             "max_consecutive_wins": max_consecutive_wins,
-            "max_consecutive_losses": max_consecutive_losses
+            "max_consecutive_losses": max_consecutive_losses,
+            "session_asian_profit": round(session_stats['asian']['profit'], 2),
+            "session_london_profit": round(session_stats['london']['profit'], 2),
+            "session_newyork_profit": round(session_stats['newyork']['profit'], 2),
+            "session_asian_win_rate": round((session_stats['asian']['wins'] / session_stats['asian']['total'] * 100), 2) if session_stats['asian']['total'] > 0 else 0,
+            "session_london_win_rate": round((session_stats['london']['wins'] / session_stats['london']['total'] * 100), 2) if session_stats['london']['total'] > 0 else 0,
+            "session_newyork_win_rate": round((session_stats['newyork']['wins'] / session_stats['newyork']['total'] * 100), 2) if session_stats['newyork']['total'] > 0 else 0
         }
         
         print(f"Calculated Stats for {participant['nickname']}: WinRate={win_rate:.1f}%, HoldingTime={avg_holding_time_str}, Trades={total_trades}")
