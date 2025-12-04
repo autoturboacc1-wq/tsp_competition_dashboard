@@ -66,7 +66,25 @@ export const load: PageServerLoad = async ({ params }) => {
                         closeTime: h.close_time
                     })) || []
                 },
-                rank: 0 // Rank calculation requires fetching all participants, skipping for now
+                rank: await (async () => {
+                    if (!stats) return 0;
+
+                    // Fetch all stats for the same date to calculate rank
+                    const { data: allStats } = await supabase
+                        .from('daily_stats')
+                        .select('points, profit')
+                        .eq('date', stats.date);
+
+                    if (!allStats) return 0;
+
+                    // Count how many have better score (Points > OR Points == AND Profit >)
+                    const betterStats = allStats.filter(s =>
+                        s.points > stats.points ||
+                        (s.points === stats.points && s.profit > stats.profit)
+                    );
+
+                    return betterStats.length + 1;
+                })()
             };
         }
     } catch (e) {
