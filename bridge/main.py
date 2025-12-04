@@ -75,8 +75,18 @@ def sync_participant(participant):
 
     # 3. Get Trade History (Last 30 days for safety, or all time)
     from_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
-    to_date = datetime.now(timezone.utc)
+    # Add 1 day to current time to avoid timezone mismatches (server time vs local time)
+    to_date = datetime.now(timezone.utc) + timedelta(days=1)
     
+    print(f"Fetching history from {from_date} to {to_date}...")
+    
+    # Debug: Check positions (Open trades)
+    positions = mt5.positions_get()
+    if positions:
+        print(f"DEBUG: Found {len(positions)} open positions on account.")
+    else:
+        print("DEBUG: No open positions found.")
+
     history_deals = mt5.history_deals_get(from_date, to_date)
     
     if history_deals is None:

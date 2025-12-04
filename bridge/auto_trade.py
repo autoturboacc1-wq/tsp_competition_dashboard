@@ -44,7 +44,7 @@ def get_participants():
 
 def open_random_trade(symbol, volume, points):
     # Check symbol (Try variants if not found)
-    symbol_variants = [symbol, symbol + "m", symbol + "c", "GOLD", "GOLDm"]
+    symbol_variants = [symbol, symbol + "m", symbol + "c", symbol + ".s", "GOLD", "GOLDm"]
     found_symbol = None
     
     for s in symbol_variants:
@@ -84,6 +84,19 @@ def open_random_trade(symbol, volume, points):
         tp = price - points * point
         type_str = "SELL"
 
+    # Determine filling mode
+    # Define constants manually as they might be missing in some mt5 versions
+    SYMBOL_FILLING_FOK = 1
+    SYMBOL_FILLING_IOC = 2
+
+    filling_mode = mt5.ORDER_FILLING_FOK
+    if symbol_info.filling_mode & SYMBOL_FILLING_IOC:
+        filling_mode = mt5.ORDER_FILLING_IOC
+    elif symbol_info.filling_mode & SYMBOL_FILLING_FOK:
+        filling_mode = mt5.ORDER_FILLING_FOK
+    else:
+        filling_mode = mt5.ORDER_FILLING_RETURN
+
     request = {
         "action": mt5.TRADE_ACTION_DEAL,
         "symbol": symbol,
@@ -96,7 +109,7 @@ def open_random_trade(symbol, volume, points):
         "magic": 123456,
         "comment": "AutoTrade Script",
         "type_time": mt5.ORDER_TIME_GTC,
-        "type_filling": mt5.ORDER_FILLING_IOC,
+        "type_filling": filling_mode,
     }
 
     # Send order
