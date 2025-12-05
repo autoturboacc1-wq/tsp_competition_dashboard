@@ -2,6 +2,7 @@
     import { onMount, onDestroy } from "svelte";
     import { page } from "$app/stores";
     import { createChart, ColorType } from "lightweight-charts";
+    import EquityChart from "$lib/components/EquityChart.svelte";
     import type { PageData } from "./$types";
 
     export let data: PageData;
@@ -30,44 +31,7 @@
         return `#${rank}`;
     }
 
-    // Chart Interaction
-    let chartContainer: HTMLDivElement;
-    let hoverIndex: number | null = null;
-    let hoverX = 0;
-    let hoverY = 0;
-
-    function handleMouseMove(e: MouseEvent) {
-        if (!chartContainer || !trader.equityCurve.length) return;
-        const rect = chartContainer.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const width = rect.width;
-
-        // Find closest data point
-        const index = Math.min(
-            Math.max(
-                Math.round((x / width) * (trader.equityCurve.length - 1)),
-                0,
-            ),
-            trader.equityCurve.length - 1,
-        );
-
-        hoverIndex = index;
-
-        // Calculate Y position for the tooltip
-        const max = Math.max(...trader.equityCurve);
-        const min = Math.min(...trader.equityCurve);
-        const range = max - min || 1;
-        const val = trader.equityCurve[index];
-        const normalizedY = 1 - (val - min) / range;
-
-        hoverX = (index / (trader.equityCurve.length - 1)) * width;
-        hoverY = normalizedY * rect.height;
-    }
-
-    function handleMouseLeave() {
-        hoverIndex = null;
-    }
-    // Chart Modal State
+    // Chart Modal State (for trade chart, not equity)
     let showChartModal = false;
     let selectedTrade: any = null;
     let chartContainerRef: HTMLDivElement;
@@ -549,168 +513,10 @@
                     <div
                         class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6"
                     >
-                        <h3
-                            class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
-                        >
-                            Equity Growth
-                        </h3>
-                        <div
-                            bind:this={chartContainer}
-                            on:mousemove={handleMouseMove}
-                            on:mouseleave={handleMouseLeave}
-                            role="application"
-                            class="h-64 bg-gray-50 dark:bg-dark-bg/50 rounded-lg flex items-end justify-between px-2 pb-2 overflow-hidden relative cursor-crosshair group"
-                        >
-                            <!-- Enhanced SVG Chart -->
-                            <svg
-                                class="w-full h-full absolute inset-0"
-                                preserveAspectRatio="none"
-                            >
-                                <defs>
-                                    <linearGradient
-                                        id="lineGradient"
-                                        x1="0"
-                                        y1="0"
-                                        x2="1"
-                                        y2="0"
-                                    >
-                                        <stop
-                                            offset="0%"
-                                            stop-color="#3b82f6"
-                                        />
-                                        <stop
-                                            offset="100%"
-                                            stop-color="#8b5cf6"
-                                        />
-                                    </linearGradient>
-                                    <linearGradient
-                                        id="areaGradient"
-                                        x1="0"
-                                        y1="0"
-                                        x2="0"
-                                        y2="1"
-                                    >
-                                        <stop
-                                            offset="0%"
-                                            stop-color="#3b82f6"
-                                            stop-opacity="0.2"
-                                        />
-                                        <stop
-                                            offset="100%"
-                                            stop-color="#3b82f6"
-                                            stop-opacity="0"
-                                        />
-                                    </linearGradient>
-                                    <filter
-                                        id="glow"
-                                        x="-20%"
-                                        y="-20%"
-                                        width="140%"
-                                        height="140%"
-                                    >
-                                        <feGaussianBlur
-                                            stdDeviation="2"
-                                            result="coloredBlur"
-                                        />
-                                        <feMerge>
-                                            <feMergeNode in="coloredBlur" />
-                                            <feMergeNode in="SourceGraphic" />
-                                        </feMerge>
-                                    </filter>
-                                </defs>
-
-                                <!-- Area Fill -->
-                                <polygon
-                                    fill="url(#areaGradient)"
-                                    points={`0,100 ${trader.equityCurve
-                                        .map((val, i) => {
-                                            const max = Math.max(
-                                                ...trader.equityCurve,
-                                            );
-                                            const min = Math.min(
-                                                ...trader.equityCurve,
-                                            );
-                                            const range = max - min || 1;
-                                            const x =
-                                                (i /
-                                                    (trader.equityCurve.length -
-                                                        1)) *
-                                                100;
-                                            const y =
-                                                100 -
-                                                ((val - min) / range) * 80 -
-                                                10; // Add padding
-                                            return `${x},${y}`;
-                                        })
-                                        .join(" ")} 100,100`}
-                                />
-
-                                <!-- Line Path -->
-                                <polyline
-                                    fill="none"
-                                    stroke="url(#lineGradient)"
-                                    stroke-width="3"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    filter="url(#glow)"
-                                    points={trader.equityCurve
-                                        .map((val, i) => {
-                                            const max = Math.max(
-                                                ...trader.equityCurve,
-                                            );
-                                            const min = Math.min(
-                                                ...trader.equityCurve,
-                                            );
-                                            const range = max - min || 1;
-                                            const x =
-                                                (i /
-                                                    (trader.equityCurve.length -
-                                                        1)) *
-                                                100;
-                                            const y =
-                                                100 -
-                                                ((val - min) / range) * 80 -
-                                                10; // Add padding
-                                            return `${x},${y}`;
-                                        })
-                                        .join(" ")}
-                                    vector-effect="non-scaling-stroke"
-                                />
-                            </svg>
-
-                            <!-- Interactive Elements -->
-                            {#if hoverIndex !== null}
-                                <!-- Vertical Line -->
-                                <div
-                                    class="absolute top-0 bottom-0 w-px bg-gray-400/50 border-r border-dashed border-gray-400 dark:border-gray-500 pointer-events-none"
-                                    style="left: {hoverX}px;"
-                                ></div>
-
-                                <!-- Tooltip Point -->
-                                <div
-                                    class="absolute w-3 h-3 bg-white dark:bg-dark-surface border-2 border-blue-500 rounded-full shadow-lg transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10"
-                                    style="left: {hoverX}px; top: {hoverY}px;"
-                                ></div>
-
-                                <!-- Tooltip Box -->
-                                <div
-                                    class="absolute bg-gray-900/90 text-white text-xs rounded-lg py-1 px-2 shadow-xl transform -translate-x-1/2 pointer-events-none z-20 whitespace-nowrap backdrop-blur-sm"
-                                    style="left: {hoverX}px; top: {Math.max(
-                                        0,
-                                        hoverY - 40,
-                                    )}px;"
-                                >
-                                    <div class="font-bold">
-                                        ${formatMoney(
-                                            trader.equityCurve[hoverIndex],
-                                        )}
-                                    </div>
-                                    <div class="text-gray-400 text-[10px]">
-                                        Trade #{hoverIndex + 1}
-                                    </div>
-                                </div>
-                            {/if}
-                        </div>
+                        <EquityChart
+                            equitySnapshots={trader.equitySnapshots || []}
+                            equityCurve={trader.equityCurve || []}
+                        />
                     </div>
                 </div>
 

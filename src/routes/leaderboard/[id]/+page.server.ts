@@ -32,12 +32,23 @@ export const load: PageServerLoad = async ({ params }) => {
                 .order('close_time', { ascending: false })
                 .limit(50);
 
-            // Fetch equity curve (all daily stats)
+            // Fetch equity curve (all daily stats - for fallback)
             const { data: equityData } = await supabase
                 .from('daily_stats')
-                .select('equity')
+                .select('equity, date')
                 .eq('participant_id', id)
                 .order('date', { ascending: true });
+
+            // Fetch detailed equity snapshots (MyFxBook-style)
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const { data: equitySnapshots } = await supabase
+                .from('equity_snapshots')
+                .select('timestamp, balance, equity, floating_pl')
+                .eq('participant_id', id)
+                .gte('timestamp', thirtyDaysAgo.toISOString())
+                .order('timestamp', { ascending: true });
 
             // Fetch daily history for heatmap
             const { data: dailyStats } = await supabase
@@ -95,6 +106,13 @@ export const load: PageServerLoad = async ({ params }) => {
                     dailyHistory: dailyStats?.map(d => ({
                         date: d.date,
                         profit: d.profit
+                    })) || [],
+                    // MyFxBook-style detailed equity curve
+                    equitySnapshots: equitySnapshots?.map(s => ({
+                        time: new Date(s.timestamp).getTime() / 1000,
+                        balance: s.balance,
+                        equity: s.equity,
+                        floatingPL: s.floating_pl || 0
                     })) || []
                 },
                 rank: await (async () => {

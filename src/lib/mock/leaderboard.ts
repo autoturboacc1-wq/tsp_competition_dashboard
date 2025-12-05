@@ -43,6 +43,13 @@ export type LeaderboardEntry = {
   equityCurve: number[]; // Array of balance points for chart
   history: TradeHistory[];
   dailyHistory?: { date: string; profit: number }[];
+  // MyFxBook-style detailed equity snapshots
+  equitySnapshots?: Array<{
+    time: number;
+    balance: number;
+    equity: number;
+    floatingPL: number;
+  }>;
 };
 
 // Helper to generate random history

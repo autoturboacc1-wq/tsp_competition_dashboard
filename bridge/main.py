@@ -5,6 +5,13 @@ from datetime import datetime, timezone, timedelta
 from collections import Counter
 import csv
 from core import init_mt5, get_supabase_client, load_env, send_telegram_message
+from equity_service import (
+    should_record_snapshot, 
+    record_equity_snapshot, 
+    calculate_equity_growth,
+    calculate_total_lots,
+    cleanup_old_snapshots
+)
 
 # Load environment variables
 load_env()
@@ -37,6 +44,10 @@ def sync_participant(participant):
     if account_info is None:
         print(f"Failed to get account info, error code: {mt5.last_error()}")
         return
+
+    # 2.5. Record Equity Snapshot (every 5 minutes)
+    if should_record_snapshot(participant['id']):
+        record_equity_snapshot(participant['id'], account_info)
 
     # 3. Get Trade History (Last 30 days for safety, or all time)
     from_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
@@ -387,7 +398,11 @@ def sync_participant(participant):
             "session_newyork_profit": round(session_stats['newyork']['profit'], 2),
             "session_asian_win_rate": round((session_stats['asian']['wins'] / session_stats['asian']['total'] * 100), 2) if session_stats['asian']['total'] > 0 else 0,
             "session_london_win_rate": round((session_stats['london']['wins'] / session_stats['london']['total'] * 100), 2) if session_stats['london']['total'] > 0 else 0,
-            "session_newyork_win_rate": round((session_stats['newyork']['wins'] / session_stats['newyork']['total'] * 100), 2) if session_stats['newyork']['total'] > 0 else 0
+            "session_newyork_win_rate": round((session_stats['newyork']['wins'] / session_stats['newyork']['total'] * 100), 2) if session_stats['newyork']['total'] > 0 else 0,
+            # MyFxBook-style fields
+            "floating_pl": round(account_info.equity - account_info.balance, 2),
+            "total_lots": calculate_total_lots(positions),
+            "equity_growth_percent": calculate_equity_growth(participant['id'], account_info.equity)
         }
         
         print(f"Calculated Stats for {participant['nickname']}: WinRate={win_rate:.1f}%, HoldingTime={avg_holding_time_str}, Trades={total_trades}")
@@ -516,6 +531,10 @@ def main():
 
         elapsed = time.time() - start_time
         print(f"--- Sync Cycle Complete in {elapsed:.2f}s ---")
+        
+        # Cleanup old equity snapshots (once per cycle)
+        cleanup_old_snapshots()
+        
         # Sync participants
         sync_participants_from_csv()
         
