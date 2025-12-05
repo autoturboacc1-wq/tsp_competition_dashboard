@@ -413,7 +413,7 @@
     </div>
 
     <!-- Stats Summary -->
-    <div class="grid grid-cols-4 gap-3 mt-4">
+    <div class="grid grid-cols-3 gap-3 mt-4">
         {#if equitySnapshots.length > 0 || equityCurve.length > 0}
             {@const data =
                 equitySnapshots.length > 0
@@ -429,9 +429,6 @@
                 ? ((latest?.equity - first?.equity) / first?.equity) * 100
                 : 0}
             {@const maxEquity = Math.max(...data.map((d) => d.equity || d))}
-            {@const minEquity = Math.min(...data.map((d) => d.equity || d))}
-            {@const drawdown =
-                maxEquity > 0 ? ((maxEquity - minEquity) / maxEquity) * 100 : 0}
 
             <div
                 class="bg-gray-50 dark:bg-dark-bg/30 rounded-lg p-3 text-center"
@@ -469,18 +466,6 @@
                     class="font-mono font-semibold text-blue-600 dark:text-blue-400"
                 >
                     ${formatMoney(maxEquity)}
-                </div>
-            </div>
-            <div
-                class="bg-gray-50 dark:bg-dark-bg/30 rounded-lg p-3 text-center"
-            >
-                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                    Max DD
-                </div>
-                <div
-                    class="font-mono font-semibold text-orange-600 dark:text-orange-400"
-                >
-                    {drawdown.toFixed(2)}%
                 </div>
             </div>
         {/if}

@@ -737,7 +737,7 @@
                                     <div
                                         class="text-xl font-bold text-green-600 dark:text-green-400"
                                     >
-                                        +${trader.stats.bestTrade}
+                                        +${formatMoney(trader.stats.bestTrade)}
                                     </div>
                                 </div>
                                 <div
@@ -756,7 +756,9 @@
                                     >
                                         {trader.stats.worstTrade >= 0
                                             ? "+"
-                                            : ""}${trader.stats.worstTrade}
+                                            : ""}${formatMoney(
+                                            trader.stats.worstTrade,
+                                        )}
                                     </div>
                                 </div>
                             </div>
