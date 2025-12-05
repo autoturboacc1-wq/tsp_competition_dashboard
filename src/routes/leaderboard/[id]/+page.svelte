@@ -218,7 +218,7 @@
             // Calculate time range (e.g., +/- 4 hours around open/close)
             const openTime = new Date(trade.openTime).getTime();
             const closeTime = new Date(trade.closeTime).getTime();
-            const buffer = 4 * 60 * 60 * 1000; // 4 hours
+            const buffer = 12 * 60 * 60 * 1000; // 12 hours - เพิ่มจำนวน candle ก่อนและหลัง
 
             const from = new Date(openTime - buffer).toISOString();
             const to = new Date(closeTime + buffer).toISOString();
@@ -251,6 +251,22 @@
                 timeScale: {
                     timeVisible: true,
                     secondsVisible: false,
+                    rightOffset: 5,
+                },
+                localization: {
+                    timeFormatter: (timestamp: number) => {
+                        // Data already has Thailand offset, so use UTC to display correctly
+                        const date = new Date(timestamp * 1000);
+                        const hours = date
+                            .getUTCHours()
+                            .toString()
+                            .padStart(2, "0");
+                        const minutes = date
+                            .getUTCMinutes()
+                            .toString()
+                            .padStart(2, "0");
+                        return `${hours}:${minutes}`;
+                    },
                 },
                 watermark: {
                     visible: true,
@@ -271,8 +287,10 @@
             });
 
             // Format M15 data and generate M5
+            // Add Thailand timezone offset (+7 hours = 25200 seconds) for X-axis display
+            const THAILAND_OFFSET = 7 * 60 * 60; // 7 hours in seconds
             const m15Data = candles.map((c: any) => ({
-                time: new Date(c.time).getTime() / 1000,
+                time: new Date(c.time).getTime() / 1000 + THAILAND_OFFSET,
                 open: c.open,
                 high: c.high,
                 low: c.low,
@@ -289,7 +307,7 @@
                 color: "#3B82F6",
                 lineWidth: 2,
                 lineStyle: 2,
-                title: "Entry",
+                title: `Entry (${trade.type})`,
             });
             entryLine.setData([
                 { time: chartData[0].time, value: trade.openPrice },
@@ -1200,10 +1218,20 @@
                         {selectedTrade?.symbol} - {selectedTrade?.type}
                     </h3>
                     <p class="text-sm text-gray-500">
-                        Open: {selectedTrade?.openPrice} | Close: {selectedTrade?.closePrice}
+                        Entry ({selectedTrade?.type}): {selectedTrade?.openPrice}
+                        → {selectedTrade?.closePrice}
                         | Profit: ${Number(selectedTrade?.profit || 0).toFixed(
                             2,
                         )}
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">
+                        Open: {new Date(selectedTrade?.openTime).toLocaleString(
+                            "th-TH",
+                            { timeZone: "Asia/Bangkok" },
+                        )}
+                        → Close: {new Date(
+                            selectedTrade?.closeTime,
+                        ).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}
                     </p>
                 </div>
 
@@ -1253,7 +1281,7 @@
                 <div class="flex items-center gap-2">
                     <div class="w-3 h-3 rounded-full bg-blue-500"></div>
                     <span class="text-gray-600 dark:text-gray-300"
-                        >Entry: {selectedTrade?.openPrice}</span
+                        >Entry ({selectedTrade?.type}): {selectedTrade?.openPrice}</span
                     >
                 </div>
                 <div class="flex items-center gap-2">
