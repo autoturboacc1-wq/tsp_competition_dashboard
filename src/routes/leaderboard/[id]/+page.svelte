@@ -392,15 +392,26 @@
                     },
                 ]);
 
-                // Add red zone between Entry and SL (starts from entry point)
+                // Add red zone between Entry and SL
+                // For BUY: SL is below entry (fill bottom)
+                // For SELL: SL is above entry (fill top)
+                const isBuy = trade.type === "BUY";
                 const slZone = chart.addBaselineSeries({
                     baseValue: { type: "price", price: trade.openPrice },
                     topLineColor: "rgba(239, 68, 68, 0)",
-                    topFillColor1: "rgba(239, 68, 68, 0)",
-                    topFillColor2: "rgba(239, 68, 68, 0)",
+                    topFillColor1: isBuy
+                        ? "rgba(239, 68, 68, 0)"
+                        : "rgba(239, 68, 68, 0.05)",
+                    topFillColor2: isBuy
+                        ? "rgba(239, 68, 68, 0)"
+                        : "rgba(239, 68, 68, 0.15)",
                     bottomLineColor: "rgba(239, 68, 68, 0)",
-                    bottomFillColor1: "rgba(239, 68, 68, 0.15)",
-                    bottomFillColor2: "rgba(239, 68, 68, 0.05)",
+                    bottomFillColor1: isBuy
+                        ? "rgba(239, 68, 68, 0.15)"
+                        : "rgba(239, 68, 68, 0)",
+                    bottomFillColor2: isBuy
+                        ? "rgba(239, 68, 68, 0.05)"
+                        : "rgba(239, 68, 68, 0)",
                     lineWidth: 0,
                 });
                 slZone.setData([
@@ -428,15 +439,26 @@
                     },
                 ]);
 
-                // Add green zone between Entry and TP (starts from entry point)
+                // Add green zone between Entry and TP
+                // For BUY: TP is above entry (fill top)
+                // For SELL: TP is below entry (fill bottom)
+                const isBuy = trade.type === "BUY";
                 const tpZone = chart.addBaselineSeries({
                     baseValue: { type: "price", price: trade.openPrice },
                     topLineColor: "rgba(16, 185, 129, 0)",
-                    topFillColor1: "rgba(16, 185, 129, 0.05)",
-                    topFillColor2: "rgba(16, 185, 129, 0.15)",
+                    topFillColor1: isBuy
+                        ? "rgba(16, 185, 129, 0.05)"
+                        : "rgba(16, 185, 129, 0)",
+                    topFillColor2: isBuy
+                        ? "rgba(16, 185, 129, 0.15)"
+                        : "rgba(16, 185, 129, 0)",
                     bottomLineColor: "rgba(16, 185, 129, 0)",
-                    bottomFillColor1: "rgba(16, 185, 129, 0)",
-                    bottomFillColor2: "rgba(16, 185, 129, 0)",
+                    bottomFillColor1: isBuy
+                        ? "rgba(16, 185, 129, 0)"
+                        : "rgba(16, 185, 129, 0.15)",
+                    bottomFillColor2: isBuy
+                        ? "rgba(16, 185, 129, 0)"
+                        : "rgba(16, 185, 129, 0.05)",
                     lineWidth: 0,
                 });
                 tpZone.setData([
