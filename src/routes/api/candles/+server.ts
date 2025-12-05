@@ -10,10 +10,17 @@ export async function GET({ url }) {
         return json({ error: 'Missing parameters' }, { status: 400 });
     }
 
+    // Normalize symbol for market data query
+    // The bridge saves all Gold variants as "XAUUSD"
+    let querySymbol = symbol;
+    if (symbol.includes('XAU') || symbol.includes('GOLD')) {
+        querySymbol = 'XAUUSD';
+    }
+
     const { data, error } = await supabase
         .from('market_data')
         .select('*')
-        .eq('symbol', symbol)
+        .eq('symbol', querySymbol)
         .gte('time', from)
         .lte('time', to)
         .order('time', { ascending: true });
