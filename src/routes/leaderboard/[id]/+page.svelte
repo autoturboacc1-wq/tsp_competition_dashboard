@@ -79,12 +79,14 @@
 
     // Timeframe State
     let currentTimeframe = 15;
-    let baseM5Data: any[] = [];
+    let baseM1Data: any[] = [];
     const timeframes = [
+        { label: "M1", value: 1 },
         { label: "M5", value: 5 },
         { label: "M15", value: 15 },
         { label: "H1", value: 60 },
         { label: "H4", value: 240 },
+        { label: "D1", value: 1440 },
     ];
 
     // Helper: Generate Mock M5 from M15
@@ -168,10 +170,10 @@
 
     // Update Chart Timeframe
     function updateChartTimeframe(period: number) {
-        if (!chart || !candlestickSeries || baseM5Data.length === 0) return;
+        if (!chart || !candlestickSeries || baseM1Data.length === 0) return;
         currentTimeframe = period;
 
-        const processedData = resampleData(baseM5Data, period);
+        const processedData = resampleData(baseM1Data, period);
         candlestickSeries.setData(processedData);
 
         // Update watermark
@@ -209,7 +211,7 @@
         selectedTrade = trade;
         showChartModal = true;
         currentTimeframe = 15; // Reset to M15
-        baseM5Data = []; // Reset base data
+        baseM1Data = []; // Reset base data
 
         // Wait for modal to render
         setTimeout(async () => {
@@ -223,9 +225,9 @@
             const from = new Date(openTime - buffer).toISOString();
             const to = new Date(closeTime + buffer).toISOString();
 
-            // Fetch M5 candles (real data)
+            // Fetch M1 candles (real data for maximum detail)
             const res = await fetch(
-                `/api/candles?symbol=${trade.symbol}&from=${from}&to=${to}&timeframe=M5`,
+                `/api/candles?symbol=${trade.symbol}&from=${from}&to=${to}&timeframe=M1`,
             );
             const candles = await res.json();
 
@@ -288,7 +290,7 @@
 
             // Format candle data with Thailand timezone offset
             const THAILAND_OFFSET = 7 * 60 * 60; // 7 hours in seconds
-            baseM5Data = candles.map((c: any) => ({
+            baseM1Data = candles.map((c: any) => ({
                 time: new Date(c.time).getTime() / 1000 + THAILAND_OFFSET,
                 open: c.open,
                 high: c.high,
@@ -297,7 +299,7 @@
             }));
 
             // Use M5 base data, resample to M15 for initial display
-            const chartData = resampleData(baseM5Data, 15);
+            const chartData = resampleData(baseM1Data, 15);
 
             candlestickSeries.setData(chartData);
 
