@@ -1,54 +1,18 @@
 import os
 import time
 import MetaTrader5 as mt5
-from supabase import create_client, Client
-from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
-import requests
 from collections import Counter
 import csv
+from core import init_mt5, get_supabase_client, load_env, send_telegram_message
 
 # Load environment variables
-load_dotenv()
+load_env()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 SYNC_INTERVAL = int(os.getenv("SYNC_INTERVAL", "60")) # Default 60 seconds
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("Error: SUPABASE_URL or SUPABASE_KEY not found in .env")
-    exit(1)
-
 # Initialize Supabase client
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-def init_mt5():
-    mt5_path = os.getenv("MT5_PATH")
-    if mt5_path:
-        print(f"Initializing MT5 from: {mt5_path}")
-        if not mt5.initialize(path=mt5_path):
-            print("initialize() failed, error code =", mt5.last_error())
-            return False
-    else:
-        if not mt5.initialize():
-            print("initialize() failed, error code =", mt5.last_error())
-            return False
-    return True
-
-def send_telegram_message(message):
-    token = os.getenv("TELEGRAM_BOT_TOKEN")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID")
-    
-    if not token or not chat_id:
-        return
-
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    data = {"chat_id": chat_id, "text": message}
-    
-    try:
-        requests.post(url, data=data, timeout=10)
-    except Exception as e:
-        print(f"Failed to send Telegram message: {e}")
+supabase = get_supabase_client()
 
 def sync_participant(participant):
     print(f"Syncing participant: {participant['nickname']} ({participant['account_id']})")
@@ -163,8 +127,22 @@ def sync_participant(participant):
                 positions[pid]['open_time'] = deal.time
                 positions[pid]['open_price'] = deal.price
                 positions[pid]['lot'] = deal.volume
-                positions[pid]['sl'] = deal.sl
-                positions[pid]['tp'] = deal.tp
+                # Try to get SL/TP from deal, if not available or 0, try to fetch from the original order
+                sl = getattr(deal, 'sl', 0.0)
+                tp = getattr(deal, 'tp', 0.0)
+                
+                if (sl == 0.0 or tp == 0.0) and deal.order > 0:
+                    try:
+                        orders = mt5.history_orders_get(ticket=deal.order)
+                        if orders and len(orders) > 0:
+                            order = orders[0]
+                            if sl == 0.0: sl = getattr(order, 'sl', 0.0)
+                            if tp == 0.0: tp = getattr(order, 'tp', 0.0)
+                    except Exception as e:
+                        print(f"Failed to fetch order {deal.order}: {e}")
+
+                positions[pid]['sl'] = sl
+                positions[pid]['tp'] = tp
                 # Determine type: 0=Buy, 1=Sell
                 positions[pid]['type'] = 'BUY' if deal.type == mt5.ORDER_TYPE_BUY else 'SELL'
                 
@@ -450,38 +428,6 @@ def sync_participant(participant):
         except Exception as e:
             print(f"Error updating stats: {e}")
 
-def sync_market_data():
-    """Fetch M15 candles for XAUUSD and sync to Supabase"""
-    symbol = "XAUUSD"
-    timeframe = mt5.TIMEFRAME_M15
-    count = 1000 # Last 1000 candles
-    
-    rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, count)
-    if rates is None:
-        print(f"Failed to copy rates for {symbol}")
-        return
-
-    market_data = []
-    for rate in rates:
-        # Convert timestamp to UTC
-        dt = datetime.fromtimestamp(rate['time'] - 10800, tz=timezone.utc) # Adjust UTC+3 to UTC
-        market_data.append({
-            "symbol": symbol,
-            "time": dt.isoformat(),
-            "open": float(rate['open']),
-            "high": float(rate['high']),
-            "low": float(rate['low']),
-            "close": float(rate['close']),
-            "volume": int(rate['tick_volume'])
-        })
-    
-    if market_data:
-        try:
-            data, count = supabase.table('market_data').upsert(market_data, on_conflict='symbol,time').execute()
-            print(f"Synced {len(market_data)} candles for {symbol}")
-        except Exception as e:
-            print(f"Error syncing market data: {e}")
-
 def sync_participants_from_csv():
     csv_file = 'participants.csv'
     if not os.path.exists(csv_file):
@@ -553,12 +499,6 @@ def main():
         start_time = time.time()
         print(f"\n--- Sync Cycle Start: {datetime.now().strftime('%H:%M:%S')} ---")
 
-        # Sync Market Data (XAUUSD)
-        try:
-            sync_market_data()
-        except Exception as e:
-            print(f"Error syncing market data: {e}")
-
         try:
             response = supabase.table('participants').select("*").execute()
             participants = response.data
@@ -578,9 +518,6 @@ def main():
         print(f"--- Sync Cycle Complete in {elapsed:.2f}s ---")
         # Sync participants
         sync_participants_from_csv()
-        
-        # Sync market data (once per loop or less frequently if needed)
-        sync_market_data()
         
         print("Sleeping for 60 seconds...")
         time.sleep(60)
