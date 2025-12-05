@@ -342,7 +342,10 @@
 
             candlestickSeries.setMarkers(markers as any);
 
-            // Add Entry Line
+            // Get the nearest candle time for entry (for starting lines from entry point)
+            const entryStartTime = findNearestTime(entryTime);
+
+            // Add Entry Line (starts from entry point)
             entryLine = chart.addLineSeries({
                 color: "#3B82F6",
                 lineWidth: 2,
@@ -350,14 +353,14 @@
                 title: `Entry (${trade.type})`,
             });
             entryLine.setData([
-                { time: chartData[0].time, value: trade.openPrice },
+                { time: entryStartTime, value: trade.openPrice },
                 {
                     time: chartData[chartData.length - 1].time,
                     value: trade.openPrice,
                 },
             ]);
 
-            // Add SL Line
+            // Add SL Line (starts from entry point)
             if (trade.sl > 0) {
                 slLine = chart.addLineSeries({
                     color: "#EF4444",
@@ -366,14 +369,14 @@
                     title: "SL",
                 });
                 slLine.setData([
-                    { time: chartData[0].time, value: trade.sl },
+                    { time: entryStartTime, value: trade.sl },
                     {
                         time: chartData[chartData.length - 1].time,
                         value: trade.sl,
                     },
                 ]);
 
-                // Add red zone between Entry and SL
+                // Add red zone between Entry and SL (starts from entry point)
                 const slZone = chart.addBaselineSeries({
                     baseValue: { type: "price", price: trade.openPrice },
                     topLineColor: "rgba(239, 68, 68, 0)",
@@ -385,7 +388,7 @@
                     lineWidth: 0,
                 });
                 slZone.setData([
-                    { time: chartData[0].time, value: trade.sl },
+                    { time: entryStartTime, value: trade.sl },
                     {
                         time: chartData[chartData.length - 1].time,
                         value: trade.sl,
@@ -393,7 +396,7 @@
                 ]);
             }
 
-            // Add TP Line
+            // Add TP Line (starts from entry point)
             if (trade.tp > 0) {
                 tpLine = chart.addLineSeries({
                     color: "#10B981",
@@ -402,14 +405,14 @@
                     title: "TP",
                 });
                 tpLine.setData([
-                    { time: chartData[0].time, value: trade.tp },
+                    { time: entryStartTime, value: trade.tp },
                     {
                         time: chartData[chartData.length - 1].time,
                         value: trade.tp,
                     },
                 ]);
 
-                // Add green zone between Entry and TP
+                // Add green zone between Entry and TP (starts from entry point)
                 const tpZone = chart.addBaselineSeries({
                     baseValue: { type: "price", price: trade.openPrice },
                     topLineColor: "rgba(16, 185, 129, 0)",
@@ -421,7 +424,7 @@
                     lineWidth: 0,
                 });
                 tpZone.setData([
-                    { time: chartData[0].time, value: trade.tp },
+                    { time: entryStartTime, value: trade.tp },
                     {
                         time: chartData[chartData.length - 1].time,
                         value: trade.tp,
