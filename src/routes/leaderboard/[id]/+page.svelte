@@ -142,7 +142,7 @@
 
             // Add Entry Line
             const entryLine = chart.addLineSeries({
-                color: "#10B981", // Green
+                color: "#3B82F6", // Blue
                 lineWidth: 2,
                 lineStyle: 2, // Dashed
                 title: "Entry",
@@ -175,7 +175,7 @@
             // Add TP Line
             if (trade.tp > 0) {
                 const tpLine = chart.addLineSeries({
-                    color: "#3B82F6", // Blue
+                    color: "#10B981", // Green
                     lineWidth: 2,
                     lineStyle: 2, // Dashed
                     title: "TP",
@@ -1091,27 +1091,23 @@
             <!-- Legend -->
             <div class="p-4 bg-gray-50 dark:bg-dark-bg/50 flex gap-4 text-sm">
                 <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-blue-500"></div>
                     <span class="text-gray-600 dark:text-gray-300"
                         >Entry: {selectedTrade?.openPrice}</span
                     >
                 </div>
-                {#if selectedTrade?.sl}
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                        <span class="text-gray-600 dark:text-gray-300"
-                            >SL: {selectedTrade?.sl}</span
-                        >
-                    </div>
-                {/if}
-                {#if selectedTrade?.tp}
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-                        <span class="text-gray-600 dark:text-gray-300"
-                            >TP: {selectedTrade?.tp}</span
-                        >
-                    </div>
-                {/if}
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <span class="text-gray-600 dark:text-gray-300"
+                        >SL: {selectedTrade?.sl || "-"}</span
+                    >
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span class="text-gray-600 dark:text-gray-300"
+                        >TP: {selectedTrade?.tp || "-"}</span
+                    >
+                </div>
             </div>
         </div>
     </div>
