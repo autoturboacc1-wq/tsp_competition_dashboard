@@ -183,23 +183,39 @@
             watermark: { text: `${selectedTrade?.symbol} ${tfLabel}` },
         });
 
-        // Update lines
+        // Update lines - start from entry time, not chart start
         if (processedData.length > 0 && selectedTrade) {
-            const startTime = processedData[0].time;
+            const THAILAND_OFFSET = 7 * 60 * 60;
+            const entryTime =
+                new Date(selectedTrade.openTime).getTime() / 1000 +
+                THAILAND_OFFSET;
+
+            // Find nearest candle time for entry
+            let entryStartTime = processedData[0].time;
+            let minDiff = Math.abs(processedData[0].time - entryTime);
+            for (const candle of processedData) {
+                const diff = Math.abs(candle.time - entryTime);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    entryStartTime = candle.time;
+                }
+            }
+
             const endTime = processedData[processedData.length - 1].time;
+
             if (entryLine)
                 entryLine.setData([
-                    { time: startTime, value: selectedTrade.openPrice },
+                    { time: entryStartTime, value: selectedTrade.openPrice },
                     { time: endTime, value: selectedTrade.openPrice },
                 ]);
             if (slLine && selectedTrade.sl > 0)
                 slLine.setData([
-                    { time: startTime, value: selectedTrade.sl },
+                    { time: entryStartTime, value: selectedTrade.sl },
                     { time: endTime, value: selectedTrade.sl },
                 ]);
             if (tpLine && selectedTrade.tp > 0)
                 tpLine.setData([
-                    { time: startTime, value: selectedTrade.tp },
+                    { time: entryStartTime, value: selectedTrade.tp },
                     { time: endTime, value: selectedTrade.tp },
                 ]);
         }
