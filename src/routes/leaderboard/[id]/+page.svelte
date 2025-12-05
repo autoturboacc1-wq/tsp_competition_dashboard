@@ -302,6 +302,45 @@
 
             candlestickSeries.setData(chartData);
 
+            // Add Entry and Exit markers
+            const entryTime =
+                new Date(trade.openTime).getTime() / 1000 + THAILAND_OFFSET;
+            const exitTime =
+                new Date(trade.closeTime).getTime() / 1000 + THAILAND_OFFSET;
+
+            // Find nearest candle times for markers
+            const findNearestTime = (targetTime: number) => {
+                let nearest = chartData[0].time;
+                let minDiff = Math.abs(chartData[0].time - targetTime);
+                for (const candle of chartData) {
+                    const diff = Math.abs(candle.time - targetTime);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        nearest = candle.time;
+                    }
+                }
+                return nearest;
+            };
+
+            const markers = [
+                {
+                    time: findNearestTime(entryTime),
+                    position: trade.type === "BUY" ? "belowBar" : "aboveBar",
+                    color: trade.type === "BUY" ? "#10B981" : "#EF4444",
+                    shape: trade.type === "BUY" ? "arrowUp" : "arrowDown",
+                    text: `Entry ${trade.type}`,
+                },
+                {
+                    time: findNearestTime(exitTime),
+                    position: trade.profit >= 0 ? "aboveBar" : "belowBar",
+                    color: trade.profit >= 0 ? "#10B981" : "#EF4444",
+                    shape: "circle",
+                    text: `Exit ${trade.profit >= 0 ? "+" : ""}${trade.profit.toFixed(2)}`,
+                },
+            ];
+
+            candlestickSeries.setMarkers(markers as any);
+
             // Add Entry Line
             entryLine = chart.addLineSeries({
                 color: "#3B82F6",
