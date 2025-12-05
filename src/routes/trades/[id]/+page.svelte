@@ -4,6 +4,15 @@
     export let data;
     const { trade, initialCandles } = data;
 
+    let currentTimeframe = 15;
+
+    const timeframes = [
+        { label: "M5", value: 5 },
+        { label: "M15", value: 15 },
+        { label: "H1", value: 60 },
+        { label: "H4", value: 240 },
+    ];
+
     function formatDate(dateStr: string) {
         if (!dateStr) return "-";
         return new Date(dateStr).toLocaleString();
@@ -27,24 +36,45 @@
             <div
                 class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
             >
-                <div>
-                    <h1
-                        class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3"
-                    >
-                        {trade.symbol}
-                        <span
-                            class="px-3 py-1 text-sm rounded-full {trade.type ===
-                            'BUY'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'}"
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div>
+                        <h1
+                            class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3"
                         >
-                            {trade.type}
-                        </span>
-                    </h1>
-                    <p class="text-gray-500 dark:text-gray-400 mt-1">
-                        Ticket #{trade.position_id}
-                    </p>
+                            {trade.symbol}
+                            <span
+                                class="px-3 py-1 text-sm rounded-full {trade.type ===
+                                'BUY'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'}"
+                            >
+                                {trade.type}
+                            </span>
+                        </h1>
+                        <p class="text-gray-500 dark:text-gray-400 mt-1">
+                            Ticket #{trade.position_id}
+                        </p>
+                    </div>
+
+                    <!-- Timeframe Controls -->
+                    <div class="flex items-center gap-2">
+                        <label
+                            for="timeframe"
+                            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                            >Timeframe:</label
+                        >
+                        <select
+                            id="timeframe"
+                            bind:value={currentTimeframe}
+                            class="block w-24 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-1"
+                        >
+                            {#each timeframes as tf}
+                                <option value={tf.value}>{tf.label}</option>
+                            {/each}
+                        </select>
+                    </div>
                 </div>
+
                 <div class="text-right">
                     <p
                         class="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide"
@@ -56,7 +86,9 @@
                             ? 'text-green-600'
                             : 'text-red-600'}"
                     >
-                        {trade.profit >= 0 ? "+" : ""}{trade.profit}
+                        {trade.profit >= 0 ? "+" : ""}{Number(
+                            trade.profit,
+                        ).toFixed(2)}
                     </p>
                 </div>
             </div>
@@ -78,7 +110,11 @@
                         </h2>
                     </div>
                     <div class="p-4">
-                        <TradeChart {trade} {initialCandles} />
+                        <TradeChart
+                            {trade}
+                            {initialCandles}
+                            bind:currentTimeframe
+                        />
                     </div>
                 </div>
             </div>

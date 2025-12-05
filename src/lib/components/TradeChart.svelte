@@ -12,6 +12,7 @@
     // --- Props ---
     export let trade: any; // The trade object
     export let initialCandles: any[] = []; // Initial candle data (M15 default)
+    export let currentTimeframe = 15; // Default M15
 
     // --- State ---
     let chartContainer: HTMLElement;
@@ -21,12 +22,12 @@
     let slLine: any;
     let tpLine: any;
 
-    let currentTimeframe = 15; // Default M15
     let isLoading = false;
-    let baseData: any[] = []; // Store the fetched base data (M15)
+    let baseM5Data: any[] = []; // Store the generated M5 data as base
 
     // --- Timeframe Options ---
     const timeframes = [
+        { label: "M5", value: 5 },
         { label: "M15", value: 15 },
         { label: "H1", value: 60 },
         { label: "H4", value: 240 },
@@ -48,10 +49,80 @@
             }));
     }
 
+    // --- Helper: Generate Mock M5 ---
+    function generateMockM5(m15Data: any[]) {
+        const m5Data = [];
+        for (const candle of m15Data) {
+            const time = candle.time;
+            const O = candle.open;
+            const H = candle.high;
+            const L = candle.low;
+            const C = candle.close;
+
+            // We need 3 candles: c1, c2, c3
+            const highIdx = Math.floor(Math.random() * 3);
+            const lowIdx = Math.floor(Math.random() * 3);
+
+            const volatility = (H - L) * 0.15;
+
+            let c1_close = O + (C - O) / 3 + (Math.random() - 0.5) * volatility;
+            let c2_close =
+                O + (2 * (C - O)) / 3 + (Math.random() - 0.5) * volatility;
+
+            c1_close = Math.max(L, Math.min(H, c1_close));
+            c2_close = Math.max(L, Math.min(H, c2_close));
+
+            const candles = [
+                { time: time, open: O, close: c1_close, high: 0, low: 0 },
+                {
+                    time: time + 300,
+                    open: c1_close,
+                    close: c2_close,
+                    high: 0,
+                    low: 0,
+                },
+                {
+                    time: time + 600,
+                    open: c2_close,
+                    close: C,
+                    high: 0,
+                    low: 0,
+                },
+            ];
+
+            candles.forEach((c, i) => {
+                let h = Math.max(c.open, c.close);
+                let l = Math.min(c.open, c.close);
+
+                if (i === highIdx) {
+                    h = H;
+                } else {
+                    h = h + Math.random() * (H - h) * 0.6;
+                }
+
+                if (i === lowIdx) {
+                    l = L;
+                } else {
+                    l = l - Math.random() * (l - L) * 0.6;
+                }
+
+                c.high = Math.min(H, h);
+                c.low = Math.max(L, l);
+            });
+
+            // Force exact high/low on selected candles to ensure range coverage
+            candles[highIdx].high = H;
+            candles[lowIdx].low = L;
+
+            m5Data.push(...candles);
+        }
+        return m5Data;
+    }
+
     // --- Helper: Resample Data ---
     function resampleData(data: any[], periodMinutes: number) {
-        // If period is 15 (base) or less, just return data (we don't have M5 real data yet)
-        if (periodMinutes <= 15) {
+        // Base data is M5
+        if (periodMinutes === 5) {
             return data;
         }
 
@@ -90,33 +161,33 @@
     async function fetchAndSetData(tf: number) {
         isLoading = true;
         try {
-            // If we already have base data (M15), we might not need to refetch if we are just resampling up.
-            // But to be safe and "production ready", let's ensure we have data.
-            // For this implementation, we assume 'initialCandles' passed in is M15.
-            // If we switch to H1, we resample M15.
-
-            // If baseData is empty, use initialCandles
-            if (baseData.length === 0 && initialCandles.length > 0) {
-                baseData = formatCandles(initialCandles);
-            }
-
-            // If we wanted to fetch fresh data from DB:
-            if (baseData.length === 0) {
-                const symbol = trade.symbol.replace(".s", "");
-                const { data, error } = await supabase
-                    .from("market_data")
-                    .select("*")
-                    .eq("symbol", symbol)
-                    .order("time", { ascending: false })
-                    .limit(1000);
-                if (!error && data) {
-                    data.reverse();
-                    baseData = formatCandles(data);
+            // Ensure we have base M5 data
+            if (baseM5Data.length === 0) {
+                let m15Data: any[] = [];
+                if (initialCandles && initialCandles.length > 0) {
+                    m15Data = formatCandles(initialCandles);
+                } else {
+                    // Fallback fetch if no initial candles (rare case in this flow)
+                    const symbol = trade.symbol.replace(".s", "");
+                    const { data, error } = await supabase
+                        .from("market_data")
+                        .select("*")
+                        .eq("symbol", symbol)
+                        .order("time", { ascending: false })
+                        .limit(1000);
+                    if (!error && data) {
+                        data.reverse();
+                        m15Data = formatCandles(data);
+                    }
+                }
+                // Generate M5 from M15
+                if (m15Data.length > 0) {
+                    baseM5Data = generateMockM5(m15Data);
                 }
             }
 
             // Resample
-            const processedData = resampleData(baseData, tf);
+            const processedData = resampleData(baseM5Data, tf);
 
             if (candlestickSeries) {
                 candlestickSeries.setData(processedData);
@@ -167,6 +238,11 @@
                 { time: endTime, value: trade.tp },
             ]);
         }
+    }
+
+    // Reactive update
+    $: if (chart && currentTimeframe) {
+        fetchAndSetData(currentTimeframe);
     }
 
     // --- Lifecycle ---
@@ -237,33 +313,8 @@
         }
 
         // 4. Initial Load
-        if (initialCandles && initialCandles.length > 0) {
-            console.log("Setting initial data...", initialCandles.length);
-            baseData = formatCandles(initialCandles);
-            candlestickSeries.setData(baseData);
-
-            // Update Watermark
-            const options: any = {
-                watermark: {
-                    text: `${trade.symbol} M15`,
-                },
-            };
-            chart.applyOptions(options);
-
-            // Update Lines
-            if (baseData.length > 0) {
-                const startTime = baseData[0].time;
-                const endTime = baseData[baseData.length - 1].time;
-                updateLines(startTime, endTime);
-            }
-
-            setTimeout(() => {
-                chart.timeScale().fitContent();
-            }, 100);
-        } else {
-            console.log("No initial candles, fetching...");
-            fetchAndSetData(15);
-        }
+        // We start with M15 as default, but we'll use our fetchAndSetData to handle generation
+        fetchAndSetData(currentTimeframe);
 
         // 5. Resize Observer
         const resizeObserver = new ResizeObserver((entries) => {
@@ -283,59 +334,6 @@
 <div
     class="relative w-full h-full flex flex-col bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-xl"
 >
-    <!-- Toolbar -->
-    <div
-        class="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700"
-    >
-        <div class="flex items-center gap-2">
-            <span class="text-white font-bold">{trade.symbol}</span>
-            <span class="text-xs text-gray-400">|</span>
-            <span class="text-xs text-gray-500"
-                >({baseData.length} candles)</span
-            >
-            {#each timeframes as tf}
-                <button
-                    class="px-3 py-1 text-xs font-medium rounded transition-colors
-                    {currentTimeframe === tf.value
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-700'}"
-                    on:click={() => {
-                        currentTimeframe = tf.value;
-                        fetchAndSetData(tf.value);
-                    }}
-                    disabled={isLoading}
-                >
-                    {tf.label}
-                </button>
-            {/each}
-        </div>
-        <!-- Legend (Visual only, chart has its own legend) -->
-        <div class="flex items-center gap-4 text-xs">
-            <div class="flex items-center gap-1">
-                <div
-                    class="w-3 h-0.5 bg-blue-500 border-dashed border-b border-blue-500"
-                ></div>
-                <span class="text-gray-300">Entry</span>
-            </div>
-            {#if trade.tp > 0}
-                <div class="flex items-center gap-1">
-                    <div
-                        class="w-3 h-0.5 bg-green-500 border-dashed border-b border-green-500"
-                    ></div>
-                    <span class="text-gray-300">TP</span>
-                </div>
-            {/if}
-            {#if trade.sl > 0}
-                <div class="flex items-center gap-1">
-                    <div
-                        class="w-3 h-0.5 bg-red-500 border-dashed border-b border-red-500"
-                    ></div>
-                    <span class="text-gray-300">SL</span>
-                </div>
-            {/if}
-        </div>
-    </div>
-
     <!-- Chart Container -->
     <div class="relative flex-1 min-h-[500px]" bind:this={chartContainer}>
         {#if isLoading}

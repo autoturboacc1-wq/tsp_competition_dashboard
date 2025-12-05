@@ -73,10 +73,143 @@
     let chartContainerRef: HTMLDivElement;
     let chart: any;
     let candlestickSeries: any;
+    let entryLine: any;
+    let slLine: any;
+    let tpLine: any;
+
+    // Timeframe State
+    let currentTimeframe = 15;
+    let baseM5Data: any[] = [];
+    const timeframes = [
+        { label: "M5", value: 5 },
+        { label: "M15", value: 15 },
+        { label: "H1", value: 60 },
+        { label: "H4", value: 240 },
+    ];
+
+    // Helper: Generate Mock M5 from M15
+    function generateMockM5(m15Data: any[]) {
+        const m5Data: any[] = [];
+        for (const candle of m15Data) {
+            const time = candle.time;
+            const O = candle.open;
+            const H = candle.high;
+            const L = candle.low;
+            const C = candle.close;
+
+            const highIdx = Math.floor(Math.random() * 3);
+            const lowIdx = Math.floor(Math.random() * 3);
+            const volatility = (H - L) * 0.15;
+
+            let c1_close = O + (C - O) / 3 + (Math.random() - 0.5) * volatility;
+            let c2_close =
+                O + (2 * (C - O)) / 3 + (Math.random() - 0.5) * volatility;
+            c1_close = Math.max(L, Math.min(H, c1_close));
+            c2_close = Math.max(L, Math.min(H, c2_close));
+
+            const candles = [
+                { time: time, open: O, close: c1_close, high: 0, low: 0 },
+                {
+                    time: time + 300,
+                    open: c1_close,
+                    close: c2_close,
+                    high: 0,
+                    low: 0,
+                },
+                { time: time + 600, open: c2_close, close: C, high: 0, low: 0 },
+            ];
+
+            candles.forEach((c, i) => {
+                let h = Math.max(c.open, c.close);
+                let l = Math.min(c.open, c.close);
+                if (i === highIdx) h = H;
+                else h = h + Math.random() * (H - h) * 0.6;
+                if (i === lowIdx) l = L;
+                else l = l - Math.random() * (l - L) * 0.6;
+                c.high = Math.min(H, h);
+                c.low = Math.max(L, l);
+            });
+
+            candles[highIdx].high = H;
+            candles[lowIdx].low = L;
+            m5Data.push(...candles);
+        }
+        return m5Data;
+    }
+
+    // Helper: Resample Data
+    function resampleData(data: any[], periodMinutes: number) {
+        if (periodMinutes === 5) return data;
+        const resampled: any[] = [];
+        let currentCandle: any = null;
+        const periodSeconds = periodMinutes * 60;
+
+        for (const candle of data) {
+            const periodStart =
+                Math.floor(candle.time / periodSeconds) * periodSeconds;
+            if (!currentCandle || currentCandle.time !== periodStart) {
+                if (currentCandle) resampled.push(currentCandle);
+                currentCandle = {
+                    time: periodStart,
+                    open: candle.open,
+                    high: candle.high,
+                    low: candle.low,
+                    close: candle.close,
+                };
+            } else {
+                currentCandle.high = Math.max(currentCandle.high, candle.high);
+                currentCandle.low = Math.min(currentCandle.low, candle.low);
+                currentCandle.close = candle.close;
+            }
+        }
+        if (currentCandle) resampled.push(currentCandle);
+        return resampled;
+    }
+
+    // Update Chart Timeframe
+    function updateChartTimeframe(period: number) {
+        if (!chart || !candlestickSeries || baseM5Data.length === 0) return;
+        currentTimeframe = period;
+
+        const processedData = resampleData(baseM5Data, period);
+        candlestickSeries.setData(processedData);
+
+        // Update watermark
+        const tfLabel =
+            timeframes.find((t) => t.value === period)?.label || "M15";
+        chart.applyOptions({
+            watermark: { text: `${selectedTrade?.symbol} ${tfLabel}` },
+        });
+
+        // Update lines
+        if (processedData.length > 0 && selectedTrade) {
+            const startTime = processedData[0].time;
+            const endTime = processedData[processedData.length - 1].time;
+            if (entryLine)
+                entryLine.setData([
+                    { time: startTime, value: selectedTrade.openPrice },
+                    { time: endTime, value: selectedTrade.openPrice },
+                ]);
+            if (slLine && selectedTrade.sl > 0)
+                slLine.setData([
+                    { time: startTime, value: selectedTrade.sl },
+                    { time: endTime, value: selectedTrade.sl },
+                ]);
+            if (tpLine && selectedTrade.tp > 0)
+                tpLine.setData([
+                    { time: startTime, value: selectedTrade.tp },
+                    { time: endTime, value: selectedTrade.tp },
+                ]);
+        }
+
+        chart.timeScale().fitContent();
+    }
 
     async function openChart(trade: any) {
         selectedTrade = trade;
         showChartModal = true;
+        currentTimeframe = 15; // Reset to M15
+        baseM5Data = []; // Reset base data
 
         // Wait for modal to render
         setTimeout(async () => {
@@ -119,6 +252,14 @@
                     timeVisible: true,
                     secondsVisible: false,
                 },
+                watermark: {
+                    visible: true,
+                    fontSize: 48,
+                    horzAlign: "center",
+                    vertAlign: "center",
+                    color: "rgba(255, 255, 255, 0.1)",
+                    text: `${trade.symbol} M15`,
+                },
             });
 
             candlestickSeries = chart.addCandlestickSeries({
@@ -129,8 +270,8 @@
                 wickDownColor: "#EF4444",
             });
 
-            // Format data for lightweight-charts
-            const chartData = candles.map((c: any) => ({
+            // Format M15 data and generate M5
+            const m15Data = candles.map((c: any) => ({
                 time: new Date(c.time).getTime() / 1000,
                 open: c.open,
                 high: c.high,
@@ -138,13 +279,16 @@
                 close: c.close,
             }));
 
+            baseM5Data = generateMockM5(m15Data);
+            const chartData = resampleData(baseM5Data, 15); // Start with M15
+
             candlestickSeries.setData(chartData);
 
             // Add Entry Line
-            const entryLine = chart.addLineSeries({
-                color: "#3B82F6", // Blue
+            entryLine = chart.addLineSeries({
+                color: "#3B82F6",
                 lineWidth: 2,
-                lineStyle: 2, // Dashed
+                lineStyle: 2,
                 title: "Entry",
             });
             entryLine.setData([
@@ -157,10 +301,10 @@
 
             // Add SL Line
             if (trade.sl > 0) {
-                const slLine = chart.addLineSeries({
-                    color: "#EF4444", // Red
+                slLine = chart.addLineSeries({
+                    color: "#EF4444",
                     lineWidth: 2,
-                    lineStyle: 2, // Dashed
+                    lineStyle: 2,
                     title: "SL",
                 });
                 slLine.setData([
@@ -174,10 +318,10 @@
 
             // Add TP Line
             if (trade.tp > 0) {
-                const tpLine = chart.addLineSeries({
-                    color: "#10B981", // Green
+                tpLine = chart.addLineSeries({
+                    color: "#10B981",
                     lineWidth: 2,
-                    lineStyle: 2, // Dashed
+                    lineStyle: 2,
                     title: "TP",
                 });
                 tpLine.setData([
@@ -1057,27 +1201,43 @@
                     </h3>
                     <p class="text-sm text-gray-500">
                         Open: {selectedTrade?.openPrice} | Close: {selectedTrade?.closePrice}
-                        | Profit: ${selectedTrade?.profit}
+                        | Profit: ${Number(selectedTrade?.profit || 0).toFixed(
+                            2,
+                        )}
                     </p>
                 </div>
-                <button
-                    on:click={closeChartModal}
-                    class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-lg transition-colors"
-                >
-                    <svg
-                        class="w-6 h-6 text-gray-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+
+                <!-- Timeframe Dropdown -->
+                <div class="flex items-center gap-3">
+                    <select
+                        bind:value={currentTimeframe}
+                        on:change={() => updateChartTimeframe(currentTimeframe)}
+                        class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12"
-                        />
-                    </svg>
-                </button>
+                        {#each timeframes as tf}
+                            <option value={tf.value}>{tf.label}</option>
+                        {/each}
+                    </select>
+
+                    <button
+                        on:click={closeChartModal}
+                        class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-lg transition-colors"
+                    >
+                        <svg
+                            class="w-6 h-6 text-gray-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <!-- Chart Container -->
