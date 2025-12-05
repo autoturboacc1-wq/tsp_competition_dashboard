@@ -223,9 +223,9 @@
             const from = new Date(openTime - buffer).toISOString();
             const to = new Date(closeTime + buffer).toISOString();
 
-            // Fetch candles
+            // Fetch M5 candles (real data)
             const res = await fetch(
-                `/api/candles?symbol=${trade.symbol}&from=${from}&to=${to}`,
+                `/api/candles?symbol=${trade.symbol}&from=${from}&to=${to}&timeframe=M5`,
             );
             const candles = await res.json();
 
@@ -274,7 +274,7 @@
                     horzAlign: "center",
                     vertAlign: "center",
                     color: "rgba(255, 255, 255, 0.1)",
-                    text: `${trade.symbol} M15`,
+                    text: `${trade.symbol} M5`,
                 },
             });
 
@@ -286,10 +286,9 @@
                 wickDownColor: "#EF4444",
             });
 
-            // Format M15 data and generate M5
-            // Add Thailand timezone offset (+7 hours = 25200 seconds) for X-axis display
+            // Format candle data with Thailand timezone offset
             const THAILAND_OFFSET = 7 * 60 * 60; // 7 hours in seconds
-            const m15Data = candles.map((c: any) => ({
+            baseM5Data = candles.map((c: any) => ({
                 time: new Date(c.time).getTime() / 1000 + THAILAND_OFFSET,
                 open: c.open,
                 high: c.high,
@@ -297,8 +296,8 @@
                 close: c.close,
             }));
 
-            baseM5Data = generateMockM5(m15Data);
-            const chartData = resampleData(baseM5Data, 15); // Start with M15
+            // Use M5 base data, resample to M15 for initial display
+            const chartData = resampleData(baseM5Data, 15);
 
             candlestickSeries.setData(chartData);
 
