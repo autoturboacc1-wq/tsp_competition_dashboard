@@ -1337,8 +1337,10 @@
                         {selectedTrade?.symbol} - {selectedTrade?.type}
                     </h3>
                     <p class="text-sm text-gray-500">
-                        Entry ({selectedTrade?.type}): {selectedTrade?.openPrice}
-                        → {selectedTrade?.closePrice}
+                        Entry ({selectedTrade?.type}): {Number(
+                            selectedTrade?.openPrice || 0,
+                        ).toFixed(2)}
+                        → {Number(selectedTrade?.closePrice || 0).toFixed(2)}
                         <span class="hidden sm:inline">|</span>
                         <br class="sm:hidden" />
                         <span
@@ -1411,19 +1413,25 @@
                 <div class="flex items-center gap-2">
                     <div class="w-3 h-3 rounded-full bg-blue-500"></div>
                     <span class="text-gray-600 dark:text-gray-300"
-                        >Entry ({selectedTrade?.type}): {selectedTrade?.openPrice}</span
+                        >Entry ({selectedTrade?.type}): {Number(
+                            selectedTrade?.openPrice || 0,
+                        ).toFixed(2)}</span
                     >
                 </div>
                 <div class="flex items-center gap-2">
                     <div class="w-3 h-3 rounded-full bg-red-500"></div>
                     <span class="text-gray-600 dark:text-gray-300"
-                        >SL: {selectedTrade?.sl || "-"}</span
+                        >SL: {selectedTrade?.sl
+                            ? Number(selectedTrade.sl).toFixed(2)
+                            : "-"}</span
                     >
                 </div>
                 <div class="flex items-center gap-2">
                     <div class="w-3 h-3 rounded-full bg-green-500"></div>
                     <span class="text-gray-600 dark:text-gray-300"
-                        >TP: {selectedTrade?.tp || "-"}</span
+                        >TP: {selectedTrade?.tp
+                            ? Number(selectedTrade.tp).toFixed(2)
+                            : "-"}</span
                     >
                 </div>
             </div>
