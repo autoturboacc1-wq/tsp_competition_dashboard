@@ -1301,9 +1301,20 @@
                     <p class="text-sm text-gray-500">
                         Entry ({selectedTrade?.type}): {selectedTrade?.openPrice}
                         → {selectedTrade?.closePrice}
-                        | Profit: ${Number(selectedTrade?.profit || 0).toFixed(
-                            2,
-                        )}
+                        <span class="hidden sm:inline">|</span>
+                        <br class="sm:hidden" />
+                        <span
+                            class="font-semibold {(selectedTrade?.profit ||
+                                0) >= 0
+                                ? 'text-green-600'
+                                : 'text-red-600'}"
+                        >
+                            Profit: {(selectedTrade?.profit || 0) >= 0
+                                ? "+"
+                                : ""}${Number(
+                                selectedTrade?.profit || 0,
+                            ).toFixed(2)}
+                        </span>
                     </p>
                     <p class="text-xs text-gray-400 mt-1">
                         Open: {new Date(selectedTrade?.openTime).toLocaleString(
