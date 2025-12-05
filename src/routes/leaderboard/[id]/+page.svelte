@@ -372,6 +372,25 @@
                         value: trade.sl,
                     },
                 ]);
+
+                // Add red zone between Entry and SL
+                const slZone = chart.addBaselineSeries({
+                    baseValue: { type: "price", price: trade.openPrice },
+                    topLineColor: "rgba(239, 68, 68, 0)",
+                    topFillColor1: "rgba(239, 68, 68, 0)",
+                    topFillColor2: "rgba(239, 68, 68, 0)",
+                    bottomLineColor: "rgba(239, 68, 68, 0)",
+                    bottomFillColor1: "rgba(239, 68, 68, 0.15)",
+                    bottomFillColor2: "rgba(239, 68, 68, 0.05)",
+                    lineWidth: 0,
+                });
+                slZone.setData([
+                    { time: chartData[0].time, value: trade.sl },
+                    {
+                        time: chartData[chartData.length - 1].time,
+                        value: trade.sl,
+                    },
+                ]);
             }
 
             // Add TP Line
@@ -383,6 +402,25 @@
                     title: "TP",
                 });
                 tpLine.setData([
+                    { time: chartData[0].time, value: trade.tp },
+                    {
+                        time: chartData[chartData.length - 1].time,
+                        value: trade.tp,
+                    },
+                ]);
+
+                // Add green zone between Entry and TP
+                const tpZone = chart.addBaselineSeries({
+                    baseValue: { type: "price", price: trade.openPrice },
+                    topLineColor: "rgba(16, 185, 129, 0)",
+                    topFillColor1: "rgba(16, 185, 129, 0.05)",
+                    topFillColor2: "rgba(16, 185, 129, 0.15)",
+                    bottomLineColor: "rgba(16, 185, 129, 0)",
+                    bottomFillColor1: "rgba(16, 185, 129, 0)",
+                    bottomFillColor2: "rgba(16, 185, 129, 0)",
+                    lineWidth: 0,
+                });
+                tpZone.setData([
                     { time: chartData[0].time, value: trade.tp },
                     {
                         time: chartData[chartData.length - 1].time,
