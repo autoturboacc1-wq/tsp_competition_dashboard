@@ -77,6 +77,15 @@
     };
     let chartCursor: import("$lib/chart/DrawingManager").CursorStyle =
         "default";
+    let magnetEnabled = true;
+
+    // Toggle magnet mode
+    function handleToggleMagnet() {
+        magnetEnabled = !magnetEnabled;
+        if (drawingManager) {
+            drawingManager.setSnapEnabled(magnetEnabled);
+        }
+    }
 
     // Initialize DrawingManager when chart is ready
     function initDrawingManager() {
@@ -1336,10 +1345,12 @@
             <DrawingToolbar
                 {drawingState}
                 hasDrawings={drawings.length > 0}
+                {magnetEnabled}
                 on:selectTool={handleSelectTool}
                 on:clearAll={handleClearDrawings}
                 on:deleteSelected={handleDeleteSelected}
                 on:cancel={handleCancelDrawing}
+                on:toggleMagnet={handleToggleMagnet}
             />
 
             <!-- Chart Container -->

@@ -107,6 +107,15 @@ export class DrawingManager {
         this.candleData = data;
     }
 
+    setSnapEnabled(enabled: boolean) {
+        this.snapOptions.enabled = enabled;
+        this.snapOptions.snapToOHLC = enabled;
+    }
+
+    isSnapEnabled(): boolean {
+        return this.snapOptions.enabled;
+    }
+
     setCallbacks(callbacks: typeof this.callbacks) {
         this.callbacks = callbacks;
     }

@@ -4,6 +4,7 @@
 
     export let drawingState: DrawingState;
     export let hasDrawings: boolean = false;
+    export let magnetEnabled: boolean = true;
 
     const dispatch = createEventDispatcher();
 
@@ -61,6 +62,10 @@
         dispatch("deleteSelected");
     }
 
+    function toggleMagnet() {
+        dispatch("toggleMagnet");
+    }
+
     function handleKeydown(e: KeyboardEvent) {
         // Escape to cancel
         if (e.key === "Escape") {
@@ -72,6 +77,13 @@
         if ((e.key === "Delete" || e.key === "Backspace") && selectedId) {
             e.preventDefault();
             deleteSelected();
+            return;
+        }
+
+        // M key for magnet toggle
+        if (e.key.toUpperCase() === "M") {
+            e.preventDefault();
+            toggleMagnet();
             return;
         }
 
@@ -106,6 +118,22 @@
             </button>
         {/each}
     </div>
+
+    <!-- Divider -->
+    <div class="w-px h-5 bg-gray-600 mx-1.5"></div>
+
+    <!-- Magnet Toggle -->
+    <button
+        on:click={toggleMagnet}
+        class="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all
+            {magnetEnabled
+            ? 'bg-amber-600/80 text-white shadow-lg shadow-amber-600/30'
+            : 'text-gray-500 hover:bg-gray-700 hover:text-gray-300'}"
+        title="Magnet Mode - Snap to OHLC (M)"
+    >
+        <span class="text-sm">🧲</span>
+        <span class="hidden sm:inline">{magnetEnabled ? "On" : "Off"}</span>
+    </button>
 
     <!-- Divider -->
     <div class="w-px h-5 bg-gray-600 mx-1.5"></div>
