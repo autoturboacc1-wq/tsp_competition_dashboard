@@ -61,6 +61,22 @@
         { label: "D1", value: 1440 },
     ];
 
+    // Fullscreen state
+    let isFullscreen = false;
+
+    function toggleFullscreen() {
+        isFullscreen = !isFullscreen;
+        // Resize chart after state change
+        setTimeout(() => {
+            if (chart) {
+                chart.applyOptions({
+                    width: chartContainerRef?.clientWidth || 0,
+                    height: chartContainerRef?.clientHeight || 0,
+                });
+            }
+        }, 100);
+    }
+
     // Drawing Tools State (TradingView-style)
     let drawingManager: DrawingManager | null = null;
     let drawings: Drawing[] = [];
@@ -1264,10 +1280,15 @@
 <!-- Chart Modal -->
 {#if showChartModal}
     <div
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm {isFullscreen
+            ? 'p-0'
+            : 'p-4'}"
     >
         <div
-            class="bg-white dark:bg-dark-surface rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden border border-gray-200 dark:border-dark-border"
+            class="bg-white dark:bg-dark-surface shadow-2xl overflow-hidden border border-gray-200 dark:border-dark-border transition-all duration-300 flex flex-col
+                {isFullscreen
+                ? 'w-full h-full rounded-none'
+                : 'w-full max-w-4xl rounded-xl'}"
         >
             <!-- Header -->
             <div
@@ -1309,7 +1330,7 @@
                 </div>
 
                 <!-- Timeframe Dropdown -->
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
                     <select
                         bind:value={currentTimeframe}
                         on:change={() => updateChartTimeframe(currentTimeframe)}
@@ -1319,6 +1340,45 @@
                             <option value={tf.value}>{tf.label}</option>
                         {/each}
                     </select>
+
+                    <!-- Fullscreen Toggle -->
+                    <button
+                        on:click={toggleFullscreen}
+                        class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-lg transition-colors"
+                        title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                    >
+                        {#if isFullscreen}
+                            <!-- Minimize Icon -->
+                            <svg
+                                class="w-5 h-5 text-gray-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
+                                />
+                            </svg>
+                        {:else}
+                            <!-- Expand Icon -->
+                            <svg
+                                class="w-5 h-5 text-gray-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+                                />
+                            </svg>
+                        {/if}
+                    </button>
 
                     <button
                         on:click={closeChartModal}
@@ -1354,9 +1414,11 @@
             />
 
             <!-- Chart Container -->
-            <div class="p-4 bg-gray-900">
+            <div class="p-4 bg-gray-900 {isFullscreen ? 'flex-1' : ''}">
                 <div
-                    class="relative w-full h-[400px]"
+                    class="relative w-full {isFullscreen
+                        ? 'h-full'
+                        : 'h-[400px]'}"
                     role="application"
                     style="cursor: {chartCursor};"
                     on:mousedown={handleChartMouseDown}
