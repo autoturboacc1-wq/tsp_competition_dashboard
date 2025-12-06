@@ -61,144 +61,116 @@
         { label: "D1", value: 1440 },
     ];
 
-    // Drawing Tools State
+    // Drawing Tools State (TradingView-style)
     let drawingManager: DrawingManager | null = null;
-    let activeTool: DrawingTool = "none";
     let drawings: Drawing[] = [];
-    let pendingStart: Point | null = null;
-    let mousePosition: Point | null = null;
+    let drawingState: import("$lib/chart/DrawingManager").DrawingState = {
+        tool: "none",
+        mode: "idle",
+        isDrawing: false,
+        isDragging: false,
+        startPoint: null,
+        currentPoint: null,
+        selectedId: null,
+        hoveredId: null,
+        dragOffset: null,
+    };
+    let chartCursor: import("$lib/chart/DrawingManager").CursorStyle =
+        "default";
+
+    // Initialize DrawingManager when chart is ready
+    function initDrawingManager() {
+        if (!chart || !candlestickSeries) return;
+
+        drawingManager = new DrawingManager(chart, candlestickSeries);
+        drawingManager.setCandleData(baseM1Data);
+        drawingManager.setCallbacks({
+            onDrawingsChange: (d) => {
+                drawings = d;
+            },
+            onStateChange: (s) => {
+                drawingState = s;
+            },
+            onCursorChange: (c) => {
+                chartCursor = c;
+            },
+        });
+    }
 
     // Drawing Tool Handlers
-    function handleSelectTool(event: CustomEvent<DrawingTool>) {
-        activeTool = event.detail;
-        pendingStart = null;
-        mousePosition = null;
+    function handleSelectTool(
+        event: CustomEvent<import("$lib/chart/DrawingManager").DrawingTool>,
+    ) {
         if (drawingManager) {
-            drawingManager.setTool(activeTool);
+            drawingManager.setTool(event.detail);
+            drawingState = drawingManager.getState();
         }
     }
 
     function handleClearDrawings() {
-        drawings = [];
-        pendingStart = null;
-        mousePosition = null;
-        activeTool = "none";
         if (drawingManager) {
             drawingManager.clearAll();
+            drawings = [];
+            drawingState = drawingManager.getState();
+        }
+    }
+
+    function handleDeleteSelected() {
+        if (drawingManager) {
+            drawingManager.deleteSelected();
+            drawings = drawingManager.getDrawings();
+            drawingState = drawingManager.getState();
         }
     }
 
     function handleCancelDrawing() {
-        activeTool = "none";
-        pendingStart = null;
-        mousePosition = null;
         if (drawingManager) {
             drawingManager.cancelDrawing();
+            drawingState = drawingManager.getState();
         }
     }
 
-    function handleChartClick(event: MouseEvent) {
-        if (activeTool === "none" || !chart || !candlestickSeries) return;
+    // TradingView-style drag handlers
+    function handleChartMouseDown(event: MouseEvent) {
+        if (!drawingManager || !chartContainerRef) return;
 
         const rect = chartContainerRef.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
 
-        // Convert to chart coordinates
-        const time = chart.timeScale().coordinateToTime(x);
-        const price = candlestickSeries.coordinateToPrice(y);
-
-        if (time === null || price === null) return;
-
-        const point: Point = { time: time as number, price };
-
-        if (activeTool === "hline") {
-            // Horizontal line - single click
-            drawings = [
-                ...drawings,
-                {
-                    id: `drawing_${Date.now()}`,
-                    type: "hline",
-                    price: point.price,
-                    color: "#FBBF24",
-                    visible: true,
-                },
-            ];
-            activeTool = "none";
-        } else if (!pendingStart) {
-            // First click - set start point
-            pendingStart = point;
-        } else {
-            // Second click - complete drawing
-            const newDrawing = createDrawing(activeTool, pendingStart, point);
-            if (newDrawing) {
-                drawings = [...drawings, newDrawing];
-            }
-            pendingStart = null;
-            activeTool = "none";
-        }
+        drawingManager.handleMouseDown(x, y);
+        drawingState = drawingManager.getState();
+        drawings = drawingManager.getDrawings();
     }
 
     function handleChartMouseMove(event: MouseEvent) {
-        if (
-            activeTool === "none" ||
-            !pendingStart ||
-            !chart ||
-            !candlestickSeries
-        )
-            return;
+        if (!drawingManager || !chartContainerRef) return;
 
         const rect = chartContainerRef.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
 
-        const time = chart.timeScale().coordinateToTime(x);
-        const price = candlestickSeries.coordinateToPrice(y);
-
-        if (time !== null && price !== null) {
-            mousePosition = { time: time as number, price };
-        }
+        drawingManager.handleMouseMove(x, y);
+        drawingState = drawingManager.getState();
     }
 
-    function createDrawing(
-        tool: DrawingTool,
-        start: Point,
-        end: Point,
-    ): Drawing | null {
-        const id = `drawing_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    function handleChartMouseUp(event: MouseEvent) {
+        if (!drawingManager || !chartContainerRef) return;
 
-        switch (tool) {
-            case "trendline":
-                return {
-                    id,
-                    type: "trendline",
-                    start,
-                    end,
-                    color: "#3B82F6",
-                    visible: true,
-                };
-            case "fib":
-                return {
-                    id,
-                    type: "fib",
-                    start,
-                    end,
-                    color: "#8B5CF6",
-                    levels: [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1],
-                    visible: true,
-                };
-            case "rect":
-                return {
-                    id,
-                    type: "rect",
-                    start,
-                    end,
-                    color: "#10B981",
-                    fillColor: "rgba(16, 185, 129, 0.1)",
-                    visible: true,
-                };
-            default:
-                return null;
+        const rect = chartContainerRef.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        drawingManager.handleMouseUp(x, y);
+        drawingState = drawingManager.getState();
+        drawings = drawingManager.getDrawings();
+    }
+
+    function handleChartMouseLeave() {
+        // Cancel drawing if mouse leaves chart while drawing
+        if (drawingState.isDrawing && drawingManager) {
+            drawingManager.cancelDrawing();
+            drawingState = drawingManager.getState();
         }
     }
 
@@ -584,6 +556,9 @@
             }
 
             chart.timeScale().fitContent();
+
+            // Initialize drawing tools
+            initDrawingManager();
         }, 100);
     }
 
@@ -1359,10 +1334,11 @@
 
             <!-- Drawing Tools Toolbar -->
             <DrawingToolbar
-                {activeTool}
+                {drawingState}
                 hasDrawings={drawings.length > 0}
                 on:selectTool={handleSelectTool}
                 on:clearAll={handleClearDrawings}
+                on:deleteSelected={handleDeleteSelected}
                 on:cancel={handleCancelDrawing}
             />
 
@@ -1371,8 +1347,11 @@
                 <div
                     class="relative w-full h-[400px]"
                     role="application"
-                    on:click={handleChartClick}
+                    style="cursor: {chartCursor};"
+                    on:mousedown={handleChartMouseDown}
                     on:mousemove={handleChartMouseMove}
+                    on:mouseup={handleChartMouseUp}
+                    on:mouseleave={handleChartMouseLeave}
                 >
                     <div
                         bind:this={chartContainerRef}
@@ -1384,9 +1363,7 @@
                         {chart}
                         series={candlestickSeries}
                         {drawings}
-                        {activeTool}
-                        {pendingStart}
-                        {mousePosition}
+                        {drawingState}
                     />
                 </div>
             </div>

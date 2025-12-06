@@ -1,18 +1,53 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
-    import type { DrawingTool } from "./DrawingManager";
+    import type { DrawingTool, DrawingState } from "./DrawingManager";
 
-    export let activeTool: DrawingTool = "none";
+    export let drawingState: DrawingState;
     export let hasDrawings: boolean = false;
 
     const dispatch = createEventDispatcher();
 
     const tools = [
-        { id: "trendline", icon: "📈", label: "Trend Line", shortcut: "T" },
-        { id: "hline", icon: "➖", label: "H-Line", shortcut: "H" },
-        { id: "fib", icon: "🔢", label: "Fibonacci", shortcut: "F" },
-        { id: "rect", icon: "⬜", label: "Rectangle", shortcut: "R" },
+        {
+            id: "select",
+            icon: "👆",
+            label: "Select",
+            shortcut: "V",
+            description: "Select & move drawings",
+        },
+        {
+            id: "trendline",
+            icon: "📈",
+            label: "Trend",
+            shortcut: "T",
+            description: "Draw trend line",
+        },
+        {
+            id: "hline",
+            icon: "➖",
+            label: "H-Line",
+            shortcut: "H",
+            description: "Horizontal line",
+        },
+        {
+            id: "fib",
+            icon: "🔢",
+            label: "Fib",
+            shortcut: "F",
+            description: "Fibonacci retracement",
+        },
+        {
+            id: "rect",
+            icon: "⬜",
+            label: "Rect",
+            shortcut: "R",
+            description: "Rectangle zone",
+        },
     ] as const;
+
+    $: activeTool = drawingState?.tool || "none";
+    $: isDrawing = drawingState?.isDrawing || false;
+    $: selectedId = drawingState?.selectedId;
 
     function selectTool(tool: DrawingTool) {
         dispatch("selectTool", tool);
@@ -22,12 +57,25 @@
         dispatch("clearAll");
     }
 
+    function deleteSelected() {
+        dispatch("deleteSelected");
+    }
+
     function handleKeydown(e: KeyboardEvent) {
+        // Escape to cancel
         if (e.key === "Escape") {
             dispatch("cancel");
             return;
         }
 
+        // Delete/Backspace to remove selected
+        if ((e.key === "Delete" || e.key === "Backspace") && selectedId) {
+            e.preventDefault();
+            deleteSelected();
+            return;
+        }
+
+        // Tool shortcuts
         const key = e.key.toUpperCase();
         const tool = tools.find((t) => t.shortcut === key);
         if (tool) {
@@ -40,54 +88,80 @@
 <svelte:window on:keydown={handleKeydown} />
 
 <div
-    class="flex items-center gap-1 px-3 py-2 bg-gray-800/90 backdrop-blur-sm border-b border-gray-700"
+    class="flex items-center gap-1 px-3 py-2 bg-gray-800/95 backdrop-blur-sm border-b border-gray-700"
 >
     <!-- Drawing Tools -->
-    <div class="flex items-center gap-1">
+    <div class="flex items-center gap-0.5">
         {#each tools as tool}
             <button
                 on:click={() => selectTool(tool.id as DrawingTool)}
-                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all
+                class="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all
                     {activeTool === tool.id
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600 hover:text-white'}"
-                title="{tool.label} ({tool.shortcut})"
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                    : 'text-gray-400 hover:bg-gray-700 hover:text-white'}"
+                title="{tool.description} ({tool.shortcut})"
             >
-                <span>{tool.icon}</span>
-                <span class="hidden sm:inline">{tool.label}</span>
+                <span class="text-sm">{tool.icon}</span>
+                <span class="hidden md:inline">{tool.label}</span>
             </button>
         {/each}
     </div>
 
     <!-- Divider -->
-    <div class="w-px h-6 bg-gray-600 mx-2"></div>
+    <div class="w-px h-5 bg-gray-600 mx-1.5"></div>
 
-    <!-- Clear Button -->
+    <!-- Delete Selected -->
+    {#if selectedId}
+        <button
+            on:click={deleteSelected}
+            class="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-medium
+                   bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-all"
+            title="Delete Selected (DEL)"
+        >
+            <span>🗑️</span>
+            <span class="hidden sm:inline">Delete</span>
+        </button>
+    {/if}
+
+    <!-- Clear All -->
     <button
         on:click={clearAll}
         disabled={!hasDrawings}
-        class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all
+        class="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all
             {hasDrawings
-            ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
-            : 'bg-gray-700/30 text-gray-500 cursor-not-allowed'}"
+            ? 'text-gray-400 hover:bg-gray-700 hover:text-white'
+            : 'text-gray-600 cursor-not-allowed'}"
         title="Clear All Drawings"
     >
-        <span>🗑️</span>
+        <span>✖️</span>
         <span class="hidden sm:inline">Clear</span>
     </button>
 
-    <!-- Status -->
-    {#if activeTool !== "none"}
-        <div class="ml-auto flex items-center gap-2 text-xs text-gray-400">
-            <span class="hidden sm:inline">
-                {#if activeTool === "hline"}
-                    Click to place line
-                {:else}
-                    Click to set start point
-                {/if}
+    <!-- Status/Instructions -->
+    <div class="ml-auto flex items-center gap-2 text-[11px] text-gray-500">
+        {#if isDrawing}
+            <span class="text-blue-400"> Drag to draw • </span>
+            <kbd class="px-1 py-0.5 bg-gray-700 rounded text-[10px]">ESC</kbd>
+            <span>cancel</span>
+        {:else if activeTool !== "none" && activeTool !== "select"}
+            <span class="hidden sm:inline text-gray-400"
+                >Click & drag on chart</span
+            >
+            <kbd class="px-1 py-0.5 bg-gray-700 rounded text-[10px]">ESC</kbd>
+        {:else if selectedId}
+            <span class="hidden sm:inline text-blue-400">Drag to move</span>
+            <kbd class="px-1 py-0.5 bg-gray-700 rounded text-[10px]">DEL</kbd>
+            <span>delete</span>
+        {:else}
+            <span class="hidden lg:inline text-gray-500">
+                Click tool or use shortcuts:
+                {#each tools as t, i}
+                    <kbd
+                        class="px-1 py-0.5 bg-gray-700/50 rounded text-[10px] mx-0.5"
+                        >{t.shortcut}</kbd
+                    >{i < tools.length - 1 ? "" : ""}
+                {/each}
             </span>
-            <kbd class="px-1.5 py-0.5 bg-gray-700 rounded text-[10px]">ESC</kbd>
-            <span class="hidden sm:inline">to cancel</span>
-        </div>
-    {/if}
+        {/if}
+    </div>
 </div>

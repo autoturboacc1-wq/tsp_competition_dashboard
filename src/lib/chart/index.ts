@@ -1,3 +1,14 @@
 // Export all chart utilities
 export { DrawingManager } from './DrawingManager';
-export type { Drawing, DrawingTool, Point, TrendLineDrawing, HorizontalLineDrawing, FibRetracementDrawing, RectangleDrawing } from './DrawingManager';
+export type {
+    Drawing,
+    DrawingTool,
+    Point,
+    ScreenPoint,
+    DrawingState,
+    TrendLineDrawing,
+    HorizontalLineDrawing,
+    FibRetracementDrawing,
+    RectangleDrawing,
+    CursorStyle
+} from './DrawingManager';
