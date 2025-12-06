@@ -3,6 +3,14 @@
     import { page } from "$app/stores";
     import { createChart, ColorType } from "lightweight-charts";
     import EquityChart from "$lib/components/EquityChart.svelte";
+    import DrawingToolbar from "$lib/chart/DrawingToolbar.svelte";
+    import DrawingOverlay from "$lib/chart/DrawingOverlay.svelte";
+    import {
+        DrawingManager,
+        type Drawing,
+        type DrawingTool,
+        type Point,
+    } from "$lib/chart/DrawingManager";
     import type { PageData } from "./$types";
 
     export let data: PageData;
@@ -52,6 +60,147 @@
         { label: "H4", value: 240 },
         { label: "D1", value: 1440 },
     ];
+
+    // Drawing Tools State
+    let drawingManager: DrawingManager | null = null;
+    let activeTool: DrawingTool = "none";
+    let drawings: Drawing[] = [];
+    let pendingStart: Point | null = null;
+    let mousePosition: Point | null = null;
+
+    // Drawing Tool Handlers
+    function handleSelectTool(event: CustomEvent<DrawingTool>) {
+        activeTool = event.detail;
+        pendingStart = null;
+        mousePosition = null;
+        if (drawingManager) {
+            drawingManager.setTool(activeTool);
+        }
+    }
+
+    function handleClearDrawings() {
+        drawings = [];
+        pendingStart = null;
+        mousePosition = null;
+        activeTool = "none";
+        if (drawingManager) {
+            drawingManager.clearAll();
+        }
+    }
+
+    function handleCancelDrawing() {
+        activeTool = "none";
+        pendingStart = null;
+        mousePosition = null;
+        if (drawingManager) {
+            drawingManager.cancelDrawing();
+        }
+    }
+
+    function handleChartClick(event: MouseEvent) {
+        if (activeTool === "none" || !chart || !candlestickSeries) return;
+
+        const rect = chartContainerRef.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        // Convert to chart coordinates
+        const time = chart.timeScale().coordinateToTime(x);
+        const price = candlestickSeries.coordinateToPrice(y);
+
+        if (time === null || price === null) return;
+
+        const point: Point = { time: time as number, price };
+
+        if (activeTool === "hline") {
+            // Horizontal line - single click
+            drawings = [
+                ...drawings,
+                {
+                    id: `drawing_${Date.now()}`,
+                    type: "hline",
+                    price: point.price,
+                    color: "#FBBF24",
+                    visible: true,
+                },
+            ];
+            activeTool = "none";
+        } else if (!pendingStart) {
+            // First click - set start point
+            pendingStart = point;
+        } else {
+            // Second click - complete drawing
+            const newDrawing = createDrawing(activeTool, pendingStart, point);
+            if (newDrawing) {
+                drawings = [...drawings, newDrawing];
+            }
+            pendingStart = null;
+            activeTool = "none";
+        }
+    }
+
+    function handleChartMouseMove(event: MouseEvent) {
+        if (
+            activeTool === "none" ||
+            !pendingStart ||
+            !chart ||
+            !candlestickSeries
+        )
+            return;
+
+        const rect = chartContainerRef.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        const time = chart.timeScale().coordinateToTime(x);
+        const price = candlestickSeries.coordinateToPrice(y);
+
+        if (time !== null && price !== null) {
+            mousePosition = { time: time as number, price };
+        }
+    }
+
+    function createDrawing(
+        tool: DrawingTool,
+        start: Point,
+        end: Point,
+    ): Drawing | null {
+        const id = `drawing_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        switch (tool) {
+            case "trendline":
+                return {
+                    id,
+                    type: "trendline",
+                    start,
+                    end,
+                    color: "#3B82F6",
+                    visible: true,
+                };
+            case "fib":
+                return {
+                    id,
+                    type: "fib",
+                    start,
+                    end,
+                    color: "#8B5CF6",
+                    levels: [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1],
+                    visible: true,
+                };
+            case "rect":
+                return {
+                    id,
+                    type: "rect",
+                    start,
+                    end,
+                    color: "#10B981",
+                    fillColor: "rgba(16, 185, 129, 0.1)",
+                    visible: true,
+                };
+            default:
+                return null;
+        }
+    }
 
     // Helper: Generate Mock M5 from M15
     function generateMockM5(m15Data: any[]) {
@@ -1208,12 +1357,38 @@
                 </div>
             </div>
 
+            <!-- Drawing Tools Toolbar -->
+            <DrawingToolbar
+                {activeTool}
+                hasDrawings={drawings.length > 0}
+                on:selectTool={handleSelectTool}
+                on:clearAll={handleClearDrawings}
+                on:cancel={handleCancelDrawing}
+            />
+
             <!-- Chart Container -->
             <div class="p-4 bg-gray-900">
                 <div
-                    bind:this={chartContainerRef}
-                    class="w-full h-[400px]"
-                ></div>
+                    class="relative w-full h-[400px]"
+                    role="application"
+                    on:click={handleChartClick}
+                    on:mousemove={handleChartMouseMove}
+                >
+                    <div
+                        bind:this={chartContainerRef}
+                        class="w-full h-full"
+                    ></div>
+
+                    <!-- Drawing Overlay -->
+                    <DrawingOverlay
+                        {chart}
+                        series={candlestickSeries}
+                        {drawings}
+                        {activeTool}
+                        {pendingStart}
+                        {mousePosition}
+                    />
+                </div>
             </div>
 
             <!-- Legend -->
