@@ -1330,7 +1330,9 @@
                             "th-TH",
                             { timeZone: "Asia/Bangkok" },
                         )}
-                        → Close: {new Date(
+                    </p>
+                    <p class="text-xs text-gray-400">
+                        Close: {new Date(
                             selectedTrade?.closeTime,
                         ).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}
                     </p>
