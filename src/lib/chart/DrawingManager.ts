@@ -98,8 +98,8 @@ export class DrawingManager {
         rawCurrentScreen: null,
     };
     private snapOptions: SnapOptions = {
-        enabled: true,
-        snapToOHLC: true,
+        enabled: false,
+        snapToOHLC: false,
         snapDistance: 10,
     };
     private candleData: any[] = [];
