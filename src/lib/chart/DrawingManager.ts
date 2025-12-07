@@ -61,6 +61,9 @@ export interface DrawingState {
     selectedId: string | null;
     hoveredId: string | null;
     dragOffset: Point | null;
+    // Raw screen coordinates for smooth preview (avoids chart time snapping)
+    rawStartScreen: ScreenPoint | null;
+    rawCurrentScreen: ScreenPoint | null;
 }
 
 // Snap options
@@ -85,6 +88,8 @@ export class DrawingManager {
         selectedId: null,
         hoveredId: null,
         dragOffset: null,
+        rawStartScreen: null,
+        rawCurrentScreen: null,
     };
     private snapOptions: SnapOptions = {
         enabled: true,
@@ -314,6 +319,9 @@ export class DrawingManager {
             this.state.mode = 'drawing';
             this.state.startPoint = snappedPoint;
             this.state.currentPoint = snappedPoint;
+            // Store raw screen coordinates for smooth preview
+            this.state.rawStartScreen = { x, y };
+            this.state.rawCurrentScreen = { x, y };
 
             // For hline, complete immediately
             if (this.state.tool === 'hline') {
@@ -330,9 +338,9 @@ export class DrawingManager {
         if (!point) return;
 
         if (this.state.isDrawing && this.state.startPoint) {
-            // Drawing mode - update preview
-            const snappedPoint = this.snapToOHLC(point, y);
-            this.state.currentPoint = snappedPoint;
+            // Drawing mode - update preview (use raw screen coords for smooth cursor following)
+            this.state.currentPoint = point;
+            this.state.rawCurrentScreen = { x, y };
             this.callbacks.onStateChange?.(this.state);
         } else if (this.state.isDragging && this.state.selectedId && this.state.startPoint) {
             // Moving a selected drawing

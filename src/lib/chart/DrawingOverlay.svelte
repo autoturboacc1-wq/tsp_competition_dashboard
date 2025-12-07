@@ -66,12 +66,13 @@
         // Render preview if drawing
         if (
             drawingState?.isDrawing &&
-            drawingState.startPoint &&
-            drawingState.currentPoint
+            drawingState.rawStartScreen &&
+            drawingState.rawCurrentScreen
         ) {
-            renderPreview(
-                drawingState.startPoint,
-                drawingState.currentPoint,
+            // Use raw screen coordinates for smooth preview (avoids time snapping)
+            renderPreviewFromScreen(
+                drawingState.rawStartScreen,
+                drawingState.rawCurrentScreen,
                 drawingState.tool,
             );
         }
@@ -289,6 +290,43 @@
         const endScreen = chartToScreen(end);
         if (!startScreen || !endScreen) return;
 
+        ctx!.globalAlpha = 0.7;
+        ctx!.setLineDash([5, 5]);
+
+        switch (tool) {
+            case "trendline":
+                ctx!.beginPath();
+                ctx!.strokeStyle = COLORS.trendline;
+                ctx!.lineWidth = 2;
+                ctx!.moveTo(startScreen.x, startScreen.y);
+                ctx!.lineTo(endScreen.x, endScreen.y);
+                ctx!.stroke();
+                break;
+            case "fib":
+            case "rect":
+                const x = Math.min(startScreen.x, endScreen.x);
+                const y = Math.min(startScreen.y, endScreen.y);
+                const width = Math.abs(endScreen.x - startScreen.x);
+                const height = Math.abs(endScreen.y - startScreen.y);
+                ctx!.strokeStyle = tool === "fib" ? COLORS.fib : COLORS.rect;
+                ctx!.lineWidth = 2;
+                ctx!.strokeRect(x, y, width, height);
+                break;
+        }
+
+        ctx!.setLineDash([]);
+        ctx!.globalAlpha = 1;
+
+        // Start point indicator
+        drawCircle(startScreen.x, startScreen.y, 6, "#60A5FA", true);
+    }
+
+    // Render preview using raw screen coordinates (avoids time snapping to candles)
+    function renderPreviewFromScreen(
+        startScreen: { x: number; y: number },
+        endScreen: { x: number; y: number },
+        tool: DrawingTool,
+    ) {
         ctx!.globalAlpha = 0.7;
         ctx!.setLineDash([5, 5]);
 

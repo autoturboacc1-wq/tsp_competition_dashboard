@@ -90,6 +90,8 @@
         selectedId: null,
         hoveredId: null,
         dragOffset: null,
+        rawStartScreen: null,
+        rawCurrentScreen: null,
     };
     let chartCursor: import("$lib/chart/DrawingManager").CursorStyle =
         "default";
@@ -109,6 +111,10 @@
 
         drawingManager = new DrawingManager(chart, candlestickSeries);
         drawingManager.setCandleData(baseM1Data);
+
+        // Sync current magnet state
+        drawingManager.setSnapEnabled(magnetEnabled);
+
         drawingManager.setCallbacks({
             onDrawingsChange: (d) => {
                 drawings = d;
