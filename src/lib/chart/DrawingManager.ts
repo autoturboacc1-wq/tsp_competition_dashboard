@@ -56,10 +56,13 @@ export interface DrawingState {
     mode: InteractionMode;
     isDrawing: boolean;
     isDragging: boolean;
+    isResizing: boolean;  // NEW: resizing a drawing endpoint
+    resizingHandle: 'start' | 'end' | null;  // NEW: which handle is being dragged
     startPoint: Point | null;
     currentPoint: Point | null;
     selectedId: string | null;
     hoveredId: string | null;
+    hoveredHandle: 'start' | 'end' | null;  // NEW: which handle is hovered
     dragOffset: Point | null;
     // Raw screen coordinates for smooth preview (avoids chart time snapping)
     rawStartScreen: ScreenPoint | null;
@@ -83,10 +86,13 @@ export class DrawingManager {
         mode: 'idle',
         isDrawing: false,
         isDragging: false,
+        isResizing: false,
+        resizingHandle: null,
         startPoint: null,
         currentPoint: null,
         selectedId: null,
         hoveredId: null,
+        hoveredHandle: null,
         dragOffset: null,
         rawStartScreen: null,
         rawCurrentScreen: null,
@@ -295,10 +301,54 @@ export class DrawingManager {
         return Math.sqrt((px - xx) ** 2 + (py - yy) ** 2);
     }
 
-    // Mouse down - start drawing or select
+    // Find resize handle at point (for resizing)
+    findHandleAtPoint(x: number, y: number): { drawingId: string; handle: 'start' | 'end' } | null {
+        const handleTolerance = this.touchMode ? 20 : 12;
+
+        for (let i = this.drawings.length - 1; i >= 0; i--) {
+            const d = this.drawings[i];
+            if (!d.visible || !d.selected) continue;  // Only check selected drawings
+
+            if (d.type === 'trendline' || d.type === 'fib' || d.type === 'rect') {
+                const startScreen = this.chartToScreen(d.start);
+                const endScreen = this.chartToScreen(d.end);
+
+                if (startScreen) {
+                    const distToStart = Math.sqrt((x - startScreen.x) ** 2 + (y - startScreen.y) ** 2);
+                    if (distToStart < handleTolerance) {
+                        return { drawingId: d.id, handle: 'start' };
+                    }
+                }
+
+                if (endScreen) {
+                    const distToEnd = Math.sqrt((x - endScreen.x) ** 2 + (y - endScreen.y) ** 2);
+                    if (distToEnd < handleTolerance) {
+                        return { drawingId: d.id, handle: 'end' };
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    // Mouse down - start drawing, select, or resize
     handleMouseDown(x: number, y: number): void {
         const point = this.screenToChart(x, y);
         if (!point) return;
+
+        // Check for resize handle first (only for selected drawings)
+        if (this.state.selectedId) {
+            const handleHit = this.findHandleAtPoint(x, y);
+            if (handleHit && handleHit.drawingId === this.state.selectedId) {
+                this.state.isResizing = true;
+                this.state.resizingHandle = handleHit.handle;
+                this.state.mode = 'resizing';
+                this.state.startPoint = point;
+                this.callbacks.onCursorChange?.('crosshair');
+                this.callbacks.onStateChange?.(this.state);
+                return;
+            }
+        }
 
         if (this.state.tool === 'select' || this.state.tool === 'none') {
             // Try to select a drawing
@@ -332,7 +382,7 @@ export class DrawingManager {
         this.callbacks.onStateChange?.(this.state);
     }
 
-    // Mouse move - preview or drag
+    // Mouse move - preview, drag, or resize
     handleMouseMove(x: number, y: number): void {
         const point = this.screenToChart(x, y);
         if (!point) return;
@@ -342,23 +392,48 @@ export class DrawingManager {
             this.state.currentPoint = point;
             this.state.rawCurrentScreen = { x, y };
             this.callbacks.onStateChange?.(this.state);
+        } else if (this.state.isResizing && this.state.selectedId && this.state.resizingHandle) {
+            // Resizing mode - update the endpoint
+            const snappedPoint = this.snapToOHLC(point, y);
+            this.resizeSelectedDrawing(snappedPoint);
         } else if (this.state.isDragging && this.state.selectedId && this.state.startPoint) {
             // Moving a selected drawing
             this.moveSelectedDrawing(point);
         } else {
-            // Hover detection
+            // Hover detection for handles and drawings
+            let newCursor: CursorStyle = 'default';
+            let hoveredHandle: 'start' | 'end' | null = null;
+
+            // Check for handle hover on selected drawing
+            if (this.state.selectedId) {
+                const handleHit = this.findHandleAtPoint(x, y);
+                if (handleHit && handleHit.drawingId === this.state.selectedId) {
+                    hoveredHandle = handleHit.handle;
+                    newCursor = 'crosshair';
+                }
+            }
+
+            // Check for drawing hover
             const hitId = this.findDrawingAtPoint(x, y);
-            if (hitId !== this.state.hoveredId) {
+
+            if (hoveredHandle !== this.state.hoveredHandle || hitId !== this.state.hoveredId) {
+                this.state.hoveredHandle = hoveredHandle;
                 this.state.hoveredId = hitId;
+
                 if (this.state.tool === 'none' || this.state.tool === 'select') {
-                    this.callbacks.onCursorChange?.(hitId ? 'grab' : 'default');
+                    if (hoveredHandle) {
+                        newCursor = 'crosshair';
+                    } else if (hitId) {
+                        newCursor = 'grab';
+                    }
+                    this.callbacks.onCursorChange?.(newCursor);
                 }
                 this.callbacks.onStateChange?.(this.state);
             }
         }
     }
 
-    // Mouse up - complete drawing or stop dragging
+    // Mouse up - complete drawing, stop dragging, or stop resizing
     handleMouseUp(x: number, y: number): void {
         const point = this.screenToChart(x, y);
 
@@ -373,7 +448,15 @@ export class DrawingManager {
             this.callbacks.onCursorChange?.(this.state.hoveredId ? 'grab' : 'default');
         }
 
+        if (this.state.isResizing) {
+            this.state.isResizing = false;
+            this.state.resizingHandle = null;
+            this.state.mode = 'idle';
+            this.callbacks.onCursorChange?.(this.state.hoveredId ? 'grab' : 'default');
+        }
+
         this.state.isDrawing = false;
+        this.state.startPoint = null;
         this.callbacks.onStateChange?.(this.state);
     }
 
@@ -480,6 +563,30 @@ export class DrawingManager {
         });
 
         this.state.startPoint = newPoint;
+        this.callbacks.onDrawingsChange?.(this.drawings);
+    }
+
+    // Resize selected drawing (update start or end point)
+    private resizeSelectedDrawing(newPoint: Point): void {
+        if (!this.state.selectedId || !this.state.resizingHandle) return;
+
+        this.drawings = this.drawings.map(d => {
+            if (d.id !== this.state.selectedId) return d;
+
+            switch (d.type) {
+                case 'trendline':
+                case 'fib':
+                case 'rect':
+                    if (this.state.resizingHandle === 'start') {
+                        return { ...d, start: newPoint };
+                    } else {
+                        return { ...d, end: newPoint };
+                    }
+                default:
+                    return d;
+            }
+        });
+
         this.callbacks.onDrawingsChange?.(this.drawings);
     }
 

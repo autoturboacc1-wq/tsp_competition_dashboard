@@ -173,6 +173,16 @@
         drawingManager.handleMouseDown(x, y);
         drawingState = drawingManager.getState();
         drawings = drawingManager.getDrawings();
+
+        // Prevent chart from panning when drawing, dragging, or resizing
+        if (
+            drawingState.isDrawing ||
+            drawingState.isDragging ||
+            drawingState.isResizing
+        ) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
     }
 
     function handleChartMouseMove(event: MouseEvent) {
@@ -184,6 +194,16 @@
 
         drawingManager.handleMouseMove(x, y);
         drawingState = drawingManager.getState();
+
+        // Prevent chart from panning when drawing, dragging, or resizing
+        if (
+            drawingState.isDrawing ||
+            drawingState.isDragging ||
+            drawingState.isResizing
+        ) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
     }
 
     function handleChartMouseUp(event: MouseEvent) {
@@ -193,9 +213,21 @@
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
 
+        // Check states before handling mouseUp (they will be reset after)
+        const wasInteracting =
+            drawingState.isDrawing ||
+            drawingState.isDragging ||
+            drawingState.isResizing;
+
         drawingManager.handleMouseUp(x, y);
         drawingState = drawingManager.getState();
         drawings = drawingManager.getDrawings();
+
+        // Prevent chart from panning
+        if (wasInteracting) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
     }
 
     function handleChartMouseLeave() {
