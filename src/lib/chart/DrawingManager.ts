@@ -92,6 +92,7 @@ export class DrawingManager {
         snapDistance: 10,
     };
     private candleData: any[] = [];
+    private touchMode: boolean = false; // Larger hit targets for touch devices
     private callbacks: {
         onDrawingsChange?: (drawings: Drawing[]) => void;
         onStateChange?: (state: DrawingState) => void;
@@ -114,6 +115,15 @@ export class DrawingManager {
 
     isSnapEnabled(): boolean {
         return this.snapOptions.enabled;
+    }
+
+    // Enable touch mode for larger hit targets on mobile
+    setTouchMode(enabled: boolean) {
+        this.touchMode = enabled;
+    }
+
+    isTouchMode(): boolean {
+        return this.touchMode;
     }
 
     setCallbacks(callbacks: typeof this.callbacks) {
@@ -201,7 +211,9 @@ export class DrawingManager {
     }
 
     // Find drawing at point (for selection)
-    findDrawingAtPoint(x: number, y: number, tolerance: number = 8): string | null {
+    // Touch devices get larger tolerance (15px vs 8px) for easier selection
+    findDrawingAtPoint(x: number, y: number, tolerance?: number): string | null {
+        const actualTolerance = tolerance ?? (this.touchMode ? 15 : 8);
         const point = this.screenToChart(x, y);
         if (!point) return null;
 
@@ -210,7 +222,7 @@ export class DrawingManager {
             const d = this.drawings[i];
             if (!d.visible) continue;
 
-            if (this.isPointOnDrawing(d, x, y, tolerance)) {
+            if (this.isPointOnDrawing(d, x, y, actualTolerance)) {
                 return d.id;
             }
         }

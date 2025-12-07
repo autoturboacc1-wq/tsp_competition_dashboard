@@ -100,54 +100,56 @@
 <svelte:window on:keydown={handleKeydown} />
 
 <div
-    class="flex items-center gap-1 px-3 py-2 bg-gray-800/95 backdrop-blur-sm border-b border-gray-700"
+    class="flex items-center gap-1 px-3 py-2 bg-gray-800/95 backdrop-blur-sm border-b border-gray-700 overflow-x-auto"
 >
     <!-- Drawing Tools -->
-    <div class="flex items-center gap-0.5">
+    <div class="flex items-center gap-1">
         {#each tools as tool}
             <button
                 on:click={() => selectTool(tool.id as DrawingTool)}
-                class="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all
+                class="flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px] px-3 py-2 rounded-lg text-sm font-medium transition-all
                     {activeTool === tool.id
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                    : 'text-gray-400 hover:bg-gray-700 hover:text-white'}"
+                    : 'text-gray-400 hover:bg-gray-700 hover:text-white active:bg-gray-600'}"
                 title="{tool.description} ({tool.shortcut})"
             >
-                <span class="text-sm">{tool.icon}</span>
-                <span class="hidden md:inline">{tool.label}</span>
+                <span class="text-base">{tool.icon}</span>
+                <span class="hidden md:inline text-xs">{tool.label}</span>
             </button>
         {/each}
     </div>
 
     <!-- Divider -->
-    <div class="w-px h-5 bg-gray-600 mx-1.5"></div>
+    <div class="w-px h-8 bg-gray-600 mx-1"></div>
 
     <!-- Magnet Toggle -->
     <button
         on:click={toggleMagnet}
-        class="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all
+        class="flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px] px-3 py-2 rounded-lg text-sm font-medium transition-all
             {magnetEnabled
             ? 'bg-amber-600/80 text-white shadow-lg shadow-amber-600/30'
-            : 'text-gray-500 hover:bg-gray-700 hover:text-gray-300'}"
+            : 'text-gray-500 hover:bg-gray-700 hover:text-gray-300 active:bg-gray-600'}"
         title="Magnet Mode - Snap to OHLC (M)"
     >
-        <span class="text-sm">🧲</span>
-        <span class="hidden sm:inline">{magnetEnabled ? "On" : "Off"}</span>
+        <span class="text-base">🧲</span>
+        <span class="hidden sm:inline text-xs"
+            >{magnetEnabled ? "On" : "Off"}</span
+        >
     </button>
 
     <!-- Divider -->
-    <div class="w-px h-5 bg-gray-600 mx-1.5"></div>
+    <div class="w-px h-8 bg-gray-600 mx-1"></div>
 
     <!-- Delete Selected -->
     {#if selectedId}
         <button
             on:click={deleteSelected}
-            class="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-medium
-                   bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-all"
+            class="flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px] px-3 py-2 rounded-lg text-sm font-medium
+                   bg-red-600/20 text-red-400 hover:bg-red-600/30 active:bg-red-600/40 transition-all"
             title="Delete Selected (DEL)"
         >
-            <span>🗑️</span>
-            <span class="hidden sm:inline">Delete</span>
+            <span class="text-base">🗑️</span>
+            <span class="hidden sm:inline text-xs">Delete</span>
         </button>
     {/if}
 
@@ -155,14 +157,14 @@
     <button
         on:click={clearAll}
         disabled={!hasDrawings}
-        class="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all
+        class="flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px] px-3 py-2 rounded-lg text-sm font-medium transition-all
             {hasDrawings
-            ? 'text-gray-400 hover:bg-gray-700 hover:text-white'
+            ? 'text-gray-400 hover:bg-gray-700 hover:text-white active:bg-gray-600'
             : 'text-gray-600 cursor-not-allowed'}"
         title="Clear All Drawings"
     >
-        <span>✖️</span>
-        <span class="hidden sm:inline">Clear</span>
+        <span class="text-base">✖️</span>
+        <span class="hidden sm:inline text-xs">Clear</span>
     </button>
 
     <!-- Status/Instructions -->

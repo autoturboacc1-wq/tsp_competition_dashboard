@@ -199,6 +199,62 @@
         }
     }
 
+    // Touch Event Handlers for Mobile/Tablet
+    function handleChartTouchStart(event: TouchEvent) {
+        if (!drawingManager || !chartContainerRef) return;
+        // Only handle single touch (ignore multi-touch like pinch)
+        if (event.touches.length !== 1) return;
+
+        event.preventDefault(); // Prevent scrolling/zooming
+
+        // Enable touch mode for larger hit targets
+        drawingManager.setTouchMode(true);
+
+        const touch = event.touches[0];
+        const rect = chartContainerRef.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        drawingManager.handleMouseDown(x, y);
+        drawingState = drawingManager.getState();
+        drawings = drawingManager.getDrawings();
+    }
+
+    function handleChartTouchMove(event: TouchEvent) {
+        if (!drawingManager || !chartContainerRef) return;
+        if (event.touches.length !== 1) return;
+
+        event.preventDefault();
+        const touch = event.touches[0];
+        const rect = chartContainerRef.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        drawingManager.handleMouseMove(x, y);
+        drawingState = drawingManager.getState();
+    }
+
+    function handleChartTouchEnd(event: TouchEvent) {
+        if (!drawingManager || !chartContainerRef) return;
+
+        event.preventDefault();
+        const touch = event.changedTouches[0];
+        const rect = chartContainerRef.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        drawingManager.handleMouseUp(x, y);
+        drawingState = drawingManager.getState();
+        drawings = drawingManager.getDrawings();
+    }
+
+    function handleChartTouchCancel() {
+        if (drawingManager) {
+            drawingManager.cancelDrawing();
+            drawingState = drawingManager.getState();
+        }
+    }
+
     // Helper: Generate Mock M5 from M15
     function generateMockM5(m15Data: any[]) {
         const m5Data: any[] = [];
@@ -1420,11 +1476,15 @@
                         ? 'h-full'
                         : 'h-[400px]'}"
                     role="application"
-                    style="cursor: {chartCursor};"
+                    style="touch-action: none; cursor: {chartCursor};"
                     on:mousedown={handleChartMouseDown}
                     on:mousemove={handleChartMouseMove}
                     on:mouseup={handleChartMouseUp}
                     on:mouseleave={handleChartMouseLeave}
+                    on:touchstart={handleChartTouchStart}
+                    on:touchmove={handleChartTouchMove}
+                    on:touchend={handleChartTouchEnd}
+                    on:touchcancel={handleChartTouchCancel}
                 >
                     <div
                         bind:this={chartContainerRef}
