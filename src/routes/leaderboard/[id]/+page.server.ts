@@ -50,10 +50,10 @@ export const load: PageServerLoad = async ({ params }) => {
                 .gte('timestamp', thirtyDaysAgo.toISOString())
                 .order('timestamp', { ascending: true });
 
-            // Fetch daily history for heatmap
+            // Fetch daily history for Trading Calendar (enhanced data)
             const { data: dailyStats } = await supabase
                 .from('daily_stats')
-                .select('date, profit')
+                .select('date, profit, total_trades, win_rate, best_trade, worst_trade')
                 .eq('participant_id', id)
                 .order('date', { ascending: true });
 
@@ -105,7 +105,11 @@ export const load: PageServerLoad = async ({ params }) => {
                     })) || [],
                     dailyHistory: dailyStats?.map(d => ({
                         date: d.date,
-                        profit: d.profit
+                        profit: d.profit,
+                        totalTrades: d.total_trades || 0,
+                        winRate: d.win_rate || 0,
+                        bestTrade: d.best_trade || 0,
+                        worstTrade: d.worst_trade || 0
                     })) || [],
                     // MyFxBook-style detailed equity curve
                     equitySnapshots: equitySnapshots?.map(s => ({
