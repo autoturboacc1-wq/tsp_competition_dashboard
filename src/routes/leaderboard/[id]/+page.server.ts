@@ -50,12 +50,50 @@ export const load: PageServerLoad = async ({ params }) => {
                 .gte('timestamp', thirtyDaysAgo.toISOString())
                 .order('timestamp', { ascending: true });
 
-            // Fetch daily history for Trading Calendar (enhanced data)
-            const { data: dailyStats } = await supabase
-                .from('daily_stats')
-                .select('date, profit, total_trades, win_rate, best_trade, worst_trade')
+            // Fetch ALL trades for Trading Calendar (calculate daily profit from trade history)
+            const { data: allTrades } = await supabase
+                .from('trades')
+                .select('close_time, profit')
                 .eq('participant_id', id)
-                .order('date', { ascending: true });
+                .order('close_time', { ascending: true });
+
+            // Calculate daily stats from trades
+            const dailyStatsFromTrades = (() => {
+                if (!allTrades || allTrades.length === 0) return [];
+
+                const dailyMap = new Map<string, {
+                    profit: number;
+                    trades: number[];
+                }>();
+
+                for (const trade of allTrades) {
+                    // Get date from close_time (stored as local broker time)
+                    const closeTime = new Date(trade.close_time);
+                    // Convert to Thailand timezone (UTC+7) for correct date grouping
+                    const thaiTime = new Date(closeTime.getTime() + (7 * 60 * 60 * 1000));
+                    const dateKey = thaiTime.toISOString().split('T')[0];
+
+                    if (!dailyMap.has(dateKey)) {
+                        dailyMap.set(dateKey, { profit: 0, trades: [] });
+                    }
+                    const day = dailyMap.get(dateKey)!;
+                    day.profit += trade.profit || 0;
+                    day.trades.push(trade.profit || 0);
+                }
+
+                return Array.from(dailyMap.entries()).map(([date, data]) => {
+                    const wins = data.trades.filter(p => p > 0);
+                    const losses = data.trades.filter(p => p < 0);
+                    return {
+                        date,
+                        profit: data.profit,
+                        totalTrades: data.trades.length,
+                        winRate: data.trades.length > 0 ? (wins.length / data.trades.length) * 100 : 0,
+                        bestTrade: wins.length > 0 ? Math.max(...wins) : 0,
+                        worstTrade: losses.length > 0 ? Math.min(...losses) : 0
+                    };
+                }).sort((a, b) => a.date.localeCompare(b.date));
+            })();
 
             return {
                 trader: {
@@ -103,14 +141,7 @@ export const load: PageServerLoad = async ({ params }) => {
                         closeTime: t.close_time,
                         profit: t.profit
                     })) || [],
-                    dailyHistory: dailyStats?.map(d => ({
-                        date: d.date,
-                        profit: d.profit,
-                        totalTrades: d.total_trades || 0,
-                        winRate: d.win_rate || 0,
-                        bestTrade: d.best_trade || 0,
-                        worstTrade: d.worst_trade || 0
-                    })) || [],
+                    dailyHistory: dailyStatsFromTrades,
                     // MyFxBook-style detailed equity curve
                     equitySnapshots: equitySnapshots?.map(s => ({
                         time: new Date(s.timestamp).getTime() / 1000,

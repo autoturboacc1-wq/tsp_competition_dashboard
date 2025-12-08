@@ -47,8 +47,8 @@
 
     const dispatch = createEventDispatcher();
 
-    // Days of the week (abbreviated)
-    const daysOfWeek = ["S", "M", "T", "W", "T", "F", "S"];
+    // Days of the week (abbreviated) - Calendar starts from Sunday
+    const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const monthNames = [
         "January",
         "February",
@@ -134,7 +134,11 @@
     }
 
     function formatDateKey(date: Date): string {
-        return date.toISOString().split("T")[0];
+        // Use Thailand timezone (UTC+7) for date key
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
     }
 
     function groupIntoWeeks(days: CalendarDay[]): CalendarDay[][] {
@@ -492,10 +496,11 @@
         <div class="grid grid-cols-7 gap-0.5 mb-1">
             {#each daysOfWeek as day, i}
                 <div
-                    class="text-center text-[10px] font-semibold py-1 {i ===
-                        0 || i === 6
+                    class="text-center text-[10px] font-semibold py-1 {i === 0
                         ? 'text-red-400'
-                        : 'text-gray-400'}"
+                        : i === 6
+                          ? 'text-blue-400'
+                          : 'text-gray-400'}"
                 >
                     {day}
                 </div>
@@ -540,7 +545,7 @@
                             class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1.5 bg-gray-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none shadow-lg"
                         >
                             <div class="font-semibold">
-                                {day.date.toLocaleDateString("en-US", {
+                                {day.date.toLocaleDateString("th-TH", {
                                     weekday: "short",
                                     month: "short",
                                     day: "numeric",
@@ -625,7 +630,7 @@
                 class="p-3 border-b border-gray-100 dark:border-dark-border flex items-center justify-between"
             >
                 <h3 class="text-sm font-bold text-gray-900 dark:text-white">
-                    {selectedDay.date.toLocaleDateString("en-US", {
+                    {selectedDay.date.toLocaleDateString("th-TH", {
                         weekday: "long",
                         month: "short",
                         day: "numeric",
