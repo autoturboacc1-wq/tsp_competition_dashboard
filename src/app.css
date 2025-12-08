@@ -1,8 +1,365 @@
 @import "tailwindcss/base";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
+
 @layer base {
   .dark {
     color: white;
+  }
+
+  /* Smooth font rendering */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Default smooth transitions for interactive elements */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@layer components {
+  /* ==================== ANIMATIONS ==================== */
+
+  /* Fade In */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Fade In Up (slide from bottom) */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Fade In Down (slide from top) */
+  @keyframes fadeInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Scale In */
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Slide In Left */
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Slide In Right */
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Pulse Glow */
+  @keyframes pulseGlow {
+
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+
+    50% {
+      box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+    }
+  }
+
+  /* Shimmer Loading */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Bounce Subtle */
+  @keyframes bounceSubtle {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+
+  /* ==================== ANIMATION CLASSES ==================== */
+
+  .animate-fade-in {
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .animate-fade-in-down {
+    animation: fadeInDown 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .animate-pulse-glow {
+    animation: pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  .animate-bounce-subtle {
+    animation: bounceSubtle 2s ease-in-out infinite;
+  }
+
+  /* ==================== STAGGERED ANIMATIONS ==================== */
+
+  .stagger-1 {
+    animation-delay: 0.05s;
+    opacity: 0;
+  }
+
+  .stagger-2 {
+    animation-delay: 0.1s;
+    opacity: 0;
+  }
+
+  .stagger-3 {
+    animation-delay: 0.15s;
+    opacity: 0;
+  }
+
+  .stagger-4 {
+    animation-delay: 0.2s;
+    opacity: 0;
+  }
+
+  .stagger-5 {
+    animation-delay: 0.25s;
+    opacity: 0;
+  }
+
+  .stagger-6 {
+    animation-delay: 0.3s;
+    opacity: 0;
+  }
+
+  .stagger-7 {
+    animation-delay: 0.35s;
+    opacity: 0;
+  }
+
+  .stagger-8 {
+    animation-delay: 0.4s;
+    opacity: 0;
+  }
+
+  /* ==================== CARD ANIMATIONS ==================== */
+
+  .card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
+  }
+
+  .dark .card-hover:hover {
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.4);
+  }
+
+  /* ==================== BUTTON EFFECTS ==================== */
+
+  .btn-press {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-press:active {
+    transform: scale(0.97);
+  }
+
+  .btn-glow {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-glow::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.5s;
+  }
+
+  .btn-glow:hover::after {
+    transform: translateX(100%);
+  }
+
+  /* ==================== TABLE ROW ANIMATIONS ==================== */
+
+  .row-hover {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .row-hover:hover {
+    background-color: rgba(59, 130, 246, 0.05);
+  }
+
+  .dark .row-hover:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+
+  /* ==================== SKELETON LOADING ==================== */
+
+  .skeleton {
+    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 0.375rem;
+  }
+
+  .dark .skeleton {
+    background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+    background-size: 200% 100%;
+  }
+
+  /* ==================== SMOOTH SCROLLING ==================== */
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #4b5563;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+  }
+
+  /* ==================== TOOLTIP ANIMATIONS ==================== */
+
+  .tooltip-enter {
+    animation: fadeInUp 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .tooltip-exit {
+    animation: fadeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1) reverse forwards;
+  }
+
+  /* ==================== MODAL ANIMATIONS ==================== */
+
+  .modal-backdrop {
+    animation: fadeIn 0.2s ease-out forwards;
+  }
+
+  .modal-content {
+    animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  /* ==================== NUMBER TRANSITIONS ==================== */
+
+  .number-animate {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ==================== FOCUS STYLES ==================== */
+
+  .focus-ring:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  }
+
+  .focus-ring:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
   }
 }

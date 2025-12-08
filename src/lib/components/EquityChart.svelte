@@ -304,12 +304,11 @@
             <div
                 class="absolute pointer-events-none z-50 bg-gray-900/95 dark:bg-gray-800/95
                        text-white text-xs rounded-xl py-3 px-4 shadow-xl backdrop-blur-sm
-                       border border-gray-700/50 min-w-[180px]"
+                       border border-gray-700/50 min-w-[180px] tooltip-enter transition-all duration-150"
                 style="left: {Math.min(
                     tooltipX + 15,
                     chartContainer?.clientWidth - 200 || 0,
-                )}px; 
-                       top: {Math.max(tooltipY - 80, 10)}px;"
+                )}px; top: {Math.max(tooltipY - 80, 10)}px;"
             >
                 <!-- Date -->
                 <div

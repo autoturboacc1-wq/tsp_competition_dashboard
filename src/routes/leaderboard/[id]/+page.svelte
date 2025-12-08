@@ -714,7 +714,7 @@
         {:else}
             <!-- Header -->
             <div
-                class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+                class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in-up card-hover"
             >
                 <div class="flex items-center gap-4">
                     <div
@@ -755,7 +755,7 @@
                 <!-- 1. Left Column: Equity Curve + Recent History -->
                 <div class="lg:col-span-2 space-y-6">
                     <div
-                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6"
+                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 animate-fade-in-up stagger-1 card-hover"
                     >
                         <EquityChart
                             equitySnapshots={trader.equitySnapshots || []}
@@ -765,7 +765,7 @@
 
                     <!-- Trade History (directly below Equity Chart) -->
                     <div
-                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border overflow-hidden"
+                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border overflow-hidden animate-fade-in-up stagger-2 card-hover"
                     >
                         <div
                             class="px-6 py-4 border-b border-gray-100 dark:border-dark-border"
@@ -797,9 +797,9 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {#each trader.history as trade}
+                                    {#each trader.history as trade, i}
                                         <tr
-                                            class="border-b dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-border/30 cursor-pointer transition-colors"
+                                            class="border-b dark:border-dark-border hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] active:bg-blue-100 dark:active:bg-blue-900/20"
                                             on:click={() => openChart(trade)}
                                         >
                                             <td
@@ -851,7 +851,7 @@
                 <!-- 2. Sidebar Stats (Right on Desktop, 2nd on Mobile) -->
                 <div class="lg:col-span-1 space-y-6 h-fit">
                     <div
-                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6"
+                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 animate-fade-in-up stagger-3 card-hover"
                     >
                         <h3
                             class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
@@ -873,10 +873,10 @@
                                     >
                                 </div>
                                 <div
-                                    class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-2"
+                                    class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-2 overflow-hidden"
                                 >
                                     <div
-                                        class="bg-blue-600 dark:bg-blue-500 h-2 rounded-full"
+                                        class="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-700 ease-out"
                                         style="width: {trader.stats.winRate}%"
                                     ></div>
                                 </div>
@@ -1095,7 +1095,7 @@
 
                     <!-- Session Performance -->
                     <div
-                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 mb-6"
+                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 mb-6 animate-fade-in-up stagger-4 card-hover"
                     >
                         <h3
                             class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
@@ -1247,14 +1247,14 @@
                     </div>
 
                     <!-- Trading Performance Calendar -->
-                    <div class="mb-6">
+                    <div class="mb-6 animate-fade-in-up stagger-5">
                         <TradingCalendar
                             dailyData={trader.dailyHistory || []}
                         />
                     </div>
 
                     <div
-                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6"
+                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 animate-fade-in-up stagger-6 card-hover"
                     >
                         <h3
                             class="text-lg font-semibold text-gray-900 dark:text-white mb-4"

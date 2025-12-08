@@ -35,7 +35,7 @@
 </script>
 
 <div
-  class="hidden md:block w-full overflow-x-auto shadow-xl rounded-xl border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface/50 backdrop-blur-sm"
+  class="hidden md:block w-full overflow-x-auto shadow-xl rounded-xl border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface/50 backdrop-blur-sm animate-fade-in-up"
 >
   <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
     <thead
@@ -61,7 +61,9 @@
           <tr
             class="border-b dark:border-dark-border/50 {getRankStyle(
               rank,
-            )} transition-all duration-200 cursor-pointer"
+            )} transition-all duration-200 cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
+            style="animation: fadeInUp 0.4s ease-out forwards; animation-delay: {index *
+              0.05}s; opacity: 0;"
             on:click={() => (window.location.href = `/leaderboard/${entry.id}`)}
           >
             <td class="px-6 py-4 font-bold whitespace-nowrap">
@@ -100,7 +102,9 @@
     <div
       class="p-4 rounded-lg shadow border {getRankStyle(
         rank,
-      )} flex justify-between items-center cursor-pointer"
+      )} flex justify-between items-center cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+      style="animation: fadeInUp 0.4s ease-out forwards; animation-delay: {index *
+        0.05}s; opacity: 0;"
       on:click={() => (window.location.href = `/leaderboard/${entry.id}`)}
     >
       <div class="flex items-center gap-3">

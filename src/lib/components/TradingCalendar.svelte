@@ -283,7 +283,7 @@
 </script>
 
 <div
-    class="trading-calendar bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border overflow-hidden"
+    class="trading-calendar bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border overflow-hidden card-hover"
 >
     <!-- Compact Header with Month Stats -->
     <div class="p-3 border-b border-gray-100 dark:border-dark-border">
@@ -511,11 +511,13 @@
         <div class="grid grid-cols-7 gap-0.5">
             {#each calendarDays as day}
                 <button
-                    class="relative aspect-square flex flex-col items-center justify-center rounded transition-all duration-150 group
+                    class="relative aspect-square flex flex-col items-center justify-center rounded transition-all duration-200 group
                         {day.isCurrentMonth ? '' : 'opacity-30'}
-                        {day.isToday ? 'ring-1 ring-blue-500' : ''}
+                        {day.isToday
+                        ? 'ring-2 ring-blue-500 ring-offset-1'
+                        : ''}
                         {day.data
-                        ? 'cursor-pointer hover:ring-1 hover:ring-gray-300'
+                        ? 'cursor-pointer hover:ring-2 hover:ring-blue-400 hover:scale-105 active:scale-95'
                         : 'cursor-default'}
                         {getProfitColor(day.data?.profit || 0)}"
                     on:click={() => handleDayClick(day)}
@@ -612,7 +614,7 @@
 <!-- Day Detail Modal -->
 {#if showDayModal && selectedDay?.data}
     <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 modal-backdrop"
         on:click={closeDayModal}
         on:keydown={(e) => e.key === "Escape" && closeDayModal()}
         role="dialog"
@@ -620,7 +622,7 @@
         tabindex="-1"
     >
         <div
-            class="bg-white dark:bg-dark-surface rounded-xl shadow-2xl max-w-sm w-full overflow-hidden"
+            class="bg-white dark:bg-dark-surface rounded-xl shadow-2xl max-w-sm w-full overflow-hidden modal-content"
             on:click|stopPropagation
             on:keydown|stopPropagation
             role="document"
