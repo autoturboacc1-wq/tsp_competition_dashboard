@@ -296,6 +296,12 @@
 
   html {
     scroll-behavior: smooth;
+    /* Prevent browser's default pull-to-refresh on PWA/mobile */
+    overscroll-behavior-y: contain;
+  }
+  
+  body {
+    overscroll-behavior-y: contain;
   }
 
   /* Custom scrollbar */

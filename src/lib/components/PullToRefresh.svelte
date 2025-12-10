@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { createEventDispatcher, onDestroy } from "svelte";
+    import { createEventDispatcher, onMount, onDestroy } from "svelte";
 
     export let threshold = 80; // Pull distance to trigger refresh
     export let isRefreshing = false;
@@ -41,13 +41,18 @@
         }, 100);
     }
 
-    onDestroy(() => {
-        if (cooldownInterval) clearInterval(cooldownInterval);
-    });
+    // Check if at top of page (works better across browsers/PWA)
+    function isAtTop(): boolean {
+        return (
+            window.scrollY <= 0 &&
+            document.documentElement.scrollTop <= 0 &&
+            (document.body.scrollTop || 0) <= 0
+        );
+    }
 
     function handleTouchStart(e: TouchEvent) {
         // Only activate if at top of page
-        if (window.scrollY === 0) {
+        if (isAtTop()) {
             startY = e.touches[0].clientY;
             isPulling = true;
         }
@@ -59,14 +64,19 @@
         const currentY = e.touches[0].clientY;
         const diff = currentY - startY;
 
-        if (diff > 0 && window.scrollY === 0) {
+        if (diff > 0 && isAtTop()) {
             // Apply resistance to make it feel natural
             pullDistance = Math.min(diff * 0.5, threshold * 1.5);
 
-            // Prevent default scrolling when pulling
-            if (pullDistance > 10) {
+            // Prevent default scrolling/bounce when pulling
+            if (pullDistance > 5) {
                 e.preventDefault();
+                e.stopPropagation();
             }
+        } else if (diff < 0) {
+            // User is scrolling up normally, cancel pull
+            isPulling = false;
+            pullDistance = 0;
         }
     }
 
@@ -85,18 +95,40 @@
         pullDistance = 0;
     }
 
+    // Use onMount to add event listeners with passive: false (required for preventDefault on iOS/PWA)
+    onMount(() => {
+        if (!containerEl) return;
+
+        containerEl.addEventListener("touchstart", handleTouchStart, {
+            passive: true,
+        });
+        containerEl.addEventListener("touchmove", handleTouchMove, {
+            passive: false,
+        });
+        containerEl.addEventListener("touchend", handleTouchEnd, {
+            passive: true,
+        });
+        containerEl.addEventListener("touchcancel", handleTouchEnd, {
+            passive: true,
+        });
+
+        return () => {
+            containerEl.removeEventListener("touchstart", handleTouchStart);
+            containerEl.removeEventListener("touchmove", handleTouchMove);
+            containerEl.removeEventListener("touchend", handleTouchEnd);
+            containerEl.removeEventListener("touchcancel", handleTouchEnd);
+        };
+    });
+
+    onDestroy(() => {
+        if (cooldownInterval) clearInterval(cooldownInterval);
+    });
+
     $: progress = Math.min(pullDistance / threshold, 1);
     $: rotation = progress * 360;
 </script>
 
-<div
-    bind:this={containerEl}
-    class="pull-to-refresh-container"
-    on:touchstart={handleTouchStart}
-    on:touchmove={handleTouchMove}
-    on:touchend={handleTouchEnd}
-    on:touchcancel={handleTouchEnd}
->
+<div bind:this={containerEl} class="pull-to-refresh-container">
     <!-- Pull indicator -->
     <div
         class="pull-indicator"
@@ -179,6 +211,9 @@
         position: relative;
         min-height: 100%;
         touch-action: pan-y;
+        /* Prevent browser's default pull-to-refresh on PWA/mobile */
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
     }
 
     .pull-indicator {
