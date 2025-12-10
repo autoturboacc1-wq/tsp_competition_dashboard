@@ -1,8 +1,9 @@
 <script lang="ts">
-    import { createEventDispatcher } from "svelte";
+    import { createEventDispatcher, onDestroy } from "svelte";
 
     export let threshold = 80; // Pull distance to trigger refresh
     export let isRefreshing = false;
+    export let cooldownMs = 5000; // 5 seconds cooldown
 
     const dispatch = createEventDispatcher<{ refresh: void }>();
 
@@ -10,6 +11,39 @@
     let isPulling = false;
     let startY = 0;
     let containerEl: HTMLDivElement;
+
+    // Cooldown state
+    let lastRefreshTime = 0;
+    let cooldownRemaining = 0;
+    let cooldownInterval: ReturnType<typeof setInterval> | null = null;
+
+    $: isOnCooldown = cooldownRemaining > 0;
+
+    function startCooldownTimer() {
+        lastRefreshTime = Date.now();
+        cooldownRemaining = Math.ceil(cooldownMs / 1000);
+
+        if (cooldownInterval) clearInterval(cooldownInterval);
+
+        cooldownInterval = setInterval(() => {
+            const elapsed = Date.now() - lastRefreshTime;
+            const remaining = Math.ceil((cooldownMs - elapsed) / 1000);
+
+            if (remaining <= 0) {
+                cooldownRemaining = 0;
+                if (cooldownInterval) {
+                    clearInterval(cooldownInterval);
+                    cooldownInterval = null;
+                }
+            } else {
+                cooldownRemaining = remaining;
+            }
+        }, 100);
+    }
+
+    onDestroy(() => {
+        if (cooldownInterval) clearInterval(cooldownInterval);
+    });
 
     function handleTouchStart(e: TouchEvent) {
         // Only activate if at top of page
@@ -40,7 +74,11 @@
         if (!isPulling) return;
 
         if (pullDistance >= threshold && !isRefreshing) {
-            dispatch("refresh");
+            // Check cooldown before dispatching
+            if (!isOnCooldown) {
+                dispatch("refresh");
+                startCooldownTimer();
+            }
         }
 
         isPulling = false;
@@ -114,9 +152,14 @@
                 </svg>
             {/if}
         </div>
-        <span class="pull-text">
+        <span
+            class="pull-text"
+            class:cooldown-warning={isOnCooldown && progress >= 1}
+        >
             {#if isRefreshing}
                 Refreshing...
+            {:else if isOnCooldown && progress >= 1}
+                รอสักครู่... ({cooldownRemaining}s)
             {:else if progress >= 1}
                 Release to refresh
             {:else}
@@ -178,6 +221,15 @@
 
     :global(.dark) .pull-text {
         color: #9ca3af;
+    }
+
+    .pull-text.cooldown-warning {
+        color: #f59e0b;
+        font-weight: 600;
+    }
+
+    :global(.dark) .pull-text.cooldown-warning {
+        color: #fbbf24;
     }
 
     .content {
