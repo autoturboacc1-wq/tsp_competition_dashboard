@@ -74,17 +74,24 @@
     let filterType = "ALL";
     let filterOutcome = "ALL";
 
-    $: uniqueSymbols = trader ? ["ALL", ...new Set(trader.history.map((t: any) => t.symbol))].sort() : ["ALL"];
+    $: uniqueSymbols = trader
+        ? ["ALL", ...new Set(trader.history.map((t: any) => t.symbol))].sort()
+        : ["ALL"];
 
-    $: filteredHistory = trader ? trader.history.filter((trade: any) => {
-        const matchSymbol = filterSymbol === "ALL" || trade.symbol === filterSymbol;
-        const matchType = filterType === "ALL" || trade.type === filterType;
-        const matchOutcome = filterOutcome === "ALL" || 
-            (filterOutcome === "WIN" && trade.profit >= 0) ||
-            (filterOutcome === "LOSS" && trade.profit < 0);
-        
-        return matchSymbol && matchType && matchOutcome;
-    }) : [];
+    $: filteredHistory = trader
+        ? trader.history.filter((trade: any) => {
+              const matchSymbol =
+                  filterSymbol === "ALL" || trade.symbol === filterSymbol;
+              const matchType =
+                  filterType === "ALL" || trade.type === filterType;
+              const matchOutcome =
+                  filterOutcome === "ALL" ||
+                  (filterOutcome === "WIN" && trade.profit >= 0) ||
+                  (filterOutcome === "LOSS" && trade.profit < 0);
+
+              return matchSymbol && matchType && matchOutcome;
+          })
+        : [];
 
     function toggleFullscreen() {
         isFullscreen = !isFullscreen;
@@ -804,34 +811,62 @@
                             >
                                 Recent History
                             </h3>
-                            
+
                             <!-- Filters -->
                             <div class="flex flex-wrap items-center gap-3">
-                                <div class="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                <!-- Filter Icon -->
+                                <div class="text-gray-500 dark:text-gray-400">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                                        />
                                     </svg>
-                                    <span class="hidden sm:inline">Filter</span>
                                 </div>
 
                                 <!-- Symbol Filter -->
                                 <div class="relative">
-                                    <select 
+                                    <select
                                         bind:value={filterSymbol}
                                         class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
                                     >
                                         {#each uniqueSymbols as symbol}
-                                            <option value={symbol}>{symbol === 'ALL' ? 'All Symbols' : symbol}</option>
+                                            <option value={symbol}
+                                                >{symbol === "ALL"
+                                                    ? "All Symbols"
+                                                    : symbol}</option
+                                            >
                                         {/each}
                                     </select>
-                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    <div
+                                        class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500"
+                                    >
+                                        <svg
+                                            class="h-4 w-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                            ><path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M19 9l-7 7-7-7"
+                                            ></path></svg
+                                        >
                                     </div>
                                 </div>
 
                                 <!-- Type Filter -->
                                 <div class="relative">
-                                    <select 
+                                    <select
                                         bind:value={filterType}
                                         class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
                                     >
@@ -839,39 +874,75 @@
                                         <option value="BUY">Buy</option>
                                         <option value="SELL">Sell</option>
                                     </select>
-                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    <div
+                                        class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500"
+                                    >
+                                        <svg
+                                            class="h-4 w-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                            ><path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M19 9l-7 7-7-7"
+                                            ></path></svg
+                                        >
                                     </div>
                                 </div>
 
                                 <!-- Outcome Filter -->
                                 <div class="relative">
-                                    <select 
+                                    <select
                                         bind:value={filterOutcome}
                                         class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
                                     >
-                                        <option value="ALL">All Outcomes</option>
+                                        <option value="ALL">All Outcomes</option
+                                        >
                                         <option value="WIN">Win</option>
                                         <option value="LOSS">Loss</option>
                                     </select>
-                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    <div
+                                        class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500"
+                                    >
+                                        <svg
+                                            class="h-4 w-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 24 24"
+                                            ><path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M19 9l-7 7-7-7"
+                                            ></path></svg
+                                        >
                                     </div>
                                 </div>
 
                                 <!-- Clear Filter Button -->
-                                {#if filterSymbol !== 'ALL' || filterType !== 'ALL' || filterOutcome !== 'ALL'}
-                                    <button 
+                                {#if filterSymbol !== "ALL" || filterType !== "ALL" || filterOutcome !== "ALL"}
+                                    <button
                                         on:click={() => {
-                                            filterSymbol = 'ALL';
-                                            filterType = 'ALL';
-                                            filterOutcome = 'ALL';
+                                            filterSymbol = "ALL";
+                                            filterType = "ALL";
+                                            filterOutcome = "ALL";
                                         }}
                                         class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
                                         title="Clear Filters"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-5 w-5"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                        >
+                                            <path
+                                                fill-rule="evenodd"
+                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                                clip-rule="evenodd"
+                                            />
                                         </svg>
                                     </button>
                                 {/if}
