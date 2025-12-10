@@ -806,36 +806,58 @@
                             </h3>
                             
                             <!-- Filters -->
-                            <div class="flex flex-wrap gap-2">
+                            <div class="flex flex-wrap items-center gap-3">
+                                <div class="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                    </svg>
+                                    <span class="hidden sm:inline">Filter</span>
+                                </div>
+
                                 <!-- Symbol Filter -->
-                                <select 
-                                    bind:value={filterSymbol}
-                                    class="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-dark-bg dark:border-dark-border dark:text-gray-300 py-1"
-                                >
-                                    {#each uniqueSymbols as symbol}
-                                        <option value={symbol}>{symbol === 'ALL' ? 'All Symbols' : symbol}</option>
-                                    {/each}
-                                </select>
+                                <div class="relative">
+                                    <select 
+                                        bind:value={filterSymbol}
+                                        class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
+                                    >
+                                        {#each uniqueSymbols as symbol}
+                                            <option value={symbol}>{symbol === 'ALL' ? 'All Symbols' : symbol}</option>
+                                        {/each}
+                                    </select>
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </div>
 
                                 <!-- Type Filter -->
-                                <select 
-                                    bind:value={filterType}
-                                    class="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-dark-bg dark:border-dark-border dark:text-gray-300 py-1"
-                                >
-                                    <option value="ALL">All Types</option>
-                                    <option value="BUY">Buy</option>
-                                    <option value="SELL">Sell</option>
-                                </select>
+                                <div class="relative">
+                                    <select 
+                                        bind:value={filterType}
+                                        class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
+                                    >
+                                        <option value="ALL">All Types</option>
+                                        <option value="BUY">Buy</option>
+                                        <option value="SELL">Sell</option>
+                                    </select>
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </div>
 
                                 <!-- Outcome Filter -->
-                                <select 
-                                    bind:value={filterOutcome}
-                                    class="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-dark-bg dark:border-dark-border dark:text-gray-300 py-1"
-                                >
-                                    <option value="ALL">All Outcomes</option>
-                                    <option value="WIN">Win</option>
-                                    <option value="LOSS">Loss</option>
-                                </select>
+                                <div class="relative">
+                                    <select 
+                                        bind:value={filterOutcome}
+                                        class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
+                                    >
+                                        <option value="ALL">All Outcomes</option>
+                                        <option value="WIN">Win</option>
+                                        <option value="LOSS">Loss</option>
+                                    </select>
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="overflow-x-auto">
