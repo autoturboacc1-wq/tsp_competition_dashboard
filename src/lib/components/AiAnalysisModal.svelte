@@ -185,7 +185,7 @@
                             <div
                                 class="font-medium text-gray-900 dark:text-white text-sm"
                             >
-                                Google Gemini
+                                Gemini
                             </div>
                         </button>
                         <button
@@ -200,7 +200,7 @@
                             <div
                                 class="font-medium text-gray-900 dark:text-white text-sm"
                             >
-                                OpenAI GPT-4o
+                                ChatGPT
                             </div>
                         </button>
                     </div>
