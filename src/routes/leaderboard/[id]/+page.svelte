@@ -78,6 +78,23 @@
         ? ["ALL", ...new Set(trader.history.map((t: any) => t.symbol))].sort()
         : ["ALL"];
 
+    // Sorting State
+    let sortColumn: "symbol" | "type" | "lot" | "profit" | "closeTime" =
+        "closeTime";
+    let sortDirection: "asc" | "desc" = "desc";
+
+    function handleSort(
+        column: "symbol" | "type" | "lot" | "profit" | "closeTime",
+    ) {
+        if (sortColumn === column) {
+            sortDirection = sortDirection === "asc" ? "desc" : "asc";
+        } else {
+            sortColumn = column;
+            sortDirection =
+                column === "symbol" || column === "type" ? "asc" : "desc";
+        }
+    }
+
     $: filteredHistory = trader
         ? trader.history.filter((trade: any) => {
               const matchSymbol =
@@ -92,6 +109,27 @@
               return matchSymbol && matchType && matchOutcome;
           })
         : [];
+
+    $: sortedHistory = [...filteredHistory].sort((a: any, b: any) => {
+        let valA = a[sortColumn];
+        let valB = b[sortColumn];
+
+        // Handle date comparison
+        if (sortColumn === "closeTime") {
+            valA = new Date(valA).getTime();
+            valB = new Date(valB).getTime();
+        }
+
+        // Handle string comparison
+        if (typeof valA === "string" && typeof valB === "string") {
+            valA = valA.toLowerCase();
+            valB = valB.toLowerCase();
+        }
+
+        if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+        if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+    });
 
     function toggleFullscreen() {
         isFullscreen = !isFullscreen;
@@ -956,20 +994,120 @@
                                     class="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-dark-surface"
                                 >
                                     <tr>
-                                        <th class="px-6 py-3">Symbol</th>
-                                        <th class="px-6 py-3">Type</th>
-                                        <th class="px-6 py-3 text-right">Lot</th
-                                        >
-                                        <th class="px-6 py-3 text-right"
-                                            >Profit</th
-                                        >
-                                        <th class="px-6 py-3 text-right"
-                                            >Time</th
-                                        >
+                                        <th class="px-6 py-3">
+                                            <button
+                                                on:click={() =>
+                                                    handleSort("symbol")}
+                                                class="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                            >
+                                                Symbol
+                                                {#if sortColumn === "symbol"}
+                                                    <span
+                                                        class="text-blue-600 dark:text-blue-400"
+                                                        >{sortDirection ===
+                                                        "asc"
+                                                            ? "↑"
+                                                            : "↓"}</span
+                                                    >
+                                                {:else}
+                                                    <span class="text-gray-400"
+                                                        >↕</span
+                                                    >
+                                                {/if}
+                                            </button>
+                                        </th>
+                                        <th class="px-6 py-3">
+                                            <button
+                                                on:click={() =>
+                                                    handleSort("type")}
+                                                class="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                            >
+                                                Type
+                                                {#if sortColumn === "type"}
+                                                    <span
+                                                        class="text-blue-600 dark:text-blue-400"
+                                                        >{sortDirection ===
+                                                        "asc"
+                                                            ? "↑"
+                                                            : "↓"}</span
+                                                    >
+                                                {:else}
+                                                    <span class="text-gray-400"
+                                                        >↕</span
+                                                    >
+                                                {/if}
+                                            </button>
+                                        </th>
+                                        <th class="px-6 py-3 text-right">
+                                            <button
+                                                on:click={() =>
+                                                    handleSort("lot")}
+                                                class="flex items-center gap-1 ml-auto hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                            >
+                                                Lot
+                                                {#if sortColumn === "lot"}
+                                                    <span
+                                                        class="text-blue-600 dark:text-blue-400"
+                                                        >{sortDirection ===
+                                                        "asc"
+                                                            ? "↑"
+                                                            : "↓"}</span
+                                                    >
+                                                {:else}
+                                                    <span class="text-gray-400"
+                                                        >↕</span
+                                                    >
+                                                {/if}
+                                            </button>
+                                        </th>
+                                        <th class="px-6 py-3 text-right">
+                                            <button
+                                                on:click={() =>
+                                                    handleSort("profit")}
+                                                class="flex items-center gap-1 ml-auto hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                            >
+                                                Profit
+                                                {#if sortColumn === "profit"}
+                                                    <span
+                                                        class="text-blue-600 dark:text-blue-400"
+                                                        >{sortDirection ===
+                                                        "asc"
+                                                            ? "↑"
+                                                            : "↓"}</span
+                                                    >
+                                                {:else}
+                                                    <span class="text-gray-400"
+                                                        >↕</span
+                                                    >
+                                                {/if}
+                                            </button>
+                                        </th>
+                                        <th class="px-6 py-3 text-right">
+                                            <button
+                                                on:click={() =>
+                                                    handleSort("closeTime")}
+                                                class="flex items-center gap-1 ml-auto hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                            >
+                                                Time
+                                                {#if sortColumn === "closeTime"}
+                                                    <span
+                                                        class="text-blue-600 dark:text-blue-400"
+                                                        >{sortDirection ===
+                                                        "asc"
+                                                            ? "↑"
+                                                            : "↓"}</span
+                                                    >
+                                                {:else}
+                                                    <span class="text-gray-400"
+                                                        >↕</span
+                                                    >
+                                                {/if}
+                                            </button>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {#each filteredHistory as trade, i}
+                                    {#each sortedHistory as trade, i}
                                         <tr
                                             class="border-b dark:border-dark-border hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] active:bg-blue-100 dark:active:bg-blue-900/20"
                                             on:click={() => openChart(trade)}
