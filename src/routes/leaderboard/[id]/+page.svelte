@@ -1,10 +1,12 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { page } from "$app/stores";
+    import { invalidateAll } from "$app/navigation";
     import { createChart, ColorType } from "lightweight-charts";
     import EquityChart from "$lib/components/EquityChart.svelte";
     import TradingCalendar from "$lib/components/TradingCalendar.svelte";
     import AiAnalysisModal from "$lib/components/AiAnalysisModal.svelte";
+    import PullToRefresh from "$lib/components/PullToRefresh.svelte";
     import DrawingToolbar from "$lib/chart/DrawingToolbar.svelte";
     import DrawingOverlay from "$lib/chart/DrawingOverlay.svelte";
     import {
@@ -26,6 +28,16 @@
     // For this specific UI, it calculates rank from the imported mock list.
     // We'll leave rank as 0 or pass it from server if possible.
     $: rank = data.rank;
+
+    // Pull-to-Refresh state
+    let isRefreshing = false;
+
+    async function handleRefresh() {
+        isRefreshing = true;
+        await invalidateAll();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        isRefreshing = false;
+    }
 
     function formatMoney(amount: number) {
         return amount.toLocaleString("en-US", {
@@ -758,1076 +770,1133 @@
     }
 </script>
 
-<div class="min-h-screen bg-gray-50 dark:bg-dark-bg py-8 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-5xl mx-auto">
-        <!-- Back Button -->
-        <a
-            href="/leaderboard"
-            class="inline-flex items-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 mb-6"
-        >
-            &larr; Back to Leaderboard
-        </a>
-
-        {#if !trader}
-            <div class="text-center py-12">
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-                    Trader not found
-                </h2>
-                <p class="text-gray-500 dark:text-gray-400 mt-2">
-                    The participant with ID {id} does not exist.
-                </p>
-            </div>
-        {:else}
-            <!-- Header -->
-            <div
-                class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in-up card-hover"
+<PullToRefresh {isRefreshing} on:refresh={handleRefresh}>
+    <div
+        class="min-h-screen bg-gray-50 dark:bg-dark-bg py-8 px-4 sm:px-6 lg:px-8"
+    >
+        <div class="max-w-5xl mx-auto">
+            <!-- Back Button -->
+            <a
+                href="/leaderboard"
+                class="inline-flex items-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 mb-6"
             >
-                <div class="flex items-center gap-4">
-                    <div
-                        class="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-3xl"
+                &larr; Back to Leaderboard
+            </a>
+
+            {#if !trader}
+                <div class="text-center py-12">
+                    <h2
+                        class="text-2xl font-bold text-gray-900 dark:text-white"
                     >
-                        {getRankIcon(rank)}
-                    </div>
-                    <div>
-                        <h1
-                            class="text-3xl font-bold text-gray-900 dark:text-white"
+                        Trader not found
+                    </h2>
+                    <p class="text-gray-500 dark:text-gray-400 mt-2">
+                        The participant with ID {id} does not exist.
+                    </p>
+                </div>
+            {:else}
+                <!-- Header -->
+                <div
+                    class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in-up card-hover"
+                >
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-3xl"
                         >
-                            {trader.nickname}
-                        </h1>
-                        <p class="text-gray-500 dark:text-gray-300">
-                            Rank {rank} • {trader.points.toLocaleString()} Points
+                            {getRankIcon(rank)}
+                        </div>
+                        <div>
+                            <h1
+                                class="text-3xl font-bold text-gray-900 dark:text-white"
+                            >
+                                {trader.nickname}
+                            </h1>
+                            <p class="text-gray-500 dark:text-gray-300">
+                                Rank {rank} • {trader.points.toLocaleString()} Points
+                            </p>
+                        </div>
+                        <!-- Ask AI Button -->
+                        <button
+                            class="ml-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-medium text-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-purple-500/25"
+                            on:click={() => (showAiModal = true)}
+                        >
+                            <span>🤖</span>
+                            <span>AI Analysis</span>
+                        </button>
+                    </div>
+                    <div class="text-right">
+                        <p
+                            class="text-sm text-gray-500 dark:text-gray-300 uppercase tracking-wide"
+                        >
+                            Total Profit
+                        </p>
+                        <p
+                            class="text-3xl font-mono font-bold {trader.profit >=
+                            0
+                                ? 'text-green-600 dark:text-green-400'
+                                : 'text-red-600 dark:text-red-400'}"
+                        >
+                            {trader.profit >= 0 ? "+" : ""}{formatMoney(
+                                trader.profit,
+                            )}
                         </p>
                     </div>
-                    <!-- Ask AI Button -->
-                    <button
-                        class="ml-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-medium text-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-purple-500/25"
-                        on:click={() => (showAiModal = true)}
-                    >
-                        <span>🤖</span>
-                        <span>AI Analysis</span>
-                    </button>
                 </div>
-                <div class="text-right">
-                    <p
-                        class="text-sm text-gray-500 dark:text-gray-300 uppercase tracking-wide"
-                    >
-                        Total Profit
-                    </p>
-                    <p
-                        class="text-3xl font-mono font-bold {trader.profit >= 0
-                            ? 'text-green-600 dark:text-green-400'
-                            : 'text-red-600 dark:text-red-400'}"
-                    >
-                        {trader.profit >= 0 ? "+" : ""}{formatMoney(
-                            trader.profit,
-                        )}
-                    </p>
-                </div>
-            </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- 1. Left Column: Equity Curve + Recent History -->
-                <div class="lg:col-span-2 space-y-6">
-                    <div
-                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 animate-fade-in-up stagger-1 card-hover"
-                    >
-                        <EquityChart
-                            equitySnapshots={trader.equitySnapshots || []}
-                            equityCurve={trader.equityCurve || []}
-                        />
-                    </div>
-
-                    <!-- Trade History (directly below Equity Chart) -->
-                    <div
-                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border overflow-hidden animate-fade-in-up stagger-2 card-hover"
-                    >
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- 1. Left Column: Equity Curve + Recent History -->
+                    <div class="lg:col-span-2 space-y-6">
                         <div
-                            class="px-6 py-4 border-b border-gray-100 dark:border-dark-border flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                            class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 animate-fade-in-up stagger-1 card-hover"
                         >
-                            <h3
-                                class="text-lg font-semibold text-gray-900 dark:text-white"
+                            <EquityChart
+                                equitySnapshots={trader.equitySnapshots || []}
+                                equityCurve={trader.equityCurve || []}
+                            />
+                        </div>
+
+                        <!-- Trade History (directly below Equity Chart) -->
+                        <div
+                            class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border overflow-hidden animate-fade-in-up stagger-2 card-hover"
+                        >
+                            <div
+                                class="px-6 py-4 border-b border-gray-100 dark:border-dark-border flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                             >
-                                Recent History
-                            </h3>
+                                <h3
+                                    class="text-lg font-semibold text-gray-900 dark:text-white"
+                                >
+                                    Recent History
+                                </h3>
 
-                            <!-- Filters -->
-                            <div class="flex flex-wrap items-center gap-3">
-                                <!-- Filter Icon -->
-                                <div class="text-gray-500 dark:text-gray-400">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-4 w-4"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                                        />
-                                    </svg>
-                                </div>
-
-                                <!-- Symbol Filter -->
-                                <div class="relative">
-                                    <select
-                                        bind:value={filterSymbol}
-                                        class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
-                                    >
-                                        {#each uniqueSymbols as symbol}
-                                            <option value={symbol}
-                                                >{symbol === "ALL"
-                                                    ? "All Symbols"
-                                                    : symbol}</option
-                                            >
-                                        {/each}
-                                    </select>
+                                <!-- Filters -->
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <!-- Filter Icon -->
                                     <div
-                                        class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500"
-                                    >
-                                        <svg
-                                            class="h-4 w-4"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                            ><path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M19 9l-7 7-7-7"
-                                            ></path></svg
-                                        >
-                                    </div>
-                                </div>
-
-                                <!-- Type Filter -->
-                                <div class="relative">
-                                    <select
-                                        bind:value={filterType}
-                                        class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
-                                    >
-                                        <option value="ALL">All Types</option>
-                                        <option value="BUY">Buy</option>
-                                        <option value="SELL">Sell</option>
-                                    </select>
-                                    <div
-                                        class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500"
-                                    >
-                                        <svg
-                                            class="h-4 w-4"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                            ><path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M19 9l-7 7-7-7"
-                                            ></path></svg
-                                        >
-                                    </div>
-                                </div>
-
-                                <!-- Outcome Filter -->
-                                <div class="relative">
-                                    <select
-                                        bind:value={filterOutcome}
-                                        class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
-                                    >
-                                        <option value="ALL">All Outcomes</option
-                                        >
-                                        <option value="WIN">Win</option>
-                                        <option value="LOSS">Loss</option>
-                                    </select>
-                                    <div
-                                        class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500"
-                                    >
-                                        <svg
-                                            class="h-4 w-4"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 24 24"
-                                            ><path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M19 9l-7 7-7-7"
-                                            ></path></svg
-                                        >
-                                    </div>
-                                </div>
-
-                                <!-- Clear Filter Button -->
-                                {#if filterSymbol !== "ALL" || filterType !== "ALL" || filterOutcome !== "ALL"}
-                                    <button
-                                        on:click={() => {
-                                            filterSymbol = "ALL";
-                                            filterType = "ALL";
-                                            filterOutcome = "ALL";
-                                        }}
-                                        class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
-                                        title="Clear Filters"
+                                        class="text-gray-500 dark:text-gray-400"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
-                                            class="h-5 w-5"
-                                            viewBox="0 0 20 20"
-                                            fill="currentColor"
+                                            class="h-4 w-4"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
                                         >
                                             <path
-                                                fill-rule="evenodd"
-                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                                clip-rule="evenodd"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                                             />
                                         </svg>
-                                    </button>
-                                {/if}
+                                    </div>
+
+                                    <!-- Symbol Filter -->
+                                    <div class="relative">
+                                        <select
+                                            bind:value={filterSymbol}
+                                            class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
+                                        >
+                                            {#each uniqueSymbols as symbol}
+                                                <option value={symbol}
+                                                    >{symbol === "ALL"
+                                                        ? "All Symbols"
+                                                        : symbol}</option
+                                                >
+                                            {/each}
+                                        </select>
+                                        <div
+                                            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500"
+                                        >
+                                            <svg
+                                                class="h-4 w-4"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                                ><path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M19 9l-7 7-7-7"
+                                                ></path></svg
+                                            >
+                                        </div>
+                                    </div>
+
+                                    <!-- Type Filter -->
+                                    <div class="relative">
+                                        <select
+                                            bind:value={filterType}
+                                            class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
+                                        >
+                                            <option value="ALL"
+                                                >All Types</option
+                                            >
+                                            <option value="BUY">Buy</option>
+                                            <option value="SELL">Sell</option>
+                                        </select>
+                                        <div
+                                            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500"
+                                        >
+                                            <svg
+                                                class="h-4 w-4"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                                ><path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M19 9l-7 7-7-7"
+                                                ></path></svg
+                                            >
+                                        </div>
+                                    </div>
+
+                                    <!-- Outcome Filter -->
+                                    <div class="relative">
+                                        <select
+                                            bind:value={filterOutcome}
+                                            class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
+                                        >
+                                            <option value="ALL"
+                                                >All Outcomes</option
+                                            >
+                                            <option value="WIN">Win</option>
+                                            <option value="LOSS">Loss</option>
+                                        </select>
+                                        <div
+                                            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500"
+                                        >
+                                            <svg
+                                                class="h-4 w-4"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 24 24"
+                                                ><path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M19 9l-7 7-7-7"
+                                                ></path></svg
+                                            >
+                                        </div>
+                                    </div>
+
+                                    <!-- Clear Filter Button -->
+                                    {#if filterSymbol !== "ALL" || filterType !== "ALL" || filterOutcome !== "ALL"}
+                                        <button
+                                            on:click={() => {
+                                                filterSymbol = "ALL";
+                                                filterType = "ALL";
+                                                filterOutcome = "ALL";
+                                            }}
+                                            class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                                            title="Clear Filters"
+                                        >
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                class="h-5 w-5"
+                                                viewBox="0 0 20 20"
+                                                fill="currentColor"
+                                            >
+                                                <path
+                                                    fill-rule="evenodd"
+                                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                                    clip-rule="evenodd"
+                                                />
+                                            </svg>
+                                        </button>
+                                    {/if}
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table
+                                    class="w-full text-sm text-left text-gray-500 dark:text-gray-400"
+                                >
+                                    <thead
+                                        class="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-dark-surface"
+                                    >
+                                        <tr>
+                                            <th class="px-6 py-3">
+                                                <button
+                                                    on:click={() =>
+                                                        handleSort("symbol")}
+                                                    class="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                                >
+                                                    Symbol
+                                                    {#if sortColumn === "symbol"}
+                                                        <span
+                                                            class="text-blue-600 dark:text-blue-400"
+                                                            >{sortDirection ===
+                                                            "asc"
+                                                                ? "↑"
+                                                                : "↓"}</span
+                                                        >
+                                                    {:else}
+                                                        <span
+                                                            class="text-gray-400"
+                                                            >↕</span
+                                                        >
+                                                    {/if}
+                                                </button>
+                                            </th>
+                                            <th class="px-6 py-3">
+                                                <button
+                                                    on:click={() =>
+                                                        handleSort("type")}
+                                                    class="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                                >
+                                                    Type
+                                                    {#if sortColumn === "type"}
+                                                        <span
+                                                            class="text-blue-600 dark:text-blue-400"
+                                                            >{sortDirection ===
+                                                            "asc"
+                                                                ? "↑"
+                                                                : "↓"}</span
+                                                        >
+                                                    {:else}
+                                                        <span
+                                                            class="text-gray-400"
+                                                            >↕</span
+                                                        >
+                                                    {/if}
+                                                </button>
+                                            </th>
+                                            <th class="px-6 py-3 text-right">
+                                                <button
+                                                    on:click={() =>
+                                                        handleSort("lot")}
+                                                    class="flex items-center gap-1 ml-auto hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                                >
+                                                    Lot
+                                                    {#if sortColumn === "lot"}
+                                                        <span
+                                                            class="text-blue-600 dark:text-blue-400"
+                                                            >{sortDirection ===
+                                                            "asc"
+                                                                ? "↑"
+                                                                : "↓"}</span
+                                                        >
+                                                    {:else}
+                                                        <span
+                                                            class="text-gray-400"
+                                                            >↕</span
+                                                        >
+                                                    {/if}
+                                                </button>
+                                            </th>
+                                            <th class="px-6 py-3 text-right">
+                                                <button
+                                                    on:click={() =>
+                                                        handleSort("profit")}
+                                                    class="flex items-center gap-1 ml-auto hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                                >
+                                                    Profit
+                                                    {#if sortColumn === "profit"}
+                                                        <span
+                                                            class="text-blue-600 dark:text-blue-400"
+                                                            >{sortDirection ===
+                                                            "asc"
+                                                                ? "↑"
+                                                                : "↓"}</span
+                                                        >
+                                                    {:else}
+                                                        <span
+                                                            class="text-gray-400"
+                                                            >↕</span
+                                                        >
+                                                    {/if}
+                                                </button>
+                                            </th>
+                                            <th class="px-6 py-3 text-right">
+                                                <button
+                                                    on:click={() =>
+                                                        handleSort("closeTime")}
+                                                    class="flex items-center gap-1 ml-auto hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                                >
+                                                    Time
+                                                    {#if sortColumn === "closeTime"}
+                                                        <span
+                                                            class="text-blue-600 dark:text-blue-400"
+                                                            >{sortDirection ===
+                                                            "asc"
+                                                                ? "↑"
+                                                                : "↓"}</span
+                                                        >
+                                                    {:else}
+                                                        <span
+                                                            class="text-gray-400"
+                                                            >↕</span
+                                                        >
+                                                    {/if}
+                                                </button>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {#each sortedHistory as trade, i}
+                                            <tr
+                                                class="border-b dark:border-dark-border hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] active:bg-blue-100 dark:active:bg-blue-900/20"
+                                                on:click={() =>
+                                                    openChart(trade)}
+                                            >
+                                                <td
+                                                    class="px-6 py-4 font-medium text-gray-900 dark:text-white"
+                                                    >{trade.symbol}</td
+                                                >
+                                                <td class="px-6 py-4">
+                                                    <span
+                                                        class="px-2 py-1 rounded text-xs font-bold {trade.type ===
+                                                        'BUY'
+                                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                                                            : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'}"
+                                                    >
+                                                        {trade.type}
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-4 text-right"
+                                                    >{trade.lot.toFixed(2)}</td
+                                                >
+                                                <td
+                                                    class="px-6 py-4 text-right font-mono {trade.profit >=
+                                                    0
+                                                        ? 'text-green-600 dark:text-green-400'
+                                                        : 'text-red-600 dark:text-red-400'}"
+                                                >
+                                                    {trade.profit >= 0
+                                                        ? "+"
+                                                        : ""}{trade.profit.toFixed(
+                                                        2,
+                                                    )}
+                                                </td>
+                                                <td
+                                                    class="px-6 py-4 text-right text-xs text-gray-400 dark:text-gray-500"
+                                                >
+                                                    {new Date(
+                                                        trade.closeTime,
+                                                    ).toLocaleTimeString(
+                                                        "th-TH",
+                                                        {
+                                                            timeZone:
+                                                                "Asia/Bangkok",
+                                                        },
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        {/each}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table
-                                class="w-full text-sm text-left text-gray-500 dark:text-gray-400"
-                            >
-                                <thead
-                                    class="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-dark-surface"
-                                >
-                                    <tr>
-                                        <th class="px-6 py-3">
-                                            <button
-                                                on:click={() =>
-                                                    handleSort("symbol")}
-                                                class="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                            >
-                                                Symbol
-                                                {#if sortColumn === "symbol"}
-                                                    <span
-                                                        class="text-blue-600 dark:text-blue-400"
-                                                        >{sortDirection ===
-                                                        "asc"
-                                                            ? "↑"
-                                                            : "↓"}</span
-                                                    >
-                                                {:else}
-                                                    <span class="text-gray-400"
-                                                        >↕</span
-                                                    >
-                                                {/if}
-                                            </button>
-                                        </th>
-                                        <th class="px-6 py-3">
-                                            <button
-                                                on:click={() =>
-                                                    handleSort("type")}
-                                                class="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                            >
-                                                Type
-                                                {#if sortColumn === "type"}
-                                                    <span
-                                                        class="text-blue-600 dark:text-blue-400"
-                                                        >{sortDirection ===
-                                                        "asc"
-                                                            ? "↑"
-                                                            : "↓"}</span
-                                                    >
-                                                {:else}
-                                                    <span class="text-gray-400"
-                                                        >↕</span
-                                                    >
-                                                {/if}
-                                            </button>
-                                        </th>
-                                        <th class="px-6 py-3 text-right">
-                                            <button
-                                                on:click={() =>
-                                                    handleSort("lot")}
-                                                class="flex items-center gap-1 ml-auto hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                            >
-                                                Lot
-                                                {#if sortColumn === "lot"}
-                                                    <span
-                                                        class="text-blue-600 dark:text-blue-400"
-                                                        >{sortDirection ===
-                                                        "asc"
-                                                            ? "↑"
-                                                            : "↓"}</span
-                                                    >
-                                                {:else}
-                                                    <span class="text-gray-400"
-                                                        >↕</span
-                                                    >
-                                                {/if}
-                                            </button>
-                                        </th>
-                                        <th class="px-6 py-3 text-right">
-                                            <button
-                                                on:click={() =>
-                                                    handleSort("profit")}
-                                                class="flex items-center gap-1 ml-auto hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                            >
-                                                Profit
-                                                {#if sortColumn === "profit"}
-                                                    <span
-                                                        class="text-blue-600 dark:text-blue-400"
-                                                        >{sortDirection ===
-                                                        "asc"
-                                                            ? "↑"
-                                                            : "↓"}</span
-                                                    >
-                                                {:else}
-                                                    <span class="text-gray-400"
-                                                        >↕</span
-                                                    >
-                                                {/if}
-                                            </button>
-                                        </th>
-                                        <th class="px-6 py-3 text-right">
-                                            <button
-                                                on:click={() =>
-                                                    handleSort("closeTime")}
-                                                class="flex items-center gap-1 ml-auto hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                            >
-                                                Time
-                                                {#if sortColumn === "closeTime"}
-                                                    <span
-                                                        class="text-blue-600 dark:text-blue-400"
-                                                        >{sortDirection ===
-                                                        "asc"
-                                                            ? "↑"
-                                                            : "↓"}</span
-                                                    >
-                                                {:else}
-                                                    <span class="text-gray-400"
-                                                        >↕</span
-                                                    >
-                                                {/if}
-                                            </button>
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {#each sortedHistory as trade, i}
-                                        <tr
-                                            class="border-b dark:border-dark-border hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] active:bg-blue-100 dark:active:bg-blue-900/20"
-                                            on:click={() => openChart(trade)}
-                                        >
-                                            <td
-                                                class="px-6 py-4 font-medium text-gray-900 dark:text-white"
-                                                >{trade.symbol}</td
-                                            >
-                                            <td class="px-6 py-4">
-                                                <span
-                                                    class="px-2 py-1 rounded text-xs font-bold {trade.type ===
-                                                    'BUY'
-                                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                                                        : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'}"
-                                                >
-                                                    {trade.type}
-                                                </span>
-                                            </td>
-                                            <td class="px-6 py-4 text-right"
-                                                >{trade.lot.toFixed(2)}</td
-                                            >
-                                            <td
-                                                class="px-6 py-4 text-right font-mono {trade.profit >=
-                                                0
-                                                    ? 'text-green-600 dark:text-green-400'
-                                                    : 'text-red-600 dark:text-red-400'}"
-                                            >
-                                                {trade.profit >= 0
-                                                    ? "+"
-                                                    : ""}{trade.profit.toFixed(
-                                                    2,
-                                                )}
-                                            </td>
-                                            <td
-                                                class="px-6 py-4 text-right text-xs text-gray-400 dark:text-gray-500"
-                                            >
-                                                {new Date(
-                                                    trade.closeTime,
-                                                ).toLocaleTimeString("th-TH", {
-                                                    timeZone: "Asia/Bangkok",
-                                                })}
-                                            </td>
-                                        </tr>
-                                    {/each}
-                                </tbody>
-                            </table>
-                        </div>
                     </div>
-                </div>
 
-                <!-- 2. Sidebar Stats (Right on Desktop, 2nd on Mobile) -->
-                <div class="lg:col-span-1 space-y-6 h-fit">
-                    <div
-                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 animate-fade-in-up stagger-3 card-hover"
-                    >
-                        <h3
-                            class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+                    <!-- 2. Sidebar Stats (Right on Desktop, 2nd on Mobile) -->
+                    <div class="lg:col-span-1 space-y-6 h-fit">
+                        <div
+                            class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 animate-fade-in-up stagger-3 card-hover"
                         >
-                            Performance Stats
-                        </h3>
-                        <div class="space-y-4">
-                            <div>
-                                <div class="flex justify-between text-sm mb-1">
+                            <h3
+                                class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+                            >
+                                Performance Stats
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <div
+                                        class="flex justify-between text-sm mb-1"
+                                    >
+                                        <span
+                                            class="text-gray-500 dark:text-gray-300"
+                                            >Win Rate</span
+                                        >
+                                        <span
+                                            class="font-medium text-gray-900 dark:text-white"
+                                            >{Number(
+                                                trader.stats.winRate,
+                                            ).toFixed(2)}%</span
+                                        >
+                                    </div>
+                                    <div
+                                        class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-2 overflow-hidden"
+                                    >
+                                        <div
+                                            class="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-700 ease-out"
+                                            style="width: {trader.stats
+                                                .winRate}%"
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <div
+                                            class="flex justify-between text-xs mb-1"
+                                        >
+                                            <span
+                                                class="text-gray-500 dark:text-gray-300"
+                                                >Long Win Rate</span
+                                            >
+                                            <span
+                                                class="font-medium text-green-600 dark:text-green-400"
+                                                >{Number(
+                                                    trader.stats.winRateBuy,
+                                                ).toFixed(1)}%</span
+                                            >
+                                        </div>
+                                        <div
+                                            class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1.5"
+                                        >
+                                            <div
+                                                class="bg-green-500 h-1.5 rounded-full"
+                                                style="width: {trader.stats
+                                                    .winRateBuy}%"
+                                            ></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div
+                                            class="flex justify-between text-xs mb-1"
+                                        >
+                                            <span
+                                                class="text-gray-500 dark:text-gray-300"
+                                                >Short Win Rate</span
+                                            >
+                                            <span
+                                                class="font-medium text-red-600 dark:text-red-400"
+                                                >{Number(
+                                                    trader.stats.winRateSell,
+                                                ).toFixed(1)}%</span
+                                            >
+                                        </div>
+                                        <div
+                                            class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1.5"
+                                        >
+                                            <div
+                                                class="bg-red-500 h-1.5 rounded-full"
+                                                style="width: {trader.stats
+                                                    .winRateSell}%"
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div
+                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                    >
+                                        <div
+                                            class="text-xs text-gray-500 dark:text-gray-300"
+                                        >
+                                            Max Consec. Wins
+                                        </div>
+                                        <div
+                                            class="text-xl font-bold text-green-600 dark:text-green-400"
+                                        >
+                                            {trader.stats.maxConsecutiveWins}
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                    >
+                                        <div
+                                            class="text-xs text-gray-500 dark:text-gray-300"
+                                        >
+                                            Max Consec. Losses
+                                        </div>
+                                        <div
+                                            class="text-xl font-bold text-red-600 dark:text-red-400"
+                                        >
+                                            {trader.stats.maxConsecutiveLosses}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4 pt-2">
+                                    <div
+                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                    >
+                                        <div
+                                            class="text-xs text-gray-500 dark:text-gray-300"
+                                        >
+                                            Profit Factor
+                                        </div>
+                                        <div
+                                            class="text-xl font-bold text-gray-900 dark:text-white"
+                                        >
+                                            {trader.stats.profitFactor}
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                    >
+                                        <div
+                                            class="text-xs text-gray-500 dark:text-gray-300"
+                                        >
+                                            Max DD
+                                        </div>
+                                        <div
+                                            class="text-xl font-bold text-red-600 dark:text-red-400"
+                                        >
+                                            {trader.stats.maxDrawdown}%
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                    >
+                                        <div
+                                            class="text-xs text-gray-500 dark:text-gray-300"
+                                        >
+                                            Trades
+                                        </div>
+                                        <div
+                                            class="text-xl font-bold text-gray-900 dark:text-white"
+                                        >
+                                            {trader.stats.totalTrades}
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                    >
+                                        <div
+                                            class="text-xs text-gray-500 dark:text-gray-300"
+                                        >
+                                            RR Ratio
+                                        </div>
+                                        <div
+                                            class="text-xl font-bold {trader
+                                                .stats.rrRatio >= 1
+                                                ? 'text-green-600 dark:text-green-400'
+                                                : 'text-red-600 dark:text-red-400'}"
+                                        >
+                                            {trader.stats.rrRatio}
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                    >
+                                        <div
+                                            class="text-xs text-gray-500 dark:text-gray-300"
+                                        >
+                                            Avg Win
+                                        </div>
+                                        <div
+                                            class="text-xl font-bold text-green-600 dark:text-green-400"
+                                        >
+                                            ${trader.stats.avgWin}
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                    >
+                                        <div
+                                            class="text-xs text-gray-500 dark:text-gray-300"
+                                        >
+                                            Avg Loss
+                                        </div>
+                                        <div
+                                            class="text-xl font-bold text-red-600 dark:text-red-400"
+                                        >
+                                            ${trader.stats.avgLoss}
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                    >
+                                        <div
+                                            class="text-xs text-gray-500 dark:text-gray-300"
+                                        >
+                                            Best Trade
+                                        </div>
+                                        <div
+                                            class="text-xl font-bold text-green-600 dark:text-green-400"
+                                        >
+                                            +${formatMoney(
+                                                trader.stats.bestTrade,
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                    >
+                                        <div
+                                            class="text-xs text-gray-500 dark:text-gray-300"
+                                        >
+                                            Worst Trade
+                                        </div>
+                                        <div
+                                            class="text-xl font-bold {trader
+                                                .stats.worstTrade >= 0
+                                                ? 'text-green-600 dark:text-green-400'
+                                                : 'text-red-600 dark:text-red-400'}"
+                                        >
+                                            {trader.stats.worstTrade >= 0
+                                                ? "+"
+                                                : ""}${formatMoney(
+                                                trader.stats.worstTrade,
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Session Performance -->
+                        <div
+                            class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 mb-6 animate-fade-in-up stagger-4 card-hover"
+                        >
+                            <h3
+                                class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+                            >
+                                Session Performance
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <!-- Asian Session -->
+                                <div
+                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg border border-gray-100 dark:border-dark-border"
+                                >
+                                    <div
+                                        class="flex flex-col mb-2 h-8 justify-end"
+                                    >
+                                        <span
+                                            class="text-xs font-semibold text-gray-500 dark:text-gray-400"
+                                            >ASIA</span
+                                        >
+                                    </div>
+                                    <div class="flex flex-col mb-1">
+                                        <span
+                                            class="text-sm text-gray-600 dark:text-gray-300"
+                                            >Win Rate</span
+                                        >
+                                        <span
+                                            class="font-bold text-gray-900 dark:text-white"
+                                            >{Number(
+                                                trader.stats
+                                                    .sessionAsianWinRate,
+                                            ).toFixed(1)}%</span
+                                        >
+                                    </div>
+                                    <div
+                                        class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1 mb-3"
+                                    >
+                                        <div
+                                            class="bg-blue-500 h-1 rounded-full"
+                                            style="width: {trader.stats
+                                                .sessionAsianWinRate}%"
+                                        ></div>
+                                    </div>
+                                    <div class="flex justify-end items-center">
+                                        <span
+                                            class="font-bold {trader.stats
+                                                .sessionAsianProfit >= 0
+                                                ? 'text-green-600 dark:text-green-400'
+                                                : 'text-red-600 dark:text-red-400'}"
+                                        >
+                                            {trader.stats.sessionAsianProfit >=
+                                            0
+                                                ? "+"
+                                                : ""}{Number(
+                                                trader.stats.sessionAsianProfit,
+                                            ).toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- London Session -->
+                                <div
+                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg border border-gray-100 dark:border-dark-border"
+                                >
+                                    <div
+                                        class="flex flex-col mb-2 h-8 justify-end"
+                                    >
+                                        <span
+                                            class="text-xs font-semibold text-gray-500 dark:text-gray-400"
+                                            >LONDON</span
+                                        >
+                                    </div>
+                                    <div class="flex flex-col mb-1">
+                                        <span
+                                            class="text-sm text-gray-600 dark:text-gray-300"
+                                            >Win Rate</span
+                                        >
+                                        <span
+                                            class="font-bold text-gray-900 dark:text-white"
+                                            >{Number(
+                                                trader.stats
+                                                    .sessionLondonWinRate,
+                                            ).toFixed(1)}%</span
+                                        >
+                                    </div>
+                                    <div
+                                        class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1 mb-3"
+                                    >
+                                        <div
+                                            class="bg-purple-500 h-1 rounded-full"
+                                            style="width: {trader.stats
+                                                .sessionLondonWinRate}%"
+                                        ></div>
+                                    </div>
+                                    <div class="flex justify-end items-center">
+                                        <span
+                                            class="font-bold {trader.stats
+                                                .sessionLondonProfit >= 0
+                                                ? 'text-green-600 dark:text-green-400'
+                                                : 'text-red-600 dark:text-red-400'}"
+                                        >
+                                            {trader.stats.sessionLondonProfit >=
+                                            0
+                                                ? "+"
+                                                : ""}{Number(
+                                                trader.stats
+                                                    .sessionLondonProfit,
+                                            ).toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- New York Session -->
+                                <div
+                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg border border-gray-100 dark:border-dark-border"
+                                >
+                                    <div
+                                        class="flex flex-col mb-2 h-8 justify-end"
+                                    >
+                                        <span
+                                            class="text-xs font-semibold text-gray-500 dark:text-gray-400"
+                                            >NEW YORK</span
+                                        >
+                                    </div>
+                                    <div class="flex flex-col mb-1">
+                                        <span
+                                            class="text-sm text-gray-600 dark:text-gray-300"
+                                            >Win Rate</span
+                                        >
+                                        <span
+                                            class="font-bold text-gray-900 dark:text-white"
+                                            >{Number(
+                                                trader.stats
+                                                    .sessionNewYorkWinRate,
+                                            ).toFixed(1)}%</span
+                                        >
+                                    </div>
+                                    <div
+                                        class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1 mb-3"
+                                    >
+                                        <div
+                                            class="bg-orange-500 h-1 rounded-full"
+                                            style="width: {trader.stats
+                                                .sessionNewYorkWinRate}%"
+                                        ></div>
+                                    </div>
+                                    <div class="flex justify-end items-center">
+                                        <span
+                                            class="font-bold {trader.stats
+                                                .sessionNewYorkProfit >= 0
+                                                ? 'text-green-600 dark:text-green-400'
+                                                : 'text-red-600 dark:text-red-400'}"
+                                        >
+                                            {trader.stats
+                                                .sessionNewYorkProfit >= 0
+                                                ? "+"
+                                                : ""}{Number(
+                                                trader.stats
+                                                    .sessionNewYorkProfit,
+                                            ).toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Trading Performance Calendar -->
+                        <div class="mb-6 animate-fade-in-up stagger-5">
+                            <TradingCalendar
+                                dailyData={trader.dailyHistory || []}
+                            />
+                        </div>
+
+                        <div
+                            class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 animate-fade-in-up stagger-6 card-hover"
+                        >
+                            <h3
+                                class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+                            >
+                                Trading Style: {trader.stats.tradingStyle}
+                            </h3>
+                            <div class="space-y-3">
+                                <div
+                                    class="flex items-center justify-between text-sm"
+                                >
                                     <span
-                                        class="text-gray-500 dark:text-gray-300"
-                                        >Win Rate</span
+                                        class="text-gray-600 dark:text-gray-300"
+                                        >Favorite Pair</span
                                     >
                                     <span
                                         class="font-medium text-gray-900 dark:text-white"
-                                        >{Number(trader.stats.winRate).toFixed(
-                                            2,
-                                        )}%</span
+                                        >{trader.stats.favoritePair}</span
                                     >
                                 </div>
                                 <div
-                                    class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-2 overflow-hidden"
+                                    class="flex items-center justify-between text-sm"
                                 >
-                                    <div
-                                        class="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-700 ease-out"
-                                        style="width: {trader.stats.winRate}%"
-                                    ></div>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <div
-                                        class="flex justify-between text-xs mb-1"
+                                    <span
+                                        class="text-gray-600 dark:text-gray-300"
+                                        >Avg Holding Time</span
                                     >
-                                        <span
-                                            class="text-gray-500 dark:text-gray-300"
-                                            >Long Win Rate</span
-                                        >
-                                        <span
-                                            class="font-medium text-green-600 dark:text-green-400"
-                                            >{Number(
-                                                trader.stats.winRateBuy,
-                                            ).toFixed(1)}%</span
-                                        >
-                                    </div>
-                                    <div
-                                        class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1.5"
+                                    <span
+                                        class="font-medium text-gray-900 dark:text-white"
+                                        >{trader.stats.avgHoldingTime}</span
                                     >
-                                        <div
-                                            class="bg-green-500 h-1.5 rounded-full"
-                                            style="width: {trader.stats
-                                                .winRateBuy}%"
-                                        ></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div
-                                        class="flex justify-between text-xs mb-1"
-                                    >
-                                        <span
-                                            class="text-gray-500 dark:text-gray-300"
-                                            >Short Win Rate</span
-                                        >
-                                        <span
-                                            class="font-medium text-red-600 dark:text-red-400"
-                                            >{Number(
-                                                trader.stats.winRateSell,
-                                            ).toFixed(1)}%</span
-                                        >
-                                    </div>
-                                    <div
-                                        class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1.5"
-                                    >
-                                        <div
-                                            class="bg-red-500 h-1.5 rounded-full"
-                                            style="width: {trader.stats
-                                                .winRateSell}%"
-                                        ></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4">
-                                <div
-                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                >
-                                    <div
-                                        class="text-xs text-gray-500 dark:text-gray-300"
-                                    >
-                                        Max Consec. Wins
-                                    </div>
-                                    <div
-                                        class="text-xl font-bold text-green-600 dark:text-green-400"
-                                    >
-                                        {trader.stats.maxConsecutiveWins}
-                                    </div>
                                 </div>
                                 <div
-                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                    class="flex items-center justify-between text-sm"
                                 >
-                                    <div
-                                        class="text-xs text-gray-500 dark:text-gray-300"
+                                    <span
+                                        class="text-gray-600 dark:text-gray-300"
+                                        >Avg Hold (Win)</span
                                     >
-                                        Max Consec. Losses
-                                    </div>
-                                    <div
-                                        class="text-xl font-bold text-red-600 dark:text-red-400"
+                                    <span
+                                        class="font-medium text-green-600 dark:text-green-400"
+                                        >{trader.stats.avgHoldingTimeWin}</span
                                     >
-                                        {trader.stats.maxConsecutiveLosses}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4 pt-2">
-                                <div
-                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                >
-                                    <div
-                                        class="text-xs text-gray-500 dark:text-gray-300"
-                                    >
-                                        Profit Factor
-                                    </div>
-                                    <div
-                                        class="text-xl font-bold text-gray-900 dark:text-white"
-                                    >
-                                        {trader.stats.profitFactor}
-                                    </div>
                                 </div>
                                 <div
-                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
+                                    class="flex items-center justify-between text-sm"
                                 >
-                                    <div
-                                        class="text-xs text-gray-500 dark:text-gray-300"
+                                    <span
+                                        class="text-gray-600 dark:text-gray-300"
+                                        >Avg Hold (Loss)</span
                                     >
-                                        Max DD
-                                    </div>
-                                    <div
-                                        class="text-xl font-bold text-red-600 dark:text-red-400"
+                                    <span
+                                        class="font-medium text-red-600 dark:text-red-400"
+                                        >{trader.stats.avgHoldingTimeLoss}</span
                                     >
-                                        {trader.stats.maxDrawdown}%
-                                    </div>
-                                </div>
-                                <div
-                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                >
-                                    <div
-                                        class="text-xs text-gray-500 dark:text-gray-300"
-                                    >
-                                        Trades
-                                    </div>
-                                    <div
-                                        class="text-xl font-bold text-gray-900 dark:text-white"
-                                    >
-                                        {trader.stats.totalTrades}
-                                    </div>
-                                </div>
-                                <div
-                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                >
-                                    <div
-                                        class="text-xs text-gray-500 dark:text-gray-300"
-                                    >
-                                        RR Ratio
-                                    </div>
-                                    <div
-                                        class="text-xl font-bold {trader.stats
-                                            .rrRatio >= 1
-                                            ? 'text-green-600 dark:text-green-400'
-                                            : 'text-red-600 dark:text-red-400'}"
-                                    >
-                                        {trader.stats.rrRatio}
-                                    </div>
-                                </div>
-                                <div
-                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                >
-                                    <div
-                                        class="text-xs text-gray-500 dark:text-gray-300"
-                                    >
-                                        Avg Win
-                                    </div>
-                                    <div
-                                        class="text-xl font-bold text-green-600 dark:text-green-400"
-                                    >
-                                        ${trader.stats.avgWin}
-                                    </div>
-                                </div>
-                                <div
-                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                >
-                                    <div
-                                        class="text-xs text-gray-500 dark:text-gray-300"
-                                    >
-                                        Avg Loss
-                                    </div>
-                                    <div
-                                        class="text-xl font-bold text-red-600 dark:text-red-400"
-                                    >
-                                        ${trader.stats.avgLoss}
-                                    </div>
-                                </div>
-                                <div
-                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                >
-                                    <div
-                                        class="text-xs text-gray-500 dark:text-gray-300"
-                                    >
-                                        Best Trade
-                                    </div>
-                                    <div
-                                        class="text-xl font-bold text-green-600 dark:text-green-400"
-                                    >
-                                        +${formatMoney(trader.stats.bestTrade)}
-                                    </div>
-                                </div>
-                                <div
-                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                >
-                                    <div
-                                        class="text-xs text-gray-500 dark:text-gray-300"
-                                    >
-                                        Worst Trade
-                                    </div>
-                                    <div
-                                        class="text-xl font-bold {trader.stats
-                                            .worstTrade >= 0
-                                            ? 'text-green-600 dark:text-green-400'
-                                            : 'text-red-600 dark:text-red-400'}"
-                                    >
-                                        {trader.stats.worstTrade >= 0
-                                            ? "+"
-                                            : ""}${formatMoney(
-                                            trader.stats.worstTrade,
-                                        )}
-                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+            {/if}
+        </div>
+    </div>
 
-                    <!-- Session Performance -->
-                    <div
-                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 mb-6 animate-fade-in-up stagger-4 card-hover"
-                    >
+    <!-- Chart Modal -->
+    {#if showChartModal}
+        <div
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm {isFullscreen
+                ? 'p-0'
+                : 'p-4'}"
+        >
+            <div
+                class="bg-white dark:bg-dark-surface shadow-2xl overflow-hidden border border-gray-200 dark:border-dark-border transition-all duration-300 flex flex-col
+                {isFullscreen
+                    ? 'w-full h-full rounded-none'
+                    : 'w-full max-w-4xl rounded-xl'}"
+            >
+                <!-- Header -->
+                <div
+                    class="p-4 border-b border-gray-200 dark:border-dark-border flex justify-between items-center"
+                >
+                    <div>
                         <h3
-                            class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+                            class="text-lg font-bold text-gray-900 dark:text-white"
                         >
-                            Session Performance
+                            {selectedTrade?.symbol} - {selectedTrade?.type}
                         </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <!-- Asian Session -->
-                            <div
-                                class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg border border-gray-100 dark:border-dark-border"
+                        <p class="text-sm text-gray-500">
+                            Entry ({selectedTrade?.type}): {Number(
+                                selectedTrade?.openPrice || 0,
+                            ).toFixed(2)}
+                            → {Number(selectedTrade?.closePrice || 0).toFixed(
+                                2,
+                            )}
+                            <span class="hidden sm:inline">|</span>
+                            <br class="sm:hidden" />
+                            <span
+                                class="font-semibold {(selectedTrade?.profit ||
+                                    0) >= 0
+                                    ? 'text-green-600'
+                                    : 'text-red-600'}"
                             >
-                                <div class="flex flex-col mb-2 h-8 justify-end">
-                                    <span
-                                        class="text-xs font-semibold text-gray-500 dark:text-gray-400"
-                                        >ASIA</span
-                                    >
-                                </div>
-                                <div class="flex flex-col mb-1">
-                                    <span
-                                        class="text-sm text-gray-600 dark:text-gray-300"
-                                        >Win Rate</span
-                                    >
-                                    <span
-                                        class="font-bold text-gray-900 dark:text-white"
-                                        >{Number(
-                                            trader.stats.sessionAsianWinRate,
-                                        ).toFixed(1)}%</span
-                                    >
-                                </div>
-                                <div
-                                    class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1 mb-3"
-                                >
-                                    <div
-                                        class="bg-blue-500 h-1 rounded-full"
-                                        style="width: {trader.stats
-                                            .sessionAsianWinRate}%"
-                                    ></div>
-                                </div>
-                                <div class="flex justify-end items-center">
-                                    <span
-                                        class="font-bold {trader.stats
-                                            .sessionAsianProfit >= 0
-                                            ? 'text-green-600 dark:text-green-400'
-                                            : 'text-red-600 dark:text-red-400'}"
-                                    >
-                                        {trader.stats.sessionAsianProfit >= 0
-                                            ? "+"
-                                            : ""}{Number(
-                                            trader.stats.sessionAsianProfit,
-                                        ).toFixed(2)}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- London Session -->
-                            <div
-                                class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg border border-gray-100 dark:border-dark-border"
-                            >
-                                <div class="flex flex-col mb-2 h-8 justify-end">
-                                    <span
-                                        class="text-xs font-semibold text-gray-500 dark:text-gray-400"
-                                        >LONDON</span
-                                    >
-                                </div>
-                                <div class="flex flex-col mb-1">
-                                    <span
-                                        class="text-sm text-gray-600 dark:text-gray-300"
-                                        >Win Rate</span
-                                    >
-                                    <span
-                                        class="font-bold text-gray-900 dark:text-white"
-                                        >{Number(
-                                            trader.stats.sessionLondonWinRate,
-                                        ).toFixed(1)}%</span
-                                    >
-                                </div>
-                                <div
-                                    class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1 mb-3"
-                                >
-                                    <div
-                                        class="bg-purple-500 h-1 rounded-full"
-                                        style="width: {trader.stats
-                                            .sessionLondonWinRate}%"
-                                    ></div>
-                                </div>
-                                <div class="flex justify-end items-center">
-                                    <span
-                                        class="font-bold {trader.stats
-                                            .sessionLondonProfit >= 0
-                                            ? 'text-green-600 dark:text-green-400'
-                                            : 'text-red-600 dark:text-red-400'}"
-                                    >
-                                        {trader.stats.sessionLondonProfit >= 0
-                                            ? "+"
-                                            : ""}{Number(
-                                            trader.stats.sessionLondonProfit,
-                                        ).toFixed(2)}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- New York Session -->
-                            <div
-                                class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg border border-gray-100 dark:border-dark-border"
-                            >
-                                <div class="flex flex-col mb-2 h-8 justify-end">
-                                    <span
-                                        class="text-xs font-semibold text-gray-500 dark:text-gray-400"
-                                        >NEW YORK</span
-                                    >
-                                </div>
-                                <div class="flex flex-col mb-1">
-                                    <span
-                                        class="text-sm text-gray-600 dark:text-gray-300"
-                                        >Win Rate</span
-                                    >
-                                    <span
-                                        class="font-bold text-gray-900 dark:text-white"
-                                        >{Number(
-                                            trader.stats.sessionNewYorkWinRate,
-                                        ).toFixed(1)}%</span
-                                    >
-                                </div>
-                                <div
-                                    class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1 mb-3"
-                                >
-                                    <div
-                                        class="bg-orange-500 h-1 rounded-full"
-                                        style="width: {trader.stats
-                                            .sessionNewYorkWinRate}%"
-                                    ></div>
-                                </div>
-                                <div class="flex justify-end items-center">
-                                    <span
-                                        class="font-bold {trader.stats
-                                            .sessionNewYorkProfit >= 0
-                                            ? 'text-green-600 dark:text-green-400'
-                                            : 'text-red-600 dark:text-red-400'}"
-                                    >
-                                        {trader.stats.sessionNewYorkProfit >= 0
-                                            ? "+"
-                                            : ""}{Number(
-                                            trader.stats.sessionNewYorkProfit,
-                                        ).toFixed(2)}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+                                Profit: {(selectedTrade?.profit || 0) >= 0
+                                    ? "+"
+                                    : ""}${Number(
+                                    selectedTrade?.profit || 0,
+                                ).toFixed(2)}
+                            </span>
+                        </p>
+                        <p class="text-xs text-gray-400 mt-1">
+                            Open: {new Date(
+                                selectedTrade?.openTime,
+                            ).toLocaleString("th-TH", {
+                                timeZone: "Asia/Bangkok",
+                            })}
+                        </p>
+                        <p class="text-xs text-gray-400">
+                            Close: {new Date(
+                                selectedTrade?.closeTime,
+                            ).toLocaleString("th-TH", {
+                                timeZone: "Asia/Bangkok",
+                            })}
+                        </p>
                     </div>
 
-                    <!-- Trading Performance Calendar -->
-                    <div class="mb-6 animate-fade-in-up stagger-5">
-                        <TradingCalendar
-                            dailyData={trader.dailyHistory || []}
+                    <!-- Timeframe Dropdown -->
+                    <div class="flex items-center gap-2">
+                        <select
+                            bind:value={currentTimeframe}
+                            on:change={() =>
+                                updateChartTimeframe(currentTimeframe)}
+                            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            {#each timeframes as tf}
+                                <option value={tf.value}>{tf.label}</option>
+                            {/each}
+                        </select>
+
+                        <!-- Fullscreen Toggle -->
+                        <button
+                            on:click={toggleFullscreen}
+                            class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-lg transition-colors"
+                            title={isFullscreen
+                                ? "Exit Fullscreen"
+                                : "Fullscreen"}
+                        >
+                            {#if isFullscreen}
+                                <!-- Minimize Icon -->
+                                <svg
+                                    class="w-5 h-5 text-gray-500"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
+                                    />
+                                </svg>
+                            {:else}
+                                <!-- Expand Icon -->
+                                <svg
+                                    class="w-5 h-5 text-gray-500"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+                                    />
+                                </svg>
+                            {/if}
+                        </button>
+
+                        <button
+                            on:click={closeChartModal}
+                            class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-lg transition-colors"
+                        >
+                            <svg
+                                class="w-6 h-6 text-gray-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Drawing Tools Toolbar -->
+                <DrawingToolbar
+                    {drawingState}
+                    hasDrawings={drawings.length > 0}
+                    {magnetEnabled}
+                    on:selectTool={handleSelectTool}
+                    on:clearAll={handleClearDrawings}
+                    on:deleteSelected={handleDeleteSelected}
+                    on:cancel={handleCancelDrawing}
+                    on:toggleMagnet={handleToggleMagnet}
+                />
+
+                <!-- Chart Container -->
+                <div class="p-4 bg-gray-900 {isFullscreen ? 'flex-1' : ''}">
+                    <div
+                        class="relative w-full {isFullscreen
+                            ? 'h-full'
+                            : 'h-[400px]'}"
+                        role="application"
+                        style="touch-action: none; cursor: {chartCursor};"
+                        on:mousedown={handleChartMouseDown}
+                        on:mousemove={handleChartMouseMove}
+                        on:mouseup={handleChartMouseUp}
+                        on:mouseleave={handleChartMouseLeave}
+                        on:touchstart={handleChartTouchStart}
+                        on:touchmove={handleChartTouchMove}
+                        on:touchend={handleChartTouchEnd}
+                        on:touchcancel={handleChartTouchCancel}
+                    >
+                        <div
+                            bind:this={chartContainerRef}
+                            class="w-full h-full"
+                        ></div>
+
+                        <!-- Drawing Overlay -->
+                        <DrawingOverlay
+                            {chart}
+                            series={candlestickSeries}
+                            {drawings}
+                            {drawingState}
                         />
                     </div>
-
-                    <div
-                        class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 animate-fade-in-up stagger-6 card-hover"
-                    >
-                        <h3
-                            class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
-                        >
-                            Trading Style: {trader.stats.tradingStyle}
-                        </h3>
-                        <div class="space-y-3">
-                            <div
-                                class="flex items-center justify-between text-sm"
-                            >
-                                <span class="text-gray-600 dark:text-gray-300"
-                                    >Favorite Pair</span
-                                >
-                                <span
-                                    class="font-medium text-gray-900 dark:text-white"
-                                    >{trader.stats.favoritePair}</span
-                                >
-                            </div>
-                            <div
-                                class="flex items-center justify-between text-sm"
-                            >
-                                <span class="text-gray-600 dark:text-gray-300"
-                                    >Avg Holding Time</span
-                                >
-                                <span
-                                    class="font-medium text-gray-900 dark:text-white"
-                                    >{trader.stats.avgHoldingTime}</span
-                                >
-                            </div>
-                            <div
-                                class="flex items-center justify-between text-sm"
-                            >
-                                <span class="text-gray-600 dark:text-gray-300"
-                                    >Avg Hold (Win)</span
-                                >
-                                <span
-                                    class="font-medium text-green-600 dark:text-green-400"
-                                    >{trader.stats.avgHoldingTimeWin}</span
-                                >
-                            </div>
-                            <div
-                                class="flex items-center justify-between text-sm"
-                            >
-                                <span class="text-gray-600 dark:text-gray-300"
-                                    >Avg Hold (Loss)</span
-                                >
-                                <span
-                                    class="font-medium text-red-600 dark:text-red-400"
-                                    >{trader.stats.avgHoldingTimeLoss}</span
-                                >
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        {/if}
-    </div>
-</div>
-
-<!-- Chart Modal -->
-{#if showChartModal}
-    <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm {isFullscreen
-            ? 'p-0'
-            : 'p-4'}"
-    >
-        <div
-            class="bg-white dark:bg-dark-surface shadow-2xl overflow-hidden border border-gray-200 dark:border-dark-border transition-all duration-300 flex flex-col
-                {isFullscreen
-                ? 'w-full h-full rounded-none'
-                : 'w-full max-w-4xl rounded-xl'}"
-        >
-            <!-- Header -->
-            <div
-                class="p-4 border-b border-gray-200 dark:border-dark-border flex justify-between items-center"
-            >
-                <div>
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-                        {selectedTrade?.symbol} - {selectedTrade?.type}
-                    </h3>
-                    <p class="text-sm text-gray-500">
-                        Entry ({selectedTrade?.type}): {Number(
-                            selectedTrade?.openPrice || 0,
-                        ).toFixed(2)}
-                        → {Number(selectedTrade?.closePrice || 0).toFixed(2)}
-                        <span class="hidden sm:inline">|</span>
-                        <br class="sm:hidden" />
-                        <span
-                            class="font-semibold {(selectedTrade?.profit ||
-                                0) >= 0
-                                ? 'text-green-600'
-                                : 'text-red-600'}"
-                        >
-                            Profit: {(selectedTrade?.profit || 0) >= 0
-                                ? "+"
-                                : ""}${Number(
-                                selectedTrade?.profit || 0,
-                            ).toFixed(2)}
-                        </span>
-                    </p>
-                    <p class="text-xs text-gray-400 mt-1">
-                        Open: {new Date(selectedTrade?.openTime).toLocaleString(
-                            "th-TH",
-                            { timeZone: "Asia/Bangkok" },
-                        )}
-                    </p>
-                    <p class="text-xs text-gray-400">
-                        Close: {new Date(
-                            selectedTrade?.closeTime,
-                        ).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}
-                    </p>
                 </div>
 
-                <!-- Timeframe Dropdown -->
-                <div class="flex items-center gap-2">
-                    <select
-                        bind:value={currentTimeframe}
-                        on:change={() => updateChartTimeframe(currentTimeframe)}
-                        class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        {#each timeframes as tf}
-                            <option value={tf.value}>{tf.label}</option>
-                        {/each}
-                    </select>
-
-                    <!-- Fullscreen Toggle -->
-                    <button
-                        on:click={toggleFullscreen}
-                        class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-lg transition-colors"
-                        title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-                    >
-                        {#if isFullscreen}
-                            <!-- Minimize Icon -->
-                            <svg
-                                class="w-5 h-5 text-gray-500"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
-                                />
-                            </svg>
-                        {:else}
-                            <!-- Expand Icon -->
-                            <svg
-                                class="w-5 h-5 text-gray-500"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
-                                />
-                            </svg>
-                        {/if}
-                    </button>
-
-                    <button
-                        on:click={closeChartModal}
-                        class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-lg transition-colors"
-                    >
-                        <svg
-                            class="w-6 h-6 text-gray-500"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Drawing Tools Toolbar -->
-            <DrawingToolbar
-                {drawingState}
-                hasDrawings={drawings.length > 0}
-                {magnetEnabled}
-                on:selectTool={handleSelectTool}
-                on:clearAll={handleClearDrawings}
-                on:deleteSelected={handleDeleteSelected}
-                on:cancel={handleCancelDrawing}
-                on:toggleMagnet={handleToggleMagnet}
-            />
-
-            <!-- Chart Container -->
-            <div class="p-4 bg-gray-900 {isFullscreen ? 'flex-1' : ''}">
+                <!-- Legend -->
                 <div
-                    class="relative w-full {isFullscreen
-                        ? 'h-full'
-                        : 'h-[400px]'}"
-                    role="application"
-                    style="touch-action: none; cursor: {chartCursor};"
-                    on:mousedown={handleChartMouseDown}
-                    on:mousemove={handleChartMouseMove}
-                    on:mouseup={handleChartMouseUp}
-                    on:mouseleave={handleChartMouseLeave}
-                    on:touchstart={handleChartTouchStart}
-                    on:touchmove={handleChartTouchMove}
-                    on:touchend={handleChartTouchEnd}
-                    on:touchcancel={handleChartTouchCancel}
+                    class="p-4 bg-gray-50 dark:bg-dark-bg/50 flex gap-4 text-sm"
                 >
-                    <div
-                        bind:this={chartContainerRef}
-                        class="w-full h-full"
-                    ></div>
-
-                    <!-- Drawing Overlay -->
-                    <DrawingOverlay
-                        {chart}
-                        series={candlestickSeries}
-                        {drawings}
-                        {drawingState}
-                    />
-                </div>
-            </div>
-
-            <!-- Legend -->
-            <div class="p-4 bg-gray-50 dark:bg-dark-bg/50 flex gap-4 text-sm">
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-                    <span class="text-gray-600 dark:text-gray-300"
-                        >Entry ({selectedTrade?.type}): {Number(
-                            selectedTrade?.openPrice || 0,
-                        ).toFixed(2)}</span
-                    >
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                    <span class="text-gray-600 dark:text-gray-300"
-                        >SL: {selectedTrade?.sl
-                            ? Number(selectedTrade.sl).toFixed(2)
-                            : "-"}</span
-                    >
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span class="text-gray-600 dark:text-gray-300"
-                        >TP: {selectedTrade?.tp
-                            ? Number(selectedTrade.tp).toFixed(2)
-                            : "-"}</span
-                    >
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                        <span class="text-gray-600 dark:text-gray-300"
+                            >Entry ({selectedTrade?.type}): {Number(
+                                selectedTrade?.openPrice || 0,
+                            ).toFixed(2)}</span
+                        >
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <span class="text-gray-600 dark:text-gray-300"
+                            >SL: {selectedTrade?.sl
+                                ? Number(selectedTrade.sl).toFixed(2)
+                                : "-"}</span
+                        >
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span class="text-gray-600 dark:text-gray-300"
+                            >TP: {selectedTrade?.tp
+                                ? Number(selectedTrade.tp).toFixed(2)
+                                : "-"}</span
+                        >
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-{/if}
+    {/if}
 
-<!-- AI Analysis Modal -->
-<AiAnalysisModal
-    bind:show={showAiModal}
-    trader={{ ...trader, rank }}
-    on:close={() => (showAiModal = false)}
-/>
+    <!-- AI Analysis Modal -->
+    <AiAnalysisModal
+        bind:show={showAiModal}
+        trader={{ ...trader, rank }}
+        on:close={() => (showAiModal = false)}
+    />
+</PullToRefresh>
