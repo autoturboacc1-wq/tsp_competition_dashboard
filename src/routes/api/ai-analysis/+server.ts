@@ -1,12 +1,24 @@
 import { json } from '@sveltejs/kit';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
-import { GEMINI_API_KEY, OPENAI_API_KEY } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 
-// Initialize AI clients
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+// Lazy initialization of AI clients
+function getGeminiClient() {
+    if (!env.GEMINI_API_KEY) {
+        throw new Error('GEMINI_API_KEY not configured');
+    }
+    return new GoogleGenerativeAI(env.GEMINI_API_KEY);
+}
+
+function getOpenAIClient() {
+    if (!env.OPENAI_API_KEY) {
+        throw new Error('OPENAI_API_KEY not configured');
+    }
+    return new OpenAI({ apiKey: env.OPENAI_API_KEY });
+}
+
 
 // Analysis type prompts (Thai)
 const ANALYSIS_PROMPTS: Record<string, string> = {
@@ -84,12 +96,14 @@ function formatTraderContext(trader: any): string {
 }
 
 async function analyzeWithGemini(prompt: string): Promise<string> {
+    const genAI = getGeminiClient();
     const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
     const result = await model.generateContent(prompt);
     return result.response.text();
 }
 
 async function analyzeWithOpenAI(prompt: string): Promise<string> {
+    const openai = getOpenAIClient();
     const completion = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
@@ -118,10 +132,10 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         // Check API key availability
-        if (provider === 'gemini' && !GEMINI_API_KEY) {
+        if (provider === 'gemini' && !env.GEMINI_API_KEY) {
             return json({ error: 'Gemini API key not configured' }, { status: 500 });
         }
-        if (provider === 'openai' && !OPENAI_API_KEY) {
+        if (provider === 'openai' && !env.OPENAI_API_KEY) {
             return json({ error: 'OpenAI API key not configured' }, { status: 500 });
         }
 
