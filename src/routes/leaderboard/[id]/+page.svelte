@@ -742,7 +742,7 @@
                         on:click={() => (showAiModal = true)}
                     >
                         <span>🤖</span>
-                        <span>ถาม AI</span>
+                        <span>AI Analysis</span>
                     </button>
                 </div>
                 <div class="text-right">

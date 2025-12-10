@@ -11,6 +11,7 @@
     let analysisResult = "";
     let customPrompt = "";
     let selectedType = "";
+    let selectedProvider: "gemini" | "openai" = "gemini";
     let error = "";
 
     const analysisButtons = [
@@ -55,6 +56,7 @@
                     trader,
                     analysisType: type,
                     customPrompt: prompt,
+                    provider: selectedProvider,
                 }),
             });
 
@@ -91,6 +93,7 @@
         error = "";
         customPrompt = "";
         selectedType = "";
+        selectedProvider = "gemini";
         dispatch("close");
     }
 </script>
@@ -150,6 +153,45 @@
 
             <!-- Content -->
             <div class="flex-1 overflow-y-auto p-6 scrollbar-hide">
+                <!-- AI Provider Selector -->
+                <div class="mb-6">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                        เลือก AI Model:
+                    </p>
+                    <div class="flex gap-3">
+                        <button
+                            class="flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all hover:scale-105 active:scale-95 {selectedProvider ===
+                            'gemini'
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                : 'border-gray-200 dark:border-dark-border hover:border-blue-300 dark:hover:border-blue-700'}"
+                            on:click={() => (selectedProvider = "gemini")}
+                            disabled={loading}
+                        >
+                            <span class="text-2xl">⚡️</span>
+                            <div
+                                class="font-medium text-gray-900 dark:text-white text-sm"
+                            >
+                                Google Gemini
+                            </div>
+                        </button>
+                        <button
+                            class="flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all hover:scale-105 active:scale-95 {selectedProvider ===
+                            'openai'
+                                ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                                : 'border-gray-200 dark:border-dark-border hover:border-green-300 dark:hover:border-green-700'}"
+                            on:click={() => (selectedProvider = "openai")}
+                            disabled={loading}
+                        >
+                            <span class="text-2xl">🧠</span>
+                            <div
+                                class="font-medium text-gray-900 dark:text-white text-sm"
+                            >
+                                OpenAI GPT-4o
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Analysis Buttons -->
                 <div class="mb-6">
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
@@ -289,13 +331,23 @@
     }
 
     /* Premium Markdown Styles */
+    :global(.prose) {
+        line-height: 1.8;
+    }
+
+    :global(.prose p) {
+        margin-top: 1.25em;
+        margin-bottom: 1.25em;
+    }
+
     :global(.prose h1),
     :global(.prose h2),
     :global(.prose h3) {
         color: #7e22ce; /* purple-700 */
         font-weight: 700;
-        margin-top: 1.5em;
-        margin-bottom: 0.5em;
+        margin-top: 2em;
+        margin-bottom: 0.75em;
+        line-height: 1.4;
     }
     :global(.dark .prose h1),
     :global(.dark .prose h2),
@@ -303,11 +355,27 @@
         color: #d8b4fe; /* purple-300 */
     }
 
+    /* Lists */
+    :global(.prose ul),
+    :global(.prose ol) {
+        margin-top: 1.5em;
+        margin-bottom: 1.5em;
+        padding-left: 1.75em;
+    }
+    :global(.prose li) {
+        margin-top: 0.5em;
+        margin-bottom: 0.5em;
+    }
+    :global(.prose li > p) {
+        margin-top: 0.75em;
+        margin-bottom: 0.75em;
+    }
+
     /* Table Styling */
     :global(.prose table) {
         width: 100%;
-        margin-top: 1.5em;
-        margin-bottom: 1.5em;
+        margin-top: 2em;
+        margin-bottom: 2em;
         border-collapse: collapse;
         border-radius: 0.75rem;
         overflow: hidden;
@@ -347,24 +415,46 @@
     /* Strong/Bold */
     :global(.prose strong) {
         color: #6b21a8; /* purple-800 */
+        font-weight: 600;
     }
     :global(.dark .prose strong) {
         color: #e9d5ff; /* purple-200 */
+    }
+
+    /* Code */
+    :global(.prose code) {
+        background-color: #f3f4f6;
+        padding: 0.2em 0.4em;
+        border-radius: 0.25rem;
+        font-size: 0.875em;
+    }
+    :global(.dark .prose code) {
+        background-color: #374151;
     }
 
     /* Blockquotes */
     :global(.prose blockquote) {
         border-left-color: #9333ea;
         background-color: #f5f3ff; /* purple-50 */
-        padding: 1rem;
+        padding: 1.25rem;
         border-radius: 0.5rem;
         font-style: normal;
-        margin-top: 1.5em;
-        margin-bottom: 1.5em;
+        margin-top: 2em;
+        margin-bottom: 2em;
     }
     :global(.dark .prose blockquote) {
         background-color: rgba(147, 51, 234, 0.1);
         border-left-color: #a855f7;
         color: #e5e7eb;
+    }
+
+    /* Horizontal rules */
+    :global(.prose hr) {
+        margin-top: 2.5em;
+        margin-bottom: 2.5em;
+        border-color: #e5e7eb;
+    }
+    :global(.dark .prose hr) {
+        border-color: #374151;
     }
 </style>

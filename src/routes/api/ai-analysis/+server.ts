@@ -1,11 +1,12 @@
 import { json } from '@sveltejs/kit';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GEMINI_API_KEY } from '$env/static/private';
+import OpenAI from 'openai';
+import { GEMINI_API_KEY, OPENAI_API_KEY } from '$env/static/private';
 import type { RequestHandler } from './$types';
 
-// Initialize Gemini
+// Initialize AI clients
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 // Analysis type prompts (Thai)
 const ANALYSIS_PROMPTS: Record<string, string> = {
@@ -82,12 +83,46 @@ function formatTraderContext(trader: any): string {
 - Avg Holding Time: ${trader.stats?.avgHoldingTime || '-'}`;
 }
 
+async function analyzeWithGemini(prompt: string): Promise<string> {
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+}
+
+async function analyzeWithOpenAI(prompt: string): Promise<string> {
+    const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+            {
+                role: 'user',
+                content: prompt
+            }
+        ],
+        temperature: 0.7,
+    });
+
+    return completion.choices[0]?.message?.content || '';
+}
+
 export const POST: RequestHandler = async ({ request }) => {
     try {
-        const { trader, analysisType, customPrompt } = await request.json();
+        const { trader, analysisType, customPrompt, provider = 'gemini' } = await request.json();
 
         if (!trader) {
             return json({ error: 'Missing trader data' }, { status: 400 });
+        }
+
+        // Validate provider
+        if (provider !== 'gemini' && provider !== 'openai') {
+            return json({ error: 'Invalid provider. Must be "gemini" or "openai"' }, { status: 400 });
+        }
+
+        // Check API key availability
+        if (provider === 'gemini' && !GEMINI_API_KEY) {
+            return json({ error: 'Gemini API key not configured' }, { status: 500 });
+        }
+        if (provider === 'openai' && !OPENAI_API_KEY) {
+            return json({ error: 'OpenAI API key not configured' }, { status: 500 });
         }
 
         // Build prompt
@@ -104,11 +139,15 @@ export const POST: RequestHandler = async ({ request }) => {
         const traderContext = formatTraderContext(trader);
         const fullPrompt = `${systemPrompt}\n\n${traderContext}`;
 
-        // Generate response
-        const result = await model.generateContent(fullPrompt);
-        const response = result.response.text();
+        // Generate response based on provider
+        let analysis: string;
+        if (provider === 'gemini') {
+            analysis = await analyzeWithGemini(fullPrompt);
+        } else {
+            analysis = await analyzeWithOpenAI(fullPrompt);
+        }
 
-        return json({ analysis: response });
+        return json({ analysis });
     } catch (error) {
         console.error('AI Analysis error:', error);
         return json({
