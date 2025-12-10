@@ -4,6 +4,7 @@
     import { createChart, ColorType } from "lightweight-charts";
     import EquityChart from "$lib/components/EquityChart.svelte";
     import TradingCalendar from "$lib/components/TradingCalendar.svelte";
+    import AiAnalysisModal from "$lib/components/AiAnalysisModal.svelte";
     import DrawingToolbar from "$lib/chart/DrawingToolbar.svelte";
     import DrawingOverlay from "$lib/chart/DrawingOverlay.svelte";
     import {
@@ -64,6 +65,9 @@
 
     // Fullscreen state
     let isFullscreen = false;
+
+    // AI Analysis Modal state
+    let showAiModal = false;
 
     function toggleFullscreen() {
         isFullscreen = !isFullscreen;
@@ -732,6 +736,14 @@
                             Rank {rank} • {trader.points.toLocaleString()} Points
                         </p>
                     </div>
+                    <!-- Ask AI Button -->
+                    <button
+                        class="ml-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-medium text-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-purple-500/25"
+                        on:click={() => (showAiModal = true)}
+                    >
+                        <span>🤖</span>
+                        <span>ถาม AI</span>
+                    </button>
                 </div>
                 <div class="text-right">
                     <p
@@ -1514,3 +1526,10 @@
         </div>
     </div>
 {/if}
+
+<!-- AI Analysis Modal -->
+<AiAnalysisModal
+    bind:show={showAiModal}
+    trader={{ ...trader, rank }}
+    on:close={() => (showAiModal = false)}
+/>
