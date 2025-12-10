@@ -18,7 +18,7 @@
     export let data: PageData;
 
     $: id = $page.params.id;
-    let trader = data.trader;
+    $: trader = data.trader;
     // Rank calculation would ideally come from server or context,
     // for now we might lose the global rank context in this view unless passed.
     // Let's assume for now we just show the data.
@@ -68,6 +68,23 @@
 
     // AI Analysis Modal state
     let showAiModal = false;
+
+    // Filter State
+    let filterSymbol = "ALL";
+    let filterType = "ALL";
+    let filterOutcome = "ALL";
+
+    $: uniqueSymbols = trader ? ["ALL", ...new Set(trader.history.map((t: any) => t.symbol))].sort() : ["ALL"];
+
+    $: filteredHistory = trader ? trader.history.filter((trade: any) => {
+        const matchSymbol = filterSymbol === "ALL" || trade.symbol === filterSymbol;
+        const matchType = filterType === "ALL" || trade.type === filterType;
+        const matchOutcome = filterOutcome === "ALL" || 
+            (filterOutcome === "WIN" && trade.profit >= 0) ||
+            (filterOutcome === "LOSS" && trade.profit < 0);
+        
+        return matchSymbol && matchType && matchOutcome;
+    }) : [];
 
     function toggleFullscreen() {
         isFullscreen = !isFullscreen;
@@ -780,13 +797,46 @@
                         class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border overflow-hidden animate-fade-in-up stagger-2 card-hover"
                     >
                         <div
-                            class="px-6 py-4 border-b border-gray-100 dark:border-dark-border"
+                            class="px-6 py-4 border-b border-gray-100 dark:border-dark-border flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                         >
                             <h3
                                 class="text-lg font-semibold text-gray-900 dark:text-white"
                             >
                                 Recent History
                             </h3>
+                            
+                            <!-- Filters -->
+                            <div class="flex flex-wrap gap-2">
+                                <!-- Symbol Filter -->
+                                <select 
+                                    bind:value={filterSymbol}
+                                    class="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-dark-bg dark:border-dark-border dark:text-gray-300 py-1"
+                                >
+                                    {#each uniqueSymbols as symbol}
+                                        <option value={symbol}>{symbol === 'ALL' ? 'All Symbols' : symbol}</option>
+                                    {/each}
+                                </select>
+
+                                <!-- Type Filter -->
+                                <select 
+                                    bind:value={filterType}
+                                    class="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-dark-bg dark:border-dark-border dark:text-gray-300 py-1"
+                                >
+                                    <option value="ALL">All Types</option>
+                                    <option value="BUY">Buy</option>
+                                    <option value="SELL">Sell</option>
+                                </select>
+
+                                <!-- Outcome Filter -->
+                                <select 
+                                    bind:value={filterOutcome}
+                                    class="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-dark-bg dark:border-dark-border dark:text-gray-300 py-1"
+                                >
+                                    <option value="ALL">All Outcomes</option>
+                                    <option value="WIN">Win</option>
+                                    <option value="LOSS">Loss</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="overflow-x-auto">
                             <table
@@ -809,7 +859,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {#each trader.history as trade, i}
+                                    {#each filteredHistory as trade, i}
                                         <tr
                                             class="border-b dark:border-dark-border hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] active:bg-blue-100 dark:active:bg-blue-900/20"
                                             on:click={() => openChart(trade)}
