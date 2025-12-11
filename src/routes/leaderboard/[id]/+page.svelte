@@ -1679,128 +1679,88 @@
             {/if}
         </div>
     </div>
+</PullToRefresh>
 
-    <!-- Chart Modal -->
-    {#if showChartModal}
+<!-- Chart Modal -->
+{#if showChartModal}
+    <div
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm {isFullscreen
+            ? 'p-0'
+            : 'p-4'}"
+    >
         <div
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm {isFullscreen
-                ? 'p-0'
-                : 'p-4'}"
-        >
-            <div
-                class="bg-white dark:bg-dark-surface shadow-2xl overflow-hidden border border-gray-200 dark:border-dark-border transition-all duration-300 flex flex-col
+            class="bg-white dark:bg-dark-surface shadow-2xl overflow-hidden border border-gray-200 dark:border-dark-border transition-all duration-300 flex flex-col
                 {isFullscreen
-                    ? 'w-full h-full rounded-none'
-                    : 'w-full max-w-4xl rounded-xl'}"
+                ? 'w-full h-full rounded-none'
+                : 'w-full max-w-4xl rounded-xl'}"
+        >
+            <!-- Header -->
+            <div
+                class="p-4 border-b border-gray-200 dark:border-dark-border flex justify-between items-center"
             >
-                <!-- Header -->
-                <div
-                    class="p-4 border-b border-gray-200 dark:border-dark-border flex justify-between items-center"
-                >
-                    <div>
-                        <h3
-                            class="text-lg font-bold text-gray-900 dark:text-white"
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                        {selectedTrade?.symbol} - {selectedTrade?.type}
+                    </h3>
+                    <p class="text-sm text-gray-500">
+                        Entry ({selectedTrade?.type}): {Number(
+                            selectedTrade?.openPrice || 0,
+                        ).toFixed(2)}
+                        → {Number(selectedTrade?.closePrice || 0).toFixed(2)}
+                        <span class="hidden sm:inline">|</span>
+                        <br class="sm:hidden" />
+                        <span
+                            class="font-semibold {(selectedTrade?.profit ||
+                                0) >= 0
+                                ? 'text-green-600'
+                                : 'text-red-600'}"
                         >
-                            {selectedTrade?.symbol} - {selectedTrade?.type}
-                        </h3>
-                        <p class="text-sm text-gray-500">
-                            Entry ({selectedTrade?.type}): {Number(
-                                selectedTrade?.openPrice || 0,
+                            Profit: {(selectedTrade?.profit || 0) >= 0
+                                ? "+"
+                                : ""}${Number(
+                                selectedTrade?.profit || 0,
                             ).toFixed(2)}
-                            → {Number(selectedTrade?.closePrice || 0).toFixed(
-                                2,
-                            )}
-                            <span class="hidden sm:inline">|</span>
-                            <br class="sm:hidden" />
-                            <span
-                                class="font-semibold {(selectedTrade?.profit ||
-                                    0) >= 0
-                                    ? 'text-green-600'
-                                    : 'text-red-600'}"
-                            >
-                                Profit: {(selectedTrade?.profit || 0) >= 0
-                                    ? "+"
-                                    : ""}${Number(
-                                    selectedTrade?.profit || 0,
-                                ).toFixed(2)}
-                            </span>
-                        </p>
-                        <p class="text-xs text-gray-400 mt-1">
-                            Open: {new Date(
-                                selectedTrade?.openTime,
-                            ).toLocaleString("th-TH", {
+                        </span>
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">
+                        Open: {new Date(selectedTrade?.openTime).toLocaleString(
+                            "th-TH",
+                            {
                                 timeZone: "Asia/Bangkok",
-                            })}
-                        </p>
-                        <p class="text-xs text-gray-400">
-                            Close: {new Date(
-                                selectedTrade?.closeTime,
-                            ).toLocaleString("th-TH", {
-                                timeZone: "Asia/Bangkok",
-                            })}
-                        </p>
-                    </div>
+                            },
+                        )}
+                    </p>
+                    <p class="text-xs text-gray-400">
+                        Close: {new Date(
+                            selectedTrade?.closeTime,
+                        ).toLocaleString("th-TH", {
+                            timeZone: "Asia/Bangkok",
+                        })}
+                    </p>
+                </div>
 
-                    <!-- Timeframe Dropdown -->
-                    <div class="flex items-center gap-2">
-                        <select
-                            bind:value={currentTimeframe}
-                            on:change={() =>
-                                updateChartTimeframe(currentTimeframe)}
-                            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            {#each timeframes as tf}
-                                <option value={tf.value}>{tf.label}</option>
-                            {/each}
-                        </select>
+                <!-- Timeframe Dropdown -->
+                <div class="flex items-center gap-2">
+                    <select
+                        bind:value={currentTimeframe}
+                        on:change={() => updateChartTimeframe(currentTimeframe)}
+                        class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        {#each timeframes as tf}
+                            <option value={tf.value}>{tf.label}</option>
+                        {/each}
+                    </select>
 
-                        <!-- Fullscreen Toggle -->
-                        <button
-                            on:click={toggleFullscreen}
-                            class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-lg transition-colors"
-                            title={isFullscreen
-                                ? "Exit Fullscreen"
-                                : "Fullscreen"}
-                        >
-                            {#if isFullscreen}
-                                <!-- Minimize Icon -->
-                                <svg
-                                    class="w-5 h-5 text-gray-500"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
-                                    />
-                                </svg>
-                            {:else}
-                                <!-- Expand Icon -->
-                                <svg
-                                    class="w-5 h-5 text-gray-500"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
-                                    />
-                                </svg>
-                            {/if}
-                        </button>
-
-                        <button
-                            on:click={closeChartModal}
-                            class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-lg transition-colors"
-                        >
+                    <!-- Fullscreen Toggle -->
+                    <button
+                        on:click={toggleFullscreen}
+                        class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-lg transition-colors"
+                        title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                    >
+                        {#if isFullscreen}
+                            <!-- Minimize Icon -->
                             <svg
-                                class="w-6 h-6 text-gray-500"
+                                class="w-5 h-5 text-gray-500"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -1809,94 +1769,126 @@
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
                                     stroke-width="2"
-                                    d="M6 18L18 6M6 6l12 12"
+                                    d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
                                 />
                             </svg>
-                        </button>
-                    </div>
-                </div>
+                        {:else}
+                            <!-- Expand Icon -->
+                            <svg
+                                class="w-5 h-5 text-gray-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+                                />
+                            </svg>
+                        {/if}
+                    </button>
 
-                <!-- Drawing Tools Toolbar -->
-                <DrawingToolbar
-                    {drawingState}
-                    hasDrawings={drawings.length > 0}
-                    {magnetEnabled}
-                    on:selectTool={handleSelectTool}
-                    on:clearAll={handleClearDrawings}
-                    on:deleteSelected={handleDeleteSelected}
-                    on:cancel={handleCancelDrawing}
-                    on:toggleMagnet={handleToggleMagnet}
-                />
-
-                <!-- Chart Container -->
-                <div class="p-4 bg-gray-900 {isFullscreen ? 'flex-1' : ''}">
-                    <div
-                        class="relative w-full {isFullscreen
-                            ? 'h-full'
-                            : 'h-[400px]'}"
-                        role="application"
-                        style="touch-action: none; cursor: {chartCursor};"
-                        on:mousedown={handleChartMouseDown}
-                        on:mousemove={handleChartMouseMove}
-                        on:mouseup={handleChartMouseUp}
-                        on:mouseleave={handleChartMouseLeave}
-                        on:touchstart={handleChartTouchStart}
-                        on:touchmove={handleChartTouchMove}
-                        on:touchend={handleChartTouchEnd}
-                        on:touchcancel={handleChartTouchCancel}
+                    <button
+                        on:click={closeChartModal}
+                        class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-lg transition-colors"
                     >
-                        <div
-                            bind:this={chartContainerRef}
-                            class="w-full h-full"
-                        ></div>
-
-                        <!-- Drawing Overlay -->
-                        <DrawingOverlay
-                            {chart}
-                            series={candlestickSeries}
-                            {drawings}
-                            {drawingState}
-                        />
-                    </div>
+                        <svg
+                            class="w-6 h-6 text-gray-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
+                        </svg>
+                    </button>
                 </div>
+            </div>
 
-                <!-- Legend -->
+            <!-- Drawing Tools Toolbar -->
+            <DrawingToolbar
+                {drawingState}
+                hasDrawings={drawings.length > 0}
+                {magnetEnabled}
+                on:selectTool={handleSelectTool}
+                on:clearAll={handleClearDrawings}
+                on:deleteSelected={handleDeleteSelected}
+                on:cancel={handleCancelDrawing}
+                on:toggleMagnet={handleToggleMagnet}
+            />
+
+            <!-- Chart Container -->
+            <div class="p-4 bg-gray-900 {isFullscreen ? 'flex-1' : ''}">
                 <div
-                    class="p-4 bg-gray-50 dark:bg-dark-bg/50 flex gap-4 text-sm"
+                    class="relative w-full {isFullscreen
+                        ? 'h-full'
+                        : 'h-[400px]'}"
+                    role="application"
+                    style="touch-action: none; cursor: {chartCursor};"
+                    on:mousedown={handleChartMouseDown}
+                    on:mousemove={handleChartMouseMove}
+                    on:mouseup={handleChartMouseUp}
+                    on:mouseleave={handleChartMouseLeave}
+                    on:touchstart={handleChartTouchStart}
+                    on:touchmove={handleChartTouchMove}
+                    on:touchend={handleChartTouchEnd}
+                    on:touchcancel={handleChartTouchCancel}
                 >
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-                        <span class="text-gray-600 dark:text-gray-300"
-                            >Entry ({selectedTrade?.type}): {Number(
-                                selectedTrade?.openPrice || 0,
-                            ).toFixed(2)}</span
-                        >
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                        <span class="text-gray-600 dark:text-gray-300"
-                            >SL: {selectedTrade?.sl
-                                ? Number(selectedTrade.sl).toFixed(2)
-                                : "-"}</span
-                        >
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
-                        <span class="text-gray-600 dark:text-gray-300"
-                            >TP: {selectedTrade?.tp
-                                ? Number(selectedTrade.tp).toFixed(2)
-                                : "-"}</span
-                        >
-                    </div>
+                    <div
+                        bind:this={chartContainerRef}
+                        class="w-full h-full"
+                    ></div>
+
+                    <!-- Drawing Overlay -->
+                    <DrawingOverlay
+                        {chart}
+                        series={candlestickSeries}
+                        {drawings}
+                        {drawingState}
+                    />
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="p-4 bg-gray-50 dark:bg-dark-bg/50 flex gap-4 text-sm">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span class="text-gray-600 dark:text-gray-300"
+                        >Entry ({selectedTrade?.type}): {Number(
+                            selectedTrade?.openPrice || 0,
+                        ).toFixed(2)}</span
+                    >
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <span class="text-gray-600 dark:text-gray-300"
+                        >SL: {selectedTrade?.sl
+                            ? Number(selectedTrade.sl).toFixed(2)
+                            : "-"}</span
+                    >
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span class="text-gray-600 dark:text-gray-300"
+                        >TP: {selectedTrade?.tp
+                            ? Number(selectedTrade.tp).toFixed(2)
+                            : "-"}</span
+                    >
                 </div>
             </div>
         </div>
-    {/if}
+    </div>
+{/if}
 
-    <!-- AI Analysis Modal -->
-    <AiAnalysisModal
-        bind:show={showAiModal}
-        trader={{ ...trader, rank }}
-        on:close={() => (showAiModal = false)}
-    />
-</PullToRefresh>
+<!-- AI Analysis Modal -->
+<AiAnalysisModal
+    bind:show={showAiModal}
+    trader={{ ...trader, rank }}
+    on:close={() => (showAiModal = false)}
+/>
