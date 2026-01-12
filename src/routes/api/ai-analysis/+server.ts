@@ -120,7 +120,7 @@ async function analyzeWithOpenAI(prompt: string): Promise<string> {
 
 export const POST: RequestHandler = async ({ request }) => {
     try {
-        const { trader, analysisType, customPrompt, provider = 'gemini' } = await request.json();
+        const { trader, analysisType, customPrompt, provider = 'openai' } = await request.json();
 
         if (!trader) {
             return json({ error: 'Missing trader data' }, { status: 400 });

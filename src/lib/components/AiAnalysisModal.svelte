@@ -11,7 +11,7 @@
     let analysisResult = "";
     let customPrompt = "";
     let selectedType = "";
-    let selectedProvider: "gemini" | "openai" = "gemini";
+    let selectedProvider: "openai" = "openai";
     let error = "";
     let copied = false;
 
@@ -94,7 +94,7 @@
         error = "";
         customPrompt = "";
         selectedType = "";
-        selectedProvider = "gemini";
+        selectedProvider = "openai";
         copied = false;
         dispatch("close");
     }
@@ -167,45 +167,6 @@
 
             <!-- Content -->
             <div class="flex-1 overflow-y-auto p-6 scrollbar-hide">
-                <!-- AI Provider Selector -->
-                <div class="mb-6">
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                        เลือก AI Model:
-                    </p>
-                    <div class="flex gap-3">
-                        <button
-                            class="flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all hover:scale-105 active:scale-95 {selectedProvider ===
-                            'gemini'
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                : 'border-gray-200 dark:border-dark-border hover:border-blue-300 dark:hover:border-blue-700'}"
-                            on:click={() => (selectedProvider = "gemini")}
-                            disabled={loading}
-                        >
-                            <span class="text-2xl">⚡️</span>
-                            <div
-                                class="font-medium text-gray-900 dark:text-white text-sm"
-                            >
-                                Gemini
-                            </div>
-                        </button>
-                        <button
-                            class="flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all hover:scale-105 active:scale-95 {selectedProvider ===
-                            'openai'
-                                ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                                : 'border-gray-200 dark:border-dark-border hover:border-green-300 dark:hover:border-green-700'}"
-                            on:click={() => (selectedProvider = "openai")}
-                            disabled={loading}
-                        >
-                            <span class="text-2xl">🧠</span>
-                            <div
-                                class="font-medium text-gray-900 dark:text-white text-sm"
-                            >
-                                ChatGPT
-                            </div>
-                        </button>
-                    </div>
-                </div>
-
                 <!-- Analysis Buttons -->
                 <div class="mb-6">
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
