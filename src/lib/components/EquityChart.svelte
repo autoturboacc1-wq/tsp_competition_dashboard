@@ -70,6 +70,25 @@
                 textColor: "#9CA3AF",
                 fontFamily: "'Inter', sans-serif",
             },
+            localization: {
+                timeFormatter: (timestamp: number) => {
+                    const date = new Date(timestamp * 1000);
+                    const day = date.getUTCDate().toString().padStart(2, "0");
+                    const month = date.toLocaleString("en-US", {
+                        month: "short",
+                        timeZone: "UTC",
+                    });
+                    const hours = date
+                        .getUTCHours()
+                        .toString()
+                        .padStart(2, "0");
+                    const minutes = date
+                        .getUTCMinutes()
+                        .toString()
+                        .padStart(2, "0");
+                    return `${day} ${month} ${hours}:${minutes}`;
+                },
+            },
             grid: {
                 vertLines: {
                     color: "rgba(55, 65, 81, 0.5)",
@@ -91,6 +110,33 @@
                 timeVisible: true,
                 secondsVisible: false,
                 rightOffset: 5,
+                tickMarkFormatter: (time: number, tickMarkType: number) => {
+                    const date = new Date(time * 1000);
+                    switch (tickMarkType) {
+                        case 0:
+                            return date.getUTCFullYear().toString();
+                        case 1:
+                            return date.toLocaleString("en-US", {
+                                month: "short",
+                                timeZone: "UTC",
+                            });
+                        case 2:
+                            return date.getUTCDate().toString();
+                        case 3: {
+                            const h = date
+                                .getUTCHours()
+                                .toString()
+                                .padStart(2, "0");
+                            const m = date
+                                .getUTCMinutes()
+                                .toString()
+                                .padStart(2, "0");
+                            return `${h}:${m}`;
+                        }
+                        default:
+                            return date.getUTCDate().toString();
+                    }
+                },
             },
             crosshair: {
                 mode: 1, // Magnet
@@ -191,10 +237,14 @@
 
         if (data.length === 0) return;
 
-        // Prepare series data
-        const equityData = data.map((d) => ({ time: d.time, value: d.equity }));
+        // Prepare series data with Thailand offset (UTC+7)
+        const THAILAND_OFFSET = 7 * 60 * 60;
+        const equityData = data.map((d) => ({
+            time: (d.time + THAILAND_OFFSET) as any,
+            value: d.equity,
+        }));
         const balanceData = data.map((d) => ({
-            time: d.time,
+            time: (d.time + THAILAND_OFFSET) as any,
             value: d.balance,
         }));
 
@@ -203,7 +253,7 @@
 
         // Calculate floating zone data - color based on P/L
         const zoneData = data.map((d) => ({
-            time: d.time,
+            time: (d.time + THAILAND_OFFSET) as any,
             value: d.equity,
             color:
                 d.floatingPL >= 0
@@ -235,6 +285,8 @@
             day: "numeric",
             hour: "2-digit",
             minute: "2-digit",
+            hour12: false,
+            timeZone: "UTC", // Use UTC because timestamp is already offset
         });
     }
 
@@ -414,7 +466,7 @@
     <!-- Stats Summary -->
     <div class="grid grid-cols-3 gap-3 mt-4">
         {#if equitySnapshots.length > 0 || equityCurve.length > 0}
-            {@const data =
+            {@const chartData =
                 equitySnapshots.length > 0
                     ? equitySnapshots
                     : equityCurve.map((e) => ({
@@ -422,12 +474,12 @@
                           balance: e,
                           floatingPL: 0,
                       }))}
-            {@const latest = data[data.length - 1]}
-            {@const first = data[0]}
+            {@const latest = chartData[chartData.length - 1]}
+            {@const first = chartData[0]}
             {@const growth = first?.equity
-                ? ((latest?.equity - first?.equity) / first?.equity) * 100
+                ? ((latest.equity - first.equity) / first.equity) * 100
                 : 0}
-            {@const maxEquity = Math.max(...data.map((d) => d.equity || d))}
+            {@const maxEquity = Math.max(...chartData.map((d) => d.equity))}
 
             <div
                 class="bg-gray-50 dark:bg-dark-bg/30 rounded-lg p-3 text-center"
@@ -438,7 +490,7 @@
                 <div
                     class="font-mono font-semibold text-gray-900 dark:text-white"
                 >
-                    ${formatMoney(latest?.equity || latest || 0)}
+                    ${formatMoney(latest.equity)}
                 </div>
             </div>
             <div

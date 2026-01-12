@@ -553,11 +553,46 @@
                     timeVisible: true,
                     secondsVisible: false,
                     rightOffset: 5,
+                    tickMarkFormatter: (time: number, tickMarkType: number) => {
+                        const date = new Date(time * 1000);
+                        switch (tickMarkType) {
+                            case 0:
+                                return date.getUTCFullYear().toString();
+                            case 1:
+                                return date.toLocaleString("en-US", {
+                                    month: "short",
+                                    timeZone: "UTC",
+                                });
+                            case 2:
+                                return date.getUTCDate().toString();
+                            case 3: {
+                                const h = date
+                                    .getUTCHours()
+                                    .toString()
+                                    .padStart(2, "0");
+                                const m = date
+                                    .getUTCMinutes()
+                                    .toString()
+                                    .padStart(2, "0");
+                                return `${h}:${m}`;
+                            }
+                            default:
+                                return date.getUTCDate().toString();
+                        }
+                    },
                 },
                 localization: {
                     timeFormatter: (timestamp: number) => {
                         // Data already has Thailand offset, so use UTC to display correctly
                         const date = new Date(timestamp * 1000);
+                        const day = date
+                            .getUTCDate()
+                            .toString()
+                            .padStart(2, "0");
+                        const month = date.toLocaleString("en-US", {
+                            month: "short",
+                            timeZone: "UTC",
+                        });
                         const hours = date
                             .getUTCHours()
                             .toString()
@@ -566,7 +601,7 @@
                             .getUTCMinutes()
                             .toString()
                             .padStart(2, "0");
-                        return `${hours}:${minutes}`;
+                        return `${day} ${month} ${hours}:${minutes}`;
                     },
                 },
                 watermark: {
