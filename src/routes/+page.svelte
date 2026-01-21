@@ -52,38 +52,11 @@
             >
                 <!-- Crown icon -->
                 <div class="crown">
-                    <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                    >
-                        <path
-                            d="M2 17L4 7L8 10L12 4L16 10L20 7L22 17H2Z"
-                            fill="url(#goldGradient)"
-                            stroke="url(#goldGradient)"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
-                        <path
-                            d="M2 17H22V19C22 20.1046 21.1046 21 20 21H4C2.89543 21 2 20.1046 2 19V17Z"
-                            fill="url(#goldGradient)"
-                        />
-                        <defs>
-                            <linearGradient
-                                id="goldGradient"
-                                x1="2"
-                                y1="4"
-                                x2="22"
-                                y2="21"
-                                gradientUnits="userSpaceOnUse"
-                            >
-                                <stop stop-color="#F6E05E" />
-                                <stop offset="0.5" stop-color="#D69E2E" />
-                                <stop offset="1" stop-color="#B7791F" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
+                    <img
+                        src="/logo.png"
+                        alt="EliteGold Logo"
+                        class="w-full h-full object-contain"
+                    />
                 </div>
 
                 <!-- Logo text -->
@@ -219,8 +192,8 @@
     }
 
     .crown {
-        width: 60px;
-        height: 60px;
+        width: 120px;
+        height: 120px;
         margin: 0 auto 1rem;
         animation: crown-glow 2s ease-in-out infinite;
     }

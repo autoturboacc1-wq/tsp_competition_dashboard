@@ -16,8 +16,8 @@
 				href="/"
 				class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2"
 			>
-				<img src="/logo.png" alt="Elite Gold Logo" class="h-8 w-auto" />
-				<span>Elite Gold</span>
+				<img src="/logo.png" alt="EliteGold Logo" class="h-8 w-auto" />
+				<span>Elite<span class="text-gold">Gold</span></span>
 			</a>
 			<div class="flex items-center gap-4">
 				<a

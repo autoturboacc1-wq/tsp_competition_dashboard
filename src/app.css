@@ -23,6 +23,15 @@
   }
 }
 
+@layer utilities {
+  .text-gold {
+    background: linear-gradient(135deg, #F6E05E 0%, #D69E2E 50%, #B7791F 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
 @layer components {
   /* ==================== ANIMATIONS ==================== */
 
