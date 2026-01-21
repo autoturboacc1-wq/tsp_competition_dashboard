@@ -1,6 +1,7 @@
 <script lang="ts">
     import { invalidateAll } from "$app/navigation";
     import LeaderboardTable from "$lib/components/LeaderboardTable.svelte";
+    import TopWinners from "$lib/components/TopWinners.svelte";
     import PullToRefresh from "$lib/components/PullToRefresh.svelte";
     import type { PageData } from "./$types";
 
@@ -43,7 +44,10 @@
                     &larr; Back to Home
                 </a>
             </div>
+            <!-- Top 3 Champions Podium -->
+            <TopWinners data={data.leaderboard} />
 
+            <!-- Full Leaderboard -->
             <div class="bg-white dark:bg-dark-surface rounded-lg shadow">
                 <LeaderboardTable data={data.leaderboard} />
             </div>
