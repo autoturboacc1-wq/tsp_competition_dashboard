@@ -7,7 +7,7 @@
 	class="min-h-screen bg-gray-50 dark:bg-dark-bg text-gray-900 dark:text-white transition-colors duration-300"
 >
 	<header
-		class="bg-white dark:bg-dark-surface/80 dark:backdrop-blur-md shadow-sm border-b border-gray-200 dark:border-dark-border sticky top-0 z-50"
+		class="bg-white dark:bg-dark-surface/80 dark:backdrop-blur-md shadow-sm border-b border-gray-200 dark:border-dark-border sticky top-0 z-50 pt-[env(safe-area-inset-top)]"
 	>
 		<div
 			class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"

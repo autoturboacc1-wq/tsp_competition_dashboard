@@ -3,6 +3,14 @@
 @import "tailwindcss/utilities";
 
 @layer base {
+  html, body {
+    @apply bg-white;
+  }
+
+  html.dark, body.dark {
+    @apply bg-black;
+  }
+
   .dark {
     color: white;
   }
