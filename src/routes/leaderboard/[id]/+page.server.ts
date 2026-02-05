@@ -40,15 +40,17 @@ export const load: PageServerLoad = async ({ params }) => {
                 .order('date', { ascending: true });
 
             // Fetch detailed equity snapshots (MyFxBook-style)
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-            const { data: equitySnapshots } = await supabase
+            // Order by descending to get the LATEST records first, then reverse for chronological order
+            // Limit to 3000 records (~10 days at 5-minute intervals) to avoid Supabase 1000 default limit issue
+            const { data: equitySnapshotsDesc } = await supabase
                 .from('equity_snapshots')
                 .select('timestamp, balance, equity, floating_pl')
                 .eq('participant_id', id)
-                .gte('timestamp', thirtyDaysAgo.toISOString())
-                .order('timestamp', { ascending: true });
+                .order('timestamp', { ascending: false })
+                .limit(3000);
+
+            // Reverse to get chronological order (oldest first for chart display)
+            const equitySnapshots = equitySnapshotsDesc?.reverse() || [];
 
             // Fetch ALL trades for Trading Calendar (calculate daily profit from trade history)
             const { data: allTrades } = await supabase
