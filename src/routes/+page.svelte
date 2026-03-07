@@ -1,317 +1,220 @@
-<script>
-    import "../app.css";
-    import { onMount } from "svelte";
-    import { goto } from "$app/navigation";
-    import { fade, scale } from "svelte/transition";
+<script lang="ts">
+    import { invalidateAll } from '$app/navigation';
+    import PullToRefresh from '$lib/components/PullToRefresh.svelte';
+    import RecentTradesFeed from '$lib/components/RecentTradesFeed.svelte';
 
-    let showContent = false;
-    let showTagline = false;
-    let showLoader = false;
-    let fadeOut = false;
+    export let data;
 
-    onMount(() => {
-        // Staggered animation sequence
-        setTimeout(() => (showContent = true), 100);
-        setTimeout(() => (showTagline = true), 600);
-        setTimeout(() => (showLoader = true), 1000);
+    $: ({ summary, topPerformer, recentTrades, competition, topFive } = data);
 
-        // Start fade out and navigate
-        setTimeout(() => {
-            fadeOut = true;
-            setTimeout(() => goto("/leaderboard"), 500);
-        }, 2200);
-    });
+    function formatNumber(n: number): string {
+        if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+        if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+        return n.toLocaleString();
+    }
 </script>
 
 <svelte:head>
-    <title>EliteGold | Trading Competition</title>
+    <title>Dashboard | EliteGold</title>
 </svelte:head>
 
-<div class="splash-container" class:fade-out={fadeOut}>
-    <!-- Animated background particles -->
-    <div class="particles">
-        {#each Array(20) as _, i}
-            <div
-                class="particle"
-                style="--delay: {i * 0.15}s; --x: {Math.random() *
-                    100}%; --duration: {2 + Math.random() * 3}s"
-            ></div>
-        {/each}
-    </div>
+<PullToRefresh on:refresh={() => invalidateAll()}>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <!-- Page Header -->
+        <div class="mb-6 sm:mb-8 animate-fade-in-down">
+            <h1 class="text-2xl sm:text-3xl font-bold dark:text-white">
+                Competition <span class="text-gold">Dashboard</span>
+            </h1>
+            {#if competition.startDate}
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Day {competition.totalDays} of competition
+                </p>
+            {/if}
+        </div>
 
-    <!-- Glowing orb background -->
-    <div class="glow-orb"></div>
-    <div class="glow-orb secondary"></div>
-
-    <!-- Main content -->
-    <div class="content">
-        {#if showContent}
-            <div
-                class="logo-container"
-                in:scale={{ duration: 500, start: 0.5 }}
-            >
-                <!-- Crown icon -->
-                <div class="crown">
-                    <img
-                        src="/logo.png"
-                        alt="EliteGold Logo"
-                        class="w-full h-full object-contain"
-                    />
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <div class="summary-card p-4 sm:p-5 rounded-xl bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border animate-fade-in-up stagger-1">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
                 </div>
+                <div class="text-2xl sm:text-3xl font-bold dark:text-white">{summary.totalParticipants}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Participants</div>
+            </div>
 
-                <!-- Logo text -->
-                <h1 class="logo-text">
-                    <span class="elite">Elite</span><span class="gold"
-                        >Gold</span
+            <div class="summary-card p-4 sm:p-5 rounded-xl bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border animate-fade-in-up stagger-2">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="text-2xl sm:text-3xl font-bold dark:text-white">{formatNumber(summary.totalTrades)}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Total Trades</div>
+            </div>
+
+            <div class="summary-card p-4 sm:p-5 rounded-xl bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border animate-fade-in-up stagger-3">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="text-2xl sm:text-3xl font-bold dark:text-white">{summary.totalVolume}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Total Lots</div>
+            </div>
+
+            <div class="summary-card p-4 sm:p-5 rounded-xl bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border animate-fade-in-up stagger-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="text-2xl sm:text-3xl font-bold dark:text-white">{summary.averageWinRate}%</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Avg Win Rate</div>
+            </div>
+        </div>
+
+        <!-- Main Content: Two Column Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column (2/3) -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Top Performer -->
+                {#if topPerformer}
+                    <a
+                        href="/leaderboard/{topPerformer.participantId}"
+                        class="block p-5 rounded-xl border-2 border-amber-400/30 dark:border-amber-500/20 top-performer-card animate-fade-in-up stagger-5"
                     >
-                </h1>
-            </div>
-        {/if}
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                {topPerformer.isToday ? 'Top Performer Today' : `Top Performer · ${topPerformer.date}`}
+                            </span>
+                            <span class="text-lg">&#x1F3C6;</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xl font-bold dark:text-white">{topPerformer.nickname}</div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                                    {topPerformer.points} points
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold {topPerformer.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
+                                    {topPerformer.profit >= 0 ? '+' : ''}{topPerformer.profit.toFixed(2)}
+                                </div>
+                                <div class="text-xs text-gray-400">profit</div>
+                            </div>
+                        </div>
+                    </a>
+                {/if}
 
-        {#if showTagline}
-            <p class="tagline" in:fade={{ duration: 400 }}>
-                Trading Competition
-            </p>
-        {/if}
-
-        {#if showLoader}
-            <div class="loader-container" in:fade={{ duration: 300 }}>
-                <div class="loader">
-                    <div class="loader-bar"></div>
+                <!-- Recent Trades -->
+                <div class="animate-fade-in-up stagger-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-lg font-semibold dark:text-white">Recent Trades</h2>
+                        <a href="/trades" class="text-xs text-gold hover:underline">View All</a>
+                    </div>
+                    <RecentTradesFeed trades={recentTrades} />
                 </div>
-                <p class="loading-text">Loading your dashboard...</p>
+            </div>
+
+            <!-- Right Column (1/3) -->
+            <div class="space-y-6">
+                <!-- Competition Stats -->
+                <div class="p-5 rounded-xl bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border animate-fade-in-up stagger-5">
+                    <h2 class="text-lg font-semibold dark:text-white mb-4">Competition Stats</h2>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Duration</span>
+                            <span class="text-sm font-medium dark:text-white">{competition.totalDays} days</span>
+                        </div>
+                        <div class="border-t border-gray-100 dark:border-dark-border"></div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Start Date</span>
+                            <span class="text-sm font-medium dark:text-white">{competition.startDate}</span>
+                        </div>
+                        {#if competition.mostActiveTrader}
+                            <div class="border-t border-gray-100 dark:border-dark-border"></div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">Most Active</span>
+                                <span class="text-sm font-medium dark:text-white">
+                                    {competition.mostActiveTrader.nickname}
+                                    <span class="text-gray-400 dark:text-gray-500 text-xs ml-1">
+                                        ({competition.mostActiveTrader.totalTrades})
+                                    </span>
+                                </span>
+                            </div>
+                        {/if}
+                    </div>
+                </div>
+
+                <!-- Mini Leaderboard -->
+                <div class="p-5 rounded-xl bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border animate-fade-in-up stagger-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold dark:text-white">Top 5</h2>
+                        <a href="/leaderboard" class="text-xs text-gold hover:underline">Full Ranking</a>
+                    </div>
+
+                    {#if topFive.length > 0}
+                        <div class="space-y-2">
+                            {#each topFive as player, i}
+                                <a
+                                    href="/leaderboard/{player.id}"
+                                    class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                                >
+                                    <span class="w-6 text-center text-sm font-bold {i === 0 ? 'text-amber-500' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-amber-700' : 'text-gray-400 dark:text-gray-500'}">
+                                        {i + 1}
+                                    </span>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-sm font-medium truncate dark:text-white">{player.nickname}</div>
+                                        <div class="text-xs text-gray-400">{player.points} pts</div>
+                                    </div>
+                                    <span class="text-sm font-semibold tabular-nums {player.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
+                                        {player.profit >= 0 ? '+' : ''}{player.profit.toFixed(2)}
+                                    </span>
+                                </a>
+                            {/each}
+                        </div>
+                    {:else}
+                        <div class="text-center py-6 text-gray-400 dark:text-gray-500 text-sm">
+                            No data yet
+                        </div>
+                    {/if}
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty state if no data at all -->
+        {#if summary.totalParticipants === 0 && topFive.length === 0}
+            <div class="text-center py-16 animate-fade-in">
+                <div class="text-4xl mb-4">&#x1F3C6;</div>
+                <h2 class="text-xl font-semibold dark:text-white mb-2">Competition data will appear once trading begins</h2>
+                <p class="text-gray-500 dark:text-gray-400">Stay tuned for live updates</p>
             </div>
         {/if}
     </div>
-</div>
+</PullToRefresh>
 
 <style>
-    .splash-container {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #000000;
-        position: relative;
-        overflow: hidden;
-        transition: opacity 0.5s ease-out;
+    .summary-card {
+        border-top: 2px solid transparent;
+        border-image: linear-gradient(90deg, #f59e0b, #d97706) 1;
+        border-image-slice: 1 0 0 0;
     }
 
-    .splash-container.fade-out {
-        opacity: 0;
+    .top-performer-card {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
     }
 
-    /* Particle effects */
-    .particles {
-        position: absolute;
-        inset: 0;
-        overflow: hidden;
-        pointer-events: none;
-    }
-
-    .particle {
-        position: absolute;
-        width: 4px;
-        height: 4px;
-        background: linear-gradient(135deg, #f6e05e, #d69e2e);
-        border-radius: 50%;
-        left: var(--x);
-        bottom: -10px;
-        opacity: 0;
-        animation: float-up var(--duration) ease-out infinite;
-        animation-delay: var(--delay);
-    }
-
-    @keyframes float-up {
-        0% {
-            transform: translateY(0) scale(1);
-            opacity: 0;
-        }
-        10% {
-            opacity: 0.8;
-        }
-        90% {
-            opacity: 0.3;
-        }
-        100% {
-            transform: translateY(-100vh) scale(0.5);
-            opacity: 0;
-        }
-    }
-
-    /* Glowing orbs */
-    .glow-orb {
-        position: absolute;
-        width: 400px;
-        height: 400px;
-        border-radius: 50%;
-        background: radial-gradient(
-            circle,
-            rgba(214, 158, 46, 0.15) 0%,
-            transparent 70%
-        );
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        animation: pulse 3s ease-in-out infinite;
-    }
-
-    .glow-orb.secondary {
-        width: 600px;
-        height: 600px;
-        background: radial-gradient(
-            circle,
-            rgba(246, 224, 94, 0.08) 0%,
-            transparent 70%
-        );
-        animation-delay: -1.5s;
-    }
-
-    @keyframes pulse {
-        0%,
-        100% {
-            transform: translate(-50%, -50%) scale(1);
-            opacity: 1;
-        }
-        50% {
-            transform: translate(-50%, -50%) scale(1.1);
-            opacity: 0.7;
-        }
-    }
-
-    /* Content */
-    .content {
-        position: relative;
-        z-index: 10;
-        text-align: center;
-        padding: 2rem;
-    }
-
-    .logo-container {
-        margin-bottom: 1rem;
-    }
-
-    .crown {
-        width: 120px;
-        height: 120px;
-        margin: 0 auto 1rem;
-        animation: crown-glow 2s ease-in-out infinite;
-    }
-
-    @keyframes crown-glow {
-        0%,
-        100% {
-            filter: drop-shadow(0 0 10px rgba(214, 158, 46, 0.5));
-        }
-        50% {
-            filter: drop-shadow(0 0 25px rgba(246, 224, 94, 0.8));
-        }
-    }
-
-    .logo-text {
-        font-size: 3.5rem;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        margin: 0;
-        line-height: 1;
-    }
-
-    .elite {
-        color: #ffffff;
-        text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
-    }
-
-    .gold {
-        background: linear-gradient(
-            135deg,
-            #f6e05e 0%,
-            #d69e2e 50%,
-            #b7791f 100%
-        );
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        text-shadow: none;
-        filter: drop-shadow(0 0 20px rgba(214, 158, 46, 0.4));
-    }
-
-    .tagline {
-        font-size: 1.1rem;
-        color: rgba(255, 255, 255, 0.6);
-        margin: 0.5rem 0 2rem;
-        font-weight: 500;
-        letter-spacing: 0.15em;
-        text-transform: uppercase;
-    }
-
-    /* Loader */
-    .loader-container {
-        margin-top: 2rem;
-    }
-
-    .loader {
-        width: 200px;
-        height: 4px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 4px;
-        margin: 0 auto;
-        overflow: hidden;
-    }
-
-    .loader-bar {
-        height: 100%;
-        width: 0%;
-        background: linear-gradient(90deg, #f6e05e, #d69e2e, #f6e05e);
-        background-size: 200% 100%;
-        border-radius: 4px;
-        animation:
-            load 1.2s ease-out forwards,
-            shimmer 1s linear infinite;
-    }
-
-    @keyframes load {
-        0% {
-            width: 0%;
-        }
-        100% {
-            width: 100%;
-        }
-    }
-
-    @keyframes shimmer {
-        0% {
-            background-position: 200% 0;
-        }
-        100% {
-            background-position: -200% 0;
-        }
-    }
-
-    .loading-text {
-        font-size: 0.85rem;
-        color: rgba(255, 255, 255, 0.4);
-        margin-top: 1rem;
-        font-weight: 400;
-    }
-
-    /* Responsive */
-    @media (max-width: 640px) {
-        .logo-text {
-            font-size: 2.5rem;
-        }
-
-        .crown {
-            width: 48px;
-            height: 48px;
-        }
-
-        .tagline {
-            font-size: 0.9rem;
-            letter-spacing: 0.1em;
-        }
-
-        .loader {
-            width: 160px;
-        }
+    :global(.dark) .top-performer-card {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(17, 17, 17, 0.5) 100%);
     }
 </style>

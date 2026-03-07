@@ -19,6 +19,10 @@
 				<img src="/logo.png" alt="EliteGold Logo" class="h-8 w-auto" />
 				<span>Elite<span class="text-gold">Gold</span></span>
 			</a>
+			<nav class="hidden sm:flex items-center gap-6 ml-8">
+				<a href="/" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">Dashboard</a>
+				<a href="/leaderboard" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">Leaderboard</a>
+			</nav>
 			<div class="flex items-center gap-4">
 				<a
 					href="https://discord.gg/AyD3q3gQ"

@@ -4,7 +4,7 @@ import { browser } from '$app/environment';
 type Theme = 'light' | 'dark';
 
 function createThemeStore() {
-    const initialTheme: Theme = browser && localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+    const initialTheme: Theme = browser && localStorage.getItem('theme') === 'light' ? 'light' : 'dark';
     const { subscribe, set, update } = writable<Theme>(initialTheme);
 
     return {
@@ -24,7 +24,7 @@ function createThemeStore() {
         init: () => {
             if (browser) {
                 const theme = localStorage.getItem('theme') as Theme;
-                if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                if (theme !== 'light') {
                     set('dark');
                     document.documentElement.classList.add('dark');
                 } else {
