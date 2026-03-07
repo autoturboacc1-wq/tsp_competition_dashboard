@@ -37,7 +37,6 @@ function getOpenAIClient() {
     return new OpenAI({ apiKey: env.OPENAI_API_KEY });
 }
 
-
 // Analysis type prompts (Thai)
 const ANALYSIS_PROMPTS: Record<string, string> = {
     overview: `คุณเป็นนักวิเคราะห์การเทรด Forex มืออาชีพ วิเคราะห์ภาพรวม Performance ของเทรดเดอร์นี้ โดยครอบคลุม:
@@ -73,6 +72,18 @@ const ANALYSIS_PROMPTS: Record<string, string> = {
 - ศักยภาพในอนาคต
 ใช้ภาษาไทย กระชับ อ่านง่าย ใช้ emoji ให้เหมาะสม`
 };
+
+// Format trade history for AI context
+function formatTradeHistory(trades: any[]): string {
+    if (!trades || trades.length === 0) return '\n### Recent Trades\nNo trade history available.';
+
+    const recent = trades.slice(0, 15);
+    const rows = recent.map((t: any, i: number) =>
+        `${i + 1}. ${t.symbol} ${t.type} ${t.lot}lot | Open: ${t.openPrice} -> Close: ${t.closePrice} | SL: ${t.sl || '-'} TP: ${t.tp || '-'} | P/L: $${t.profit?.toFixed?.(2) ?? t.profit} | ${t.openTime} -> ${t.closeTime}`
+    ).join('\n');
+
+    return `\n### Recent Trades (${recent.length} of ${trades.length})\n${rows}`;
+}
 
 // Format trader data for AI context
 function formatTraderContext(trader: any): string {
@@ -110,30 +121,73 @@ function formatTraderContext(trader: any): string {
 ### Trading Style
 - Style: ${trader.stats?.tradingStyle || 'Unknown'}
 - Favorite Pair: ${trader.stats?.favoritePair || '-'}
-- Avg Holding Time: ${trader.stats?.avgHoldingTime || '-'}`;
+- Avg Holding Time: ${trader.stats?.avgHoldingTime || '-'}${formatTradeHistory(trader.history)}`;
 }
 
-async function analyzeWithGemini(prompt: string): Promise<string> {
-    const genAI = getGeminiClient();
-    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
-    const result = await model.generateContent(prompt);
-    return result.response.text();
-}
-
-async function analyzeWithOpenAI(prompt: string): Promise<string> {
+// Streaming with OpenAI
+function streamWithOpenAI(systemPrompt: string, userContent: string): ReadableStream {
     const openai = getOpenAIClient();
-    const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [
-            {
-                role: 'user',
-                content: prompt
-            }
-        ],
-        temperature: 0.7,
-    });
+    const encoder = new TextEncoder();
 
-    return completion.choices[0]?.message?.content || '';
+    return new ReadableStream({
+        async start(controller) {
+            try {
+                const stream = await openai.chat.completions.create({
+                    model: 'gpt-4o',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userContent }
+                    ],
+                    temperature: 0.7,
+                    stream: true,
+                });
+
+                for await (const chunk of stream) {
+                    const content = chunk.choices[0]?.delta?.content || '';
+                    if (content) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+                    }
+                }
+                controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            } catch (e) {
+                const msg = e instanceof Error ? e.message : 'Stream error';
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
+            } finally {
+                controller.close();
+            }
+        }
+    });
+}
+
+// Streaming with Gemini
+function streamWithGemini(systemPrompt: string, userContent: string): ReadableStream {
+    const genAI = getGeminiClient();
+    const encoder = new TextEncoder();
+
+    return new ReadableStream({
+        async start(controller) {
+            try {
+                const model = genAI.getGenerativeModel({
+                    model: 'gemini-flash-latest',
+                    systemInstruction: systemPrompt
+                });
+                const result = await model.generateContentStream(userContent);
+
+                for await (const chunk of result.stream) {
+                    const content = chunk.text();
+                    if (content) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+                    }
+                }
+                controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            } catch (e) {
+                const msg = e instanceof Error ? e.message : 'Stream error';
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
+            } finally {
+                controller.close();
+            }
+        }
+    });
 }
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -155,27 +209,41 @@ export const POST: RequestHandler = async ({ request }) => {
             return aiError('misconfigured', 'OpenAI ยังไม่ได้ตั้งค่าระบบ', false, 500);
         }
 
+        // Prompt injection mitigation: validate custom prompt
+        if (analysisType === 'custom') {
+            if (!customPrompt || typeof customPrompt !== 'string' || customPrompt.trim().length === 0) {
+                return aiError('bad_request', 'กรุณาระบุคำถาม', false, 400);
+            }
+            if (customPrompt.length > 500) {
+                return aiError('bad_request', 'คำถามต้องไม่เกิน 500 ตัวอักษร', false, 400);
+            }
+        }
+
+        // System prompt (instructions) stays separate from user data
         let systemPrompt = ANALYSIS_PROMPTS[analysisType] || ANALYSIS_PROMPTS.overview;
 
+        if (analysisType === 'custom') {
+            systemPrompt = `คุณเป็นนักวิเคราะห์การเทรด Forex มืออาชีพ ตอบคำถามของผู้ใช้เกี่ยวกับข้อมูลเทรดเดอร์ที่ให้มา ใช้ภาษาไทย กระชับ อ่านง่าย ใช้ emoji ให้เหมาะสม`;
+        }
+
+        // User content: trader data + optional custom question
+        let userContent = formatTraderContext(trader);
         if (analysisType === 'custom' && customPrompt) {
-            systemPrompt = `คุณเป็นนักวิเคราะห์การเทรด Forex มืออาชีพ ตอบคำถามต่อไปนี้เกี่ยวกับเทรดเดอร์:
-
-"${customPrompt}"
-
-ใช้ภาษาไทย กระชับ อ่านง่าย ใช้ emoji ให้เหมาะสม`;
+            userContent += `\n\n### คำถามจากผู้ใช้\n${customPrompt.trim()}`;
         }
 
-        const traderContext = formatTraderContext(trader);
-        const fullPrompt = `${systemPrompt}\n\n${traderContext}`;
+        // Stream response
+        const stream = provider === 'gemini'
+            ? streamWithGemini(systemPrompt, userContent)
+            : streamWithOpenAI(systemPrompt, userContent);
 
-        let analysis: string;
-        if (provider === 'gemini') {
-            analysis = await analyzeWithGemini(fullPrompt);
-        } else {
-            analysis = await analyzeWithOpenAI(fullPrompt);
-        }
-
-        return json({ analysis });
+        return new Response(stream, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+            }
+        });
     } catch (error) {
         console.error('AI Analysis error:', error);
         const status =

@@ -1,12 +1,34 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
     import { marked } from "marked";
+    import DOMPurify from "isomorphic-dompurify";
     import {
         ASYNC_COPY,
         normalizeAiError,
         type AiApiError,
     } from "$lib/async-state";
     import StatusBanner from "$lib/components/StatusBanner.svelte";
+
+    const sanitize = (md: string) =>
+        DOMPurify.sanitize(marked.parse(md) as string);
+
+    const CUSTOM_PROMPT_MAX = 500;
+    const CACHE_TTL = 5 * 60 * 1000;
+
+    // Module-level cache persists across open/close cycles
+    const analysisCache = new Map<
+        string,
+        { result: string; timestamp: number }
+    >();
+
+    function getCacheKey(
+        traderId: string,
+        provider: string,
+        type: string,
+        prompt?: string,
+    ): string {
+        return `${traderId}:${provider}:${type}:${prompt || ""}`;
+    }
 
     export let trader: any;
     export let show = false;
@@ -17,7 +39,7 @@
     let analysisResult = "";
     let customPrompt = "";
     let selectedType = "";
-    let selectedProvider: "openai" = "openai";
+    let selectedProvider: "openai" | "gemini" = "openai";
     let error: AiApiError | null = null;
     let copied = false;
     let lastRequest: { type: string; prompt?: string } | null = null;
@@ -51,30 +73,101 @@
     ];
 
     async function analyze(type: string, prompt?: string) {
+        // Check cache first
+        const cacheKey = getCacheKey(
+            trader?.id || "",
+            selectedProvider,
+            type,
+            prompt,
+        );
+        const cached = analysisCache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+            analysisResult = cached.result;
+            selectedType = type;
+            lastRequest = { type, prompt };
+            return;
+        }
+
         loading = true;
         error = null;
         selectedType = type;
         lastRequest = { type, prompt };
         copied = false;
+        analysisResult = "";
 
         try {
+            // Strip large data arrays to reduce payload
+            const {
+                equityCurve: _ec,
+                equitySnapshots: _es,
+                dailyHistory: _dh,
+                ...traderData
+            } = trader;
+
             const response = await fetch("/api/ai-analysis", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    trader,
+                    trader: traderData,
                     analysisType: type,
                     customPrompt: prompt,
                     provider: selectedProvider,
                 }),
             });
 
-            const data = await response.json();
-
-            if (!response.ok || data.error) {
+            // Non-OK responses are still JSON errors
+            if (!response.ok) {
+                const data = await response.json();
                 error = normalizeAiError(data);
-            } else {
-                analysisResult = data.analysis;
+                return;
+            }
+
+            // Read SSE stream
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder();
+            if (!reader) throw new Error("No reader");
+
+            let buffer = "";
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                // Keep the last potentially incomplete line in buffer
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                    if (!line.startsWith("data: ")) continue;
+                    const data = line.slice(6);
+                    if (data === "[DONE]") break;
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (parsed.error) {
+                            error = {
+                                code: "provider_unavailable",
+                                message: parsed.error,
+                                retryable: true,
+                            };
+                            break;
+                        }
+                        if (parsed.content) {
+                            analysisResult += parsed.content;
+                        }
+                    } catch {
+                        // skip malformed chunks
+                    }
+                }
+
+                if (error) break;
+            }
+
+            // Cache successful result
+            if (analysisResult && !error) {
+                analysisCache.set(cacheKey, {
+                    result: analysisResult,
+                    timestamp: Date.now(),
+                });
             }
         } catch (e) {
             error = {
@@ -132,6 +225,7 @@
 
     $: isInitialLoading = loading && !analysisResult;
     $: isRefreshingResult = loading && Boolean(analysisResult);
+    $: promptCharsLeft = CUSTOM_PROMPT_MAX - customPrompt.length;
 </script>
 
 {#if show}
@@ -230,6 +324,7 @@
                             type="text"
                             bind:value={customPrompt}
                             on:keydown={handleKeydown}
+                            maxlength={CUSTOM_PROMPT_MAX}
                             placeholder="เช่น: Session ไหนที่ควรเน้นเทรด?"
                             class="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-bg text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
                             disabled={loading}
@@ -242,6 +337,15 @@
                             ถาม
                         </button>
                     </div>
+                    {#if customPrompt.length > 0}
+                        <p
+                            class="text-xs mt-1 text-right {promptCharsLeft < 50
+                                ? 'text-orange-500'
+                                : 'text-gray-400 dark:text-gray-500'}"
+                        >
+                            {promptCharsLeft} ตัวอักษร
+                        </p>
+                    {/if}
                 </div>
 
                 <!-- Divider -->
@@ -345,7 +449,7 @@
                             class="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed"
                         >
                             <!-- Use marked to parse markdown -->
-                            {@html marked.parse(analysisResult)}
+                            {@html sanitize(analysisResult)}
                         </div>
                     </div>
                 {/if}
