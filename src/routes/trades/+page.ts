@@ -1,4 +1,5 @@
 import { supabase } from '$lib/supabaseClient';
+import { createAsyncMeta, formatSupabaseLoadError } from '$lib/async-state';
 
 export async function load() {
     const { data: trades, error } = await supabase
@@ -9,8 +10,17 @@ export async function load() {
 
     if (error) {
         console.error('Error fetching trades:', error);
-        return { trades: [] };
+        return {
+            ...createAsyncMeta({
+                loadError: formatSupabaseLoadError('รายการเทรด', error),
+                lastUpdated: null
+            }),
+            trades: []
+        };
     }
 
-    return { trades };
+    return {
+        ...createAsyncMeta(),
+        trades
+    };
 }

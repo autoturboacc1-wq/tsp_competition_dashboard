@@ -1,6 +1,12 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
     import { marked } from "marked";
+    import {
+        ASYNC_COPY,
+        normalizeAiError,
+        type AiApiError,
+    } from "$lib/async-state";
+    import StatusBanner from "$lib/components/StatusBanner.svelte";
 
     export let trader: any;
     export let show = false;
@@ -12,8 +18,9 @@
     let customPrompt = "";
     let selectedType = "";
     let selectedProvider: "openai" = "openai";
-    let error = "";
+    let error: AiApiError | null = null;
     let copied = false;
+    let lastRequest: { type: string; prompt?: string } | null = null;
 
     const analysisButtons = [
         {
@@ -45,9 +52,10 @@
 
     async function analyze(type: string, prompt?: string) {
         loading = true;
-        error = "";
-        analysisResult = "";
+        error = null;
         selectedType = type;
+        lastRequest = { type, prompt };
+        copied = false;
 
         try {
             const response = await fetch("/api/ai-analysis", {
@@ -63,13 +71,17 @@
 
             const data = await response.json();
 
-            if (data.error) {
-                error = data.error;
+            if (!response.ok || data.error) {
+                error = normalizeAiError(data);
             } else {
                 analysisResult = data.analysis;
             }
         } catch (e) {
-            error = "ไม่สามารถเชื่อมต่อกับ AI ได้ กรุณาลองใหม่";
+            error = {
+                code: "provider_unavailable",
+                message: "ไม่สามารถเชื่อมต่อกับ AI ได้ กรุณาลองใหม่",
+                retryable: true,
+            };
         } finally {
             loading = false;
         }
@@ -91,12 +103,19 @@
     function close() {
         show = false;
         analysisResult = "";
-        error = "";
+        error = null;
         customPrompt = "";
         selectedType = "";
         selectedProvider = "openai";
         copied = false;
+        lastRequest = null;
         dispatch("close");
+    }
+
+    function retryAnalysis() {
+        if (lastRequest) {
+            analyze(lastRequest.type, lastRequest.prompt);
+        }
     }
 
     async function copyToClipboard() {
@@ -110,6 +129,9 @@
             console.error("Failed to copy:", err);
         }
     }
+
+    $: isInitialLoading = loading && !analysisResult;
+    $: isRefreshingResult = loading && Boolean(analysisResult);
 </script>
 
 {#if show}
@@ -124,10 +146,12 @@
         tabindex="-1"
     >
         <!-- Modal -->
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
         <div
             class="bg-white dark:bg-dark-surface rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-fade-in-up"
             on:click|stopPropagation
             on:keydown|stopPropagation
+            role="document"
         >
             <!-- Header -->
             <div
@@ -228,7 +252,7 @@
                 {/if}
 
                 <!-- Loading State -->
-                {#if loading}
+                {#if isInitialLoading}
                     <div
                         class="flex flex-col items-center justify-center py-12"
                     >
@@ -248,22 +272,34 @@
                     </div>
                 {/if}
 
+                {#if isRefreshingResult}
+                    <div class="mb-4">
+                        <StatusBanner
+                            tone="info"
+                            compact
+                            title={ASYNC_COPY.refreshing}
+                            message="กำลังอัปเดตคำวิเคราะห์ล่าสุด โดยคงผลลัพธ์เดิมไว้"
+                        />
+                    </div>
+                {/if}
+
                 <!-- Error State -->
                 {#if error && !loading}
-                    <div
-                        class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4"
-                    >
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">❌</span>
-                            <p class="text-red-700 dark:text-red-300">
-                                {error}
-                            </p>
-                        </div>
+                    <div class="mb-4">
+                        <StatusBanner
+                            tone="error"
+                            title="วิเคราะห์ด้วย AI ไม่สำเร็จ"
+                            message={error.message}
+                            actionLabel={error.retryable
+                                ? ASYNC_COPY.retry
+                                : ""}
+                            on:action={retryAnalysis}
+                        />
                     </div>
                 {/if}
 
                 <!-- Analysis Result -->
-                {#if analysisResult && !loading}
+                {#if analysisResult}
                     <div
                         class="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/10 dark:to-blue-900/10 rounded-xl p-6 border border-purple-100 dark:border-purple-800/30"
                     >

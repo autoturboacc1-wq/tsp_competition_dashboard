@@ -1,19 +1,21 @@
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { tick } from "svelte";
     import { page } from "$app/stores";
     import { invalidateAll } from "$app/navigation";
     import { createChart, ColorType } from "lightweight-charts";
+    import { ASYNC_COPY } from "$lib/async-state";
     import EquityChart from "$lib/components/EquityChart.svelte";
     import TradingCalendar from "$lib/components/TradingCalendar.svelte";
     import AiAnalysisModal from "$lib/components/AiAnalysisModal.svelte";
     import PullToRefresh from "$lib/components/PullToRefresh.svelte";
+    import StatusBanner from "$lib/components/StatusBanner.svelte";
+    import TraderDetailSkeleton from "$lib/components/TraderDetailSkeleton.svelte";
     import DrawingToolbar from "$lib/chart/DrawingToolbar.svelte";
     import DrawingOverlay from "$lib/chart/DrawingOverlay.svelte";
     import {
         DrawingManager,
         type Drawing,
         type DrawingTool,
-        type Point,
     } from "$lib/chart/DrawingManager";
     import type { PageData } from "./$types";
 
@@ -31,12 +33,21 @@
 
     // Pull-to-Refresh state
     let isRefreshing = false;
+    let refreshError: string | null = null;
 
     async function handleRefresh() {
         isRefreshing = true;
-        await invalidateAll();
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        isRefreshing = false;
+        refreshError = null;
+
+        try {
+            await invalidateAll();
+            await new Promise((resolve) => setTimeout(resolve, 500));
+        } catch (error) {
+            console.error("Failed to refresh trader detail:", error);
+            refreshError = "ไม่สามารถอัปเดตข้อมูลเทรดเดอร์ได้ในขณะนี้";
+        } finally {
+            isRefreshing = false;
+        }
     }
 
     function formatMoney(amount: number) {
@@ -62,6 +73,10 @@
     let entryLine: any;
     let slLine: any;
     let tpLine: any;
+    let chartModalLoading = false;
+    let chartModalError: string | null = null;
+    let chartHasData = false;
+    let chartModalEmpty = false;
 
     // Timeframe State
     let currentTimeframe = 15;
@@ -164,10 +179,13 @@
         mode: "idle",
         isDrawing: false,
         isDragging: false,
+        isResizing: false,
+        resizingHandle: null,
         startPoint: null,
         currentPoint: null,
         selectedId: null,
         hoveredId: null,
+        hoveredHandle: null,
         dragOffset: null,
         rawStartScreen: null,
         rawCurrentScreen: null,
@@ -509,34 +527,52 @@
     async function openChart(trade: any) {
         selectedTrade = trade;
         showChartModal = true;
-        currentTimeframe = 15; // Reset to M15
-        baseM1Data = []; // Reset base data
+        currentTimeframe = 15;
+        baseM1Data = [];
+        chartModalLoading = true;
+        chartModalError = null;
+        chartModalEmpty = false;
+        chartHasData = false;
 
-        // Wait for modal to render
-        setTimeout(async () => {
-            if (!chartContainerRef) return;
+        if (chart) {
+            chart.remove();
+            chart = null;
+        }
 
-            // Calculate time range (e.g., +/- 4 hours around open/close)
+        await tick();
+        await new Promise((resolve) => setTimeout(resolve, 80));
+
+        if (!chartContainerRef) {
+            chartModalLoading = false;
+            chartModalError = "ไม่สามารถเปิดหน้าต่างกราฟได้ในขณะนี้";
+            return;
+        }
+
+        try {
             const openTime = new Date(trade.openTime).getTime();
             const closeTime = new Date(trade.closeTime).getTime();
-            const buffer = 12 * 60 * 60 * 1000; // 12 hours - เพิ่มจำนวน candle ก่อนและหลัง
+            const buffer = 12 * 60 * 60 * 1000;
 
             const from = new Date(openTime - buffer).toISOString();
             const to = new Date(closeTime + buffer).toISOString();
 
-            // Fetch M1 candles (real data for maximum detail)
             const res = await fetch(
                 `/api/candles?symbol=${trade.symbol}&from=${from}&to=${to}&timeframe=M1`,
             );
-            const candles = await res.json();
+            const payload = await res.json();
 
-            if (candles.error || !candles.length) {
-                console.error("No candles found");
-                return;
+            if (!res.ok || payload?.error) {
+                throw new Error(
+                    payload?.error?.message ||
+                        payload?.error ||
+                        "โหลดข้อมูลกราฟราคาไม่สำเร็จ",
+                );
             }
 
-            // Initialize Chart
-            if (chart) chart.remove();
+            if (!payload.length) {
+                chartModalEmpty = true;
+                return;
+            }
 
             chart = createChart(chartContainerRef, {
                 layout: {
@@ -623,8 +659,8 @@
             });
 
             // Format candle data with Thailand timezone offset
-            const THAILAND_OFFSET = 7 * 60 * 60; // 7 hours in seconds
-            baseM1Data = candles.map((c: any) => ({
+            const THAILAND_OFFSET = 7 * 60 * 60;
+            baseM1Data = payload.map((c: any) => ({
                 time: new Date(c.time).getTime() / 1000 + THAILAND_OFFSET,
                 open: c.open,
                 high: c.high,
@@ -632,18 +668,22 @@
                 close: c.close,
             }));
 
-            // Use M5 base data, resample to M15 for initial display
             const chartData = resampleData(baseM1Data, 15);
+
+            if (!chartData.length) {
+                chartModalEmpty = true;
+                chart.remove();
+                chart = null;
+                return;
+            }
 
             candlestickSeries.setData(chartData);
 
-            // Add Entry and Exit markers
             const entryTime =
                 new Date(trade.openTime).getTime() / 1000 + THAILAND_OFFSET;
             const exitTime =
                 new Date(trade.closeTime).getTime() / 1000 + THAILAND_OFFSET;
 
-            // Find nearest candle times for markers
             const findNearestTime = (targetTime: number) => {
                 let nearest = chartData[0].time;
                 let minDiff = Math.abs(chartData[0].time - targetTime);
@@ -676,10 +716,8 @@
 
             candlestickSeries.setMarkers(markers as any);
 
-            // Get the nearest candle time for entry (for starting lines from entry point)
             const entryStartTime = findNearestTime(entryTime);
 
-            // Add Entry Line (starts from entry point)
             entryLine = chart.addLineSeries({
                 color: "#3B82F6",
                 lineWidth: 2,
@@ -694,7 +732,6 @@
                 },
             ]);
 
-            // Add SL Line (starts from entry point)
             if (trade.sl > 0) {
                 slLine = chart.addLineSeries({
                     color: "#EF4444",
@@ -710,9 +747,6 @@
                     },
                 ]);
 
-                // Add red zone between Entry and SL
-                // For BUY: SL is below entry (fill bottom)
-                // For SELL: SL is above entry (fill top)
                 const isBuy = trade.type === "BUY";
                 const slZone = chart.addBaselineSeries({
                     baseValue: { type: "price", price: trade.openPrice },
@@ -741,7 +775,6 @@
                 ]);
             }
 
-            // Add TP Line (starts from entry point)
             if (trade.tp > 0) {
                 tpLine = chart.addLineSeries({
                     color: "#10B981",
@@ -757,9 +790,6 @@
                     },
                 ]);
 
-                // Add green zone between Entry and TP
-                // For BUY: TP is above entry (fill top)
-                // For SELL: TP is below entry (fill bottom)
                 const isBuy = trade.type === "BUY";
                 const tpZone = chart.addBaselineSeries({
                     baseValue: { type: "price", price: trade.openPrice },
@@ -789,15 +819,32 @@
             }
 
             chart.timeScale().fitContent();
-
-            // Initialize drawing tools
             initDrawingManager();
-        }, 100);
+            chartHasData = true;
+        } catch (error) {
+            console.error("Failed to open trade chart:", error);
+            chartModalError =
+                error instanceof Error
+                    ? error.message
+                    : "โหลดข้อมูลกราฟราคาไม่สำเร็จ";
+            chartHasData = false;
+
+            if (chart) {
+                chart.remove();
+                chart = null;
+            }
+        } finally {
+            chartModalLoading = false;
+        }
     }
 
     function closeChartModal() {
         showChartModal = false;
         selectedTrade = null;
+        chartModalLoading = false;
+        chartModalError = null;
+        chartModalEmpty = false;
+        chartHasData = false;
         if (chart) {
             chart.remove();
             chart = null;
@@ -818,7 +865,55 @@
                 &larr; Back to Leaderboard
             </a>
 
-            {#if !trader}
+            <div class="mb-4 space-y-3">
+                {#if isRefreshing}
+                    <StatusBanner
+                        tone="info"
+                        compact
+                        title={ASYNC_COPY.refreshing}
+                        message="กำลังดึงข้อมูลล่าสุด โดยยังคงแสดงข้อมูลเดิมไว้"
+                    />
+                {/if}
+
+                {#if refreshError}
+                    <StatusBanner
+                        tone="error"
+                        title="อัปเดตข้อมูลไม่สำเร็จ"
+                        message={refreshError}
+                        actionLabel={ASYNC_COPY.retry}
+                        on:action={handleRefresh}
+                    />
+                {/if}
+
+                {#if data.isFallbackData}
+                    <StatusBanner
+                        tone="warning"
+                        title={ASYNC_COPY.fallback}
+                        message={data.loadError ||
+                            "ข้อมูลล่าสุดโหลดไม่สำเร็จ จึงแสดงข้อมูลสำรองแทน"}
+                    />
+                {:else if data.loadError}
+                    <StatusBanner
+                        tone="error"
+                        title="โหลดข้อมูลเทรดเดอร์ไม่สำเร็จ"
+                        message={data.loadError}
+                        actionLabel={ASYNC_COPY.retry}
+                        on:action={handleRefresh}
+                    />
+                {/if}
+
+                {#if data.partialFailures.length > 0}
+                    <StatusBanner
+                        tone="warning"
+                        title="โหลดข้อมูลบางส่วนไม่สำเร็จ"
+                        message={data.partialFailures.join(" • ")}
+                    />
+                {/if}
+            </div>
+
+            {#if isRefreshing && !trader}
+                <TraderDetailSkeleton />
+            {:else if !trader}
                 <div class="text-center py-12">
                     <h2
                         class="text-2xl font-bold text-gray-900 dark:text-white"
@@ -1170,56 +1265,67 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {#each sortedHistory as trade, i}
-                                            <tr
-                                                class="border-b dark:border-dark-border hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] active:bg-blue-100 dark:active:bg-blue-900/20"
-                                                on:click={() =>
-                                                    openChart(trade)}
-                                            >
+                                        {#if sortedHistory.length === 0}
+                                            <tr>
                                                 <td
-                                                    class="px-6 py-4 font-medium text-gray-900 dark:text-white"
-                                                    >{trade.symbol}</td
+                                                    colspan="5"
+                                                    class="px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400"
                                                 >
-                                                <td class="px-6 py-4">
-                                                    <span
-                                                        class="px-2 py-1 rounded text-xs font-bold {trade.type ===
-                                                        'BUY'
-                                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                                                            : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'}"
-                                                    >
-                                                        {trade.type}
-                                                    </span>
-                                                </td>
-                                                <td class="px-6 py-4 text-right"
-                                                    >{trade.lot.toFixed(2)}</td
-                                                >
-                                                <td
-                                                    class="px-6 py-4 text-right font-mono {trade.profit >=
-                                                    0
-                                                        ? 'text-green-600 dark:text-green-400'
-                                                        : 'text-red-600 dark:text-red-400'}"
-                                                >
-                                                    {trade.profit >= 0
-                                                        ? "+"
-                                                        : ""}{trade.profit.toFixed(
-                                                        2,
-                                                    )}
-                                                </td>
-                                                <td
-                                                    class="px-6 py-4 text-right text-xs text-gray-400 dark:text-gray-500"
-                                                >
-                                                    {new Date(
-                                                        trade.closeTime,
-                                                    ).toLocaleTimeString(
-                                                        "th-TH",
-                                                        {
-                                                            timeZone:
-                                                                "Asia/Bangkok",
-                                                        },
-                                                    )}
+                                                    ยังไม่มีรายการเทรดที่ตรงกับตัวกรองนี้
                                                 </td>
                                             </tr>
-                                        {/each}
+                                        {:else}
+                                            {#each sortedHistory as trade}
+                                                <tr
+                                                    class="border-b dark:border-dark-border hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] active:bg-blue-100 dark:active:bg-blue-900/20"
+                                                    on:click={() =>
+                                                        openChart(trade)}
+                                                >
+                                                    <td
+                                                        class="px-6 py-4 font-medium text-gray-900 dark:text-white"
+                                                        >{trade.symbol}</td
+                                                    >
+                                                    <td class="px-6 py-4">
+                                                        <span
+                                                            class="px-2 py-1 rounded text-xs font-bold {trade.type ===
+                                                            'BUY'
+                                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                                                                : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'}"
+                                                        >
+                                                            {trade.type}
+                                                        </span>
+                                                    </td>
+                                                    <td class="px-6 py-4 text-right"
+                                                        >{trade.lot.toFixed(2)}</td
+                                                    >
+                                                    <td
+                                                        class="px-6 py-4 text-right font-mono {trade.profit >=
+                                                        0
+                                                            ? 'text-green-600 dark:text-green-400'
+                                                            : 'text-red-600 dark:text-red-400'}"
+                                                    >
+                                                        {trade.profit >= 0
+                                                            ? "+"
+                                                            : ""}{trade.profit.toFixed(
+                                                            2,
+                                                        )}
+                                                    </td>
+                                                    <td
+                                                        class="px-6 py-4 text-right text-xs text-gray-400 dark:text-gray-500"
+                                                    >
+                                                        {new Date(
+                                                            trade.closeTime,
+                                                        ).toLocaleTimeString(
+                                                            "th-TH",
+                                                            {
+                                                                timeZone:
+                                                                    "Asia/Bangkok",
+                                                            },
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            {/each}
+                                        {/if}
                                     </tbody>
                                 </table>
                             </div>
@@ -1779,7 +1885,8 @@
                     <select
                         bind:value={currentTimeframe}
                         on:change={() => updateChartTimeframe(currentTimeframe)}
-                        class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        disabled={!chartHasData || chartModalLoading}
+                        class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {#each timeframes as tf}
                             <option value={tf.value}>{tf.label}</option>
@@ -1789,6 +1896,7 @@
                     <!-- Fullscreen Toggle -->
                     <button
                         on:click={toggleFullscreen}
+                        disabled={!chartHasData}
                         class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-lg transition-colors"
                         title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                     >
@@ -1827,6 +1935,7 @@
 
                     <button
                         on:click={closeChartModal}
+                        aria-label="Close chart modal"
                         class="p-2 hover:bg-gray-100 dark:hover:bg-dark-bg rounded-lg transition-colors"
                     >
                         <svg
@@ -1847,25 +1956,30 @@
             </div>
 
             <!-- Drawing Tools Toolbar -->
-            <DrawingToolbar
-                {drawingState}
-                hasDrawings={drawings.length > 0}
-                {magnetEnabled}
-                on:selectTool={handleSelectTool}
-                on:clearAll={handleClearDrawings}
-                on:deleteSelected={handleDeleteSelected}
-                on:cancel={handleCancelDrawing}
-                on:toggleMagnet={handleToggleMagnet}
-            />
+            {#if chartHasData}
+                <DrawingToolbar
+                    {drawingState}
+                    hasDrawings={drawings.length > 0}
+                    {magnetEnabled}
+                    on:selectTool={handleSelectTool}
+                    on:clearAll={handleClearDrawings}
+                    on:deleteSelected={handleDeleteSelected}
+                    on:cancel={handleCancelDrawing}
+                    on:toggleMagnet={handleToggleMagnet}
+                />
+            {/if}
 
             <!-- Chart Container -->
             <div class="p-4 bg-gray-900 {isFullscreen ? 'flex-1' : ''}">
+                <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
                 <div
                     class="relative w-full {isFullscreen
                         ? 'h-full'
                         : 'h-[400px]'}"
                     role="application"
-                    style="touch-action: none; cursor: {chartCursor};"
+                    style="touch-action: none; cursor: {chartHasData
+                        ? chartCursor
+                        : 'default'};"
                     on:mousedown={handleChartMouseDown}
                     on:mousemove={handleChartMouseMove}
                     on:mouseup={handleChartMouseUp}
@@ -1880,43 +1994,83 @@
                         class="w-full h-full"
                     ></div>
 
-                    <!-- Drawing Overlay -->
-                    <DrawingOverlay
-                        {chart}
-                        series={candlestickSeries}
-                        {drawings}
-                        {drawingState}
-                    />
+                    {#if chartHasData}
+                        <DrawingOverlay
+                            {chart}
+                            series={candlestickSeries}
+                            {drawings}
+                            {drawingState}
+                        />
+                    {/if}
+
+                    {#if chartModalLoading}
+                        <div
+                            class="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-gray-900/80 text-gray-200"
+                        >
+                            <div class="h-12 w-12 animate-spin rounded-full border-4 border-gray-700 border-t-blue-500"></div>
+                            <p class="text-sm">{ASYNC_COPY.loading}</p>
+                        </div>
+                    {:else if chartModalError}
+                        <div
+                            class="absolute inset-0 flex items-center justify-center p-6"
+                        >
+                            <div class="w-full max-w-md">
+                                <StatusBanner
+                                    tone="error"
+                                    title="โหลดกราฟราคาไม่สำเร็จ"
+                                    message={chartModalError}
+                                    actionLabel={ASYNC_COPY.retry}
+                                    on:action={() =>
+                                        selectedTrade && openChart(selectedTrade)}
+                                />
+                            </div>
+                        </div>
+                    {:else if chartModalEmpty}
+                        <div
+                            class="absolute inset-0 flex items-center justify-center p-6"
+                        >
+                            <div class="w-full max-w-md">
+                                <StatusBanner
+                                    tone="warning"
+                                    title="ไม่มีข้อมูลกราฟราคา"
+                                    message="ไม่พบข้อมูลตลาดสำหรับช่วงเวลาของดีลนี้"
+                                />
+                            </div>
+                        </div>
+                    {/if}
                 </div>
             </div>
 
-            <!-- Legend -->
-            <div class="p-4 bg-gray-50 dark:bg-dark-bg/50 flex gap-4 text-sm">
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-                    <span class="text-gray-600 dark:text-gray-300"
-                        >Entry ({selectedTrade?.type}): {Number(
-                            selectedTrade?.openPrice || 0,
-                        ).toFixed(2)}</span
-                    >
+            {#if chartHasData}
+                <div
+                    class="p-4 bg-gray-50 dark:bg-dark-bg/50 flex gap-4 text-sm"
+                >
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                        <span class="text-gray-600 dark:text-gray-300"
+                            >Entry ({selectedTrade?.type}): {Number(
+                                selectedTrade?.openPrice || 0,
+                            ).toFixed(2)}</span
+                        >
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <span class="text-gray-600 dark:text-gray-300"
+                            >SL: {selectedTrade?.sl
+                                ? Number(selectedTrade.sl).toFixed(2)
+                                : "-"}</span
+                        >
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span class="text-gray-600 dark:text-gray-300"
+                            >TP: {selectedTrade?.tp
+                                ? Number(selectedTrade.tp).toFixed(2)
+                                : "-"}</span
+                        >
+                    </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                    <span class="text-gray-600 dark:text-gray-300"
-                        >SL: {selectedTrade?.sl
-                            ? Number(selectedTrade.sl).toFixed(2)
-                            : "-"}</span
-                    >
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span class="text-gray-600 dark:text-gray-300"
-                        >TP: {selectedTrade?.tp
-                            ? Number(selectedTrade.tp).toFixed(2)
-                            : "-"}</span
-                    >
-                </div>
-            </div>
+            {/if}
         </div>
     </div>
 {/if}

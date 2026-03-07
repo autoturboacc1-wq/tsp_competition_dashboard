@@ -81,8 +81,8 @@
     }
 
     function renderDrawing(drawing: Drawing) {
-        const isSelected = drawing.selected;
-        const isHovered = drawingState?.hoveredId === drawing.id;
+        const isSelected = drawing.selected ?? false;
+        const isHovered = drawingState?.hoveredId === drawing.id ? true : false;
 
         switch (drawing.type) {
             case "trendline":

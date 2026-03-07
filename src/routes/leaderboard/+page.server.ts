@@ -1,9 +1,9 @@
 import { supabase } from '$lib/supabase';
 import { leaderboardData } from '$lib/mock/leaderboard';
+import { createAsyncMeta, formatSupabaseLoadError } from '$lib/async-state';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
-    // Phase 2: Fetch from Supabase
     try {
         const { data, error } = await supabase
             .from('daily_stats')
@@ -14,7 +14,11 @@ export const load: PageServerLoad = async () => {
             .order('date', { ascending: false })
             .order('points', { ascending: false });
 
-        if (!error && data && data.length > 0) {
+        if (error) {
+            throw error;
+        }
+
+        if (data && data.length > 0) {
             // Filter to keep only the latest entry per participant
             const latestEntries = new Map();
             data.forEach(entry => {
@@ -26,6 +30,7 @@ export const load: PageServerLoad = async () => {
             const sortedData = Array.from(latestEntries.values()).sort((a, b) => b.points - a.points);
 
             return {
+                ...createAsyncMeta(),
                 leaderboard: sortedData.map(entry => ({
                     id: entry.participant_id,
                     nickname: entry.participants?.nickname || 'Unknown',
@@ -36,6 +41,7 @@ export const load: PageServerLoad = async () => {
                     stats: {
                         winRate: entry.win_rate,
                         profitFactor: entry.profit_factor,
+                        rrRatio: entry.rr_ratio || 0,
                         maxDrawdown: entry.max_drawdown || 0,
                         totalTrades: entry.total_trades,
                         avgWin: entry.avg_win,
@@ -46,12 +52,20 @@ export const load: PageServerLoad = async () => {
                 }))
             };
         }
+
+        return {
+            ...createAsyncMeta(),
+            leaderboard: []
+        };
     } catch (e) {
         console.error('Supabase fetch failed, falling back to mock data:', e);
     }
 
-    // Fallback to mock data until DB is ready or if fetch fails
     return {
+        ...createAsyncMeta({
+            loadError: formatSupabaseLoadError('ตารางคะแนน', undefined),
+            isFallbackData: true
+        }),
         leaderboard: leaderboardData
     };
 };

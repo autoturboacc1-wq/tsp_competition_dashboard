@@ -4,6 +4,24 @@ import OpenAI from 'openai';
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 
+function aiError(
+    code: 'bad_request' | 'misconfigured' | 'provider_unavailable' | 'rate_limited' | 'unknown',
+    message: string,
+    retryable: boolean,
+    status: number
+) {
+    return json(
+        {
+            error: {
+                code,
+                message,
+                retryable
+            }
+        },
+        { status }
+    );
+}
+
 // Lazy initialization of AI clients
 function getGeminiClient() {
     if (!env.GEMINI_API_KEY) {
@@ -123,23 +141,20 @@ export const POST: RequestHandler = async ({ request }) => {
         const { trader, analysisType, customPrompt, provider = 'openai' } = await request.json();
 
         if (!trader) {
-            return json({ error: 'Missing trader data' }, { status: 400 });
+            return aiError('bad_request', 'ไม่พบข้อมูลเทรดเดอร์สำหรับการวิเคราะห์', false, 400);
         }
 
-        // Validate provider
         if (provider !== 'gemini' && provider !== 'openai') {
-            return json({ error: 'Invalid provider. Must be "gemini" or "openai"' }, { status: 400 });
+            return aiError('bad_request', 'รูปแบบผู้ให้บริการ AI ไม่ถูกต้อง', false, 400);
         }
 
-        // Check API key availability
         if (provider === 'gemini' && !env.GEMINI_API_KEY) {
-            return json({ error: 'Gemini API key not configured' }, { status: 500 });
+            return aiError('misconfigured', 'Gemini ยังไม่ได้ตั้งค่าระบบ', false, 500);
         }
         if (provider === 'openai' && !env.OPENAI_API_KEY) {
-            return json({ error: 'OpenAI API key not configured' }, { status: 500 });
+            return aiError('misconfigured', 'OpenAI ยังไม่ได้ตั้งค่าระบบ', false, 500);
         }
 
-        // Build prompt
         let systemPrompt = ANALYSIS_PROMPTS[analysisType] || ANALYSIS_PROMPTS.overview;
 
         if (analysisType === 'custom' && customPrompt) {
@@ -153,7 +168,6 @@ export const POST: RequestHandler = async ({ request }) => {
         const traderContext = formatTraderContext(trader);
         const fullPrompt = `${systemPrompt}\n\n${traderContext}`;
 
-        // Generate response based on provider
         let analysis: string;
         if (provider === 'gemini') {
             analysis = await analyzeWithGemini(fullPrompt);
@@ -164,9 +178,48 @@ export const POST: RequestHandler = async ({ request }) => {
         return json({ analysis });
     } catch (error) {
         console.error('AI Analysis error:', error);
-        return json({
-            error: 'Failed to generate analysis',
-            details: error instanceof Error ? error.message : 'Unknown error'
-        }, { status: 500 });
+        const status =
+            error && typeof error === 'object' && 'status' in error && typeof error.status === 'number'
+                ? error.status
+                : undefined;
+        const message =
+            error instanceof Error ? error.message : 'Unknown error';
+
+        if (status === 429 || message.toLowerCase().includes('rate limit')) {
+            return aiError(
+                'rate_limited',
+                'AI ถูกใช้งานหนาแน่นเกินไป กรุณาลองใหม่อีกครั้ง',
+                true,
+                429
+            );
+        }
+
+        if (
+            message.includes('API_KEY') ||
+            message.includes('not configured')
+        ) {
+            return aiError(
+                'misconfigured',
+                'AI ยังไม่พร้อมใช้งานในขณะนี้',
+                false,
+                500
+            );
+        }
+
+        if (status && status >= 400 && status < 500) {
+            return aiError(
+                'bad_request',
+                'คำขอวิเคราะห์ไม่ถูกต้อง กรุณาลองใหม่',
+                false,
+                status
+            );
+        }
+
+        return aiError(
+            'provider_unavailable',
+            'ไม่สามารถสร้างคำวิเคราะห์ได้ในขณะนี้ กรุณาลองใหม่',
+            true,
+            500
+        );
     }
 };

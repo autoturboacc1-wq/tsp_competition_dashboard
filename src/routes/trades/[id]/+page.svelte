@@ -1,7 +1,9 @@
 <script lang="ts">
+    import StatusBanner from "$lib/components/StatusBanner.svelte";
     import TradeChart from "$lib/components/TradeChart.svelte";
+    import type { PageData } from "./$types";
 
-    export let data;
+    export let data: PageData;
     const { trade, initialCandles } = data;
 
     let currentTimeframe = 15;
@@ -110,9 +112,19 @@
                         </h2>
                     </div>
                     <div class="p-4">
+                        {#if data.partialFailures.length > 0}
+                            <div class="mb-4">
+                                <StatusBanner
+                                    tone="warning"
+                                    title="โหลดข้อมูลบางส่วนไม่สำเร็จ"
+                                    message={data.partialFailures.join(" • ")}
+                                />
+                            </div>
+                        {/if}
                         <TradeChart
                             {trade}
                             {initialCandles}
+                            initialCandlesError={data.initialCandlesError}
                             bind:currentTimeframe
                         />
                     </div>

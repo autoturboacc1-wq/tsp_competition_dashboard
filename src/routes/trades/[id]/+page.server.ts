@@ -1,5 +1,6 @@
 import { supabase } from '$lib/supabaseClient';
 import { error } from '@sveltejs/kit';
+import { createAsyncMeta, formatSupabaseLoadError } from '$lib/async-state';
 
 export async function load({ params }) {
     const { id } = params;
@@ -33,11 +34,18 @@ export async function load({ params }) {
 
     if (candlesError) {
         console.error('Error fetching candles:', candlesError);
-        // We don't throw here, just return empty candles so the page still loads
     }
 
     return {
+        ...createAsyncMeta({
+            partialFailures: candlesError
+                ? [formatSupabaseLoadError('ข้อมูลกราฟราคา', candlesError)]
+                : []
+        }),
         trade,
-        initialCandles: candles || []
+        initialCandles: candles || [],
+        initialCandlesError: candlesError
+            ? formatSupabaseLoadError('ข้อมูลกราฟราคา', candlesError)
+            : null
     };
 }

@@ -1,9 +1,10 @@
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount } from "svelte";
+    import { ASYNC_COPY } from "$lib/async-state";
+    import StatusBanner from "$lib/components/StatusBanner.svelte";
     import {
         createChart,
         ColorType,
-        CrosshairMode,
         LineStyle,
     } from "lightweight-charts";
     import type { IChartApi, ISeriesApi } from "lightweight-charts";
@@ -12,6 +13,7 @@
     // --- Props ---
     export let trade: any; // The trade object
     export let initialCandles: any[] = []; // Initial candle data (M15 default)
+    export let initialCandlesError: string | null = null;
     export let currentTimeframe = 15; // Default M15
 
     // --- State ---
@@ -24,6 +26,8 @@
 
     let isLoading = false;
     let baseM5Data: any[] = []; // Store the generated M5 data as base
+    let chartError: string | null = initialCandlesError;
+    let emptyMessage: string | null = null;
 
     // --- Timeframe Options ---
     const timeframes = [
@@ -160,14 +164,15 @@
     // --- Fetch Data ---
     async function fetchAndSetData(tf: number) {
         isLoading = true;
+        chartError = null;
+        emptyMessage = null;
+
         try {
-            // Ensure we have base M5 data
             if (baseM5Data.length === 0) {
                 let m15Data: any[] = [];
                 if (initialCandles && initialCandles.length > 0) {
                     m15Data = formatCandles(initialCandles);
                 } else {
-                    // Fallback fetch if no initial candles (rare case in this flow)
                     const symbol = trade.symbol.replace(".s", "");
                     const { data, error } = await supabase
                         .from("market_data")
@@ -175,19 +180,36 @@
                         .eq("symbol", symbol)
                         .order("time", { ascending: false })
                         .limit(1000);
-                    if (!error && data) {
+
+                    if (error) {
+                        chartError = "โหลดข้อมูลกราฟราคาไม่สำเร็จ";
+                        return;
+                    }
+
+                    if (data && data.length > 0) {
                         data.reverse();
                         m15Data = formatCandles(data);
                     }
                 }
-                // Generate M5 from M15
+
+                if (m15Data.length === 0) {
+                    emptyMessage = "ไม่พบข้อมูลตลาดสำหรับดีลนี้";
+                    return;
+                }
+
                 if (m15Data.length > 0) {
                     baseM5Data = generateMockM5(m15Data);
                 }
             }
 
-            // Resample
             const processedData = resampleData(baseM5Data, tf);
+
+            if (processedData.length === 0) {
+                const tfLabel =
+                    timeframes.find((t) => t.value === tf)?.label || "M15";
+                emptyMessage = `ไม่มีข้อมูลสำหรับช่วงเวลา ${tfLabel}`;
+                return;
+            }
 
             if (candlestickSeries) {
                 candlestickSeries.setData(processedData);
@@ -214,9 +236,15 @@
             }
         } catch (e) {
             console.error("Error updating chart:", e);
+            chartError = "โหลดข้อมูลกราฟราคาไม่สำเร็จ";
         } finally {
             isLoading = false;
         }
+    }
+
+    function retryLoad() {
+        baseM5Data = [];
+        fetchAndSetData(currentTimeframe);
     }
 
     function updateLines(startTime: any, endTime: any) {
@@ -336,13 +364,40 @@
 >
     <!-- Chart Container -->
     <div class="relative flex-1 min-h-[500px]" bind:this={chartContainer}>
+        {#if chartError && !isLoading}
+            <div class="absolute inset-0 z-20 flex items-center justify-center p-6 bg-gray-900/80">
+                <div class="w-full max-w-md">
+                    <StatusBanner
+                        tone="error"
+                        title="โหลดกราฟราคาไม่สำเร็จ"
+                        message={chartError}
+                        actionLabel={ASYNC_COPY.retry}
+                        on:action={retryLoad}
+                    />
+                </div>
+            </div>
+        {:else if emptyMessage && !isLoading}
+            <div class="absolute inset-0 z-20 flex items-center justify-center p-6 bg-gray-900/80">
+                <div class="w-full max-w-md">
+                    <StatusBanner
+                        tone="warning"
+                        title="ไม่มีข้อมูลกราฟราคา"
+                        message={emptyMessage}
+                    />
+                </div>
+            </div>
+        {/if}
+
         {#if isLoading}
             <div
                 class="absolute inset-0 bg-gray-900/50 flex items-center justify-center z-10 backdrop-blur-sm"
             >
-                <div
-                    class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"
-                ></div>
+                <div class="flex flex-col items-center gap-3">
+                    <div
+                        class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"
+                    ></div>
+                    <span class="text-sm text-gray-200">{ASYNC_COPY.loading}</span>
+                </div>
             </div>
         {/if}
     </div>

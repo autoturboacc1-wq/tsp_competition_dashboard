@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy, createEventDispatcher } from "svelte";
     import { createChart, ColorType, LineStyle } from "lightweight-charts";
+    import StatusBanner from "$lib/components/StatusBanner.svelte";
 
     // Props
     export let equitySnapshots: Array<{
@@ -22,7 +23,6 @@
     let floatingZoneSeries: any;
 
     let currentTimeframe = "1M";
-    let isLoading = false;
 
     // Tooltip state
     let tooltipVisible = false;
@@ -38,6 +38,12 @@
         { label: "6M", days: 180 },
         { label: "1Y", days: 365 },
     ];
+
+    $: selectedDays =
+        timeframes.find((t) => t.label === currentTimeframe)?.days || 30;
+    $: hasAnyData = equitySnapshots.length > 0 || equityCurve.length > 0;
+    $: currentRangeData = getFilteredData(selectedDays);
+    $: hasRangeData = currentRangeData.length > 0;
 
     // Process data for selected timeframe
     function getFilteredData(days: number) {
@@ -231,11 +237,15 @@
     function updateChartData() {
         if (!chart || !equitySeries || !balanceSeries) return;
 
-        const days =
-            timeframes.find((t) => t.label === currentTimeframe)?.days || 30;
-        const data = getFilteredData(days);
+        const data = currentRangeData;
 
-        if (data.length === 0) return;
+        if (data.length === 0) {
+            equitySeries.setData([]);
+            balanceSeries.setData([]);
+            floatingZoneSeries.setData([]);
+            tooltipVisible = false;
+            return;
+        }
 
         // Prepare series data with Thailand offset (UTC+7)
         const THAILAND_OFFSET = 7 * 60 * 60;
@@ -410,35 +420,8 @@
             </div>
         {/if}
 
-        <!-- Loading Overlay -->
-        {#if isLoading}
-            <div
-                class="absolute inset-0 bg-gray-50/80 dark:bg-dark-bg/80 flex items-center justify-center rounded-lg"
-            >
-                <div class="flex items-center gap-2 text-gray-500">
-                    <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle
-                            class="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            stroke-width="4"
-                            fill="none"
-                        ></circle>
-                        <path
-                            class="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                    </svg>
-                    <span class="text-sm">Loading...</span>
-                </div>
-            </div>
-        {/if}
-
         <!-- No Data State -->
-        {#if !isLoading && equitySnapshots.length === 0 && equityCurve.length === 0}
+        {#if !hasAnyData}
             <div
                 class="absolute inset-0 flex flex-col items-center justify-center text-gray-400"
             >
@@ -459,6 +442,16 @@
                 <span class="text-xs text-gray-500 mt-1"
                     >Data will appear after trading activity</span
                 >
+            </div>
+        {:else if !hasRangeData}
+            <div class="absolute inset-0 flex items-center justify-center p-6">
+                <div class="w-full max-w-sm">
+                    <StatusBanner
+                        tone="warning"
+                        title="ช่วงเวลานี้ยังไม่มีข้อมูล"
+                        message={`ไม่พบข้อมูล equity สำหรับช่วง ${currentTimeframe}`}
+                    />
+                </div>
             </div>
         {/if}
     </div>

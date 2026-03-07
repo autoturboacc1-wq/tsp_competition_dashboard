@@ -362,7 +362,7 @@ export class DrawingManager {
             } else {
                 this.deselectAll();
             }
-        } else if (this.state.tool !== 'none') {
+        } else {
             // Start drawing
             const snappedPoint = this.snapToOHLC(point, y);
             this.state.isDrawing = true;
