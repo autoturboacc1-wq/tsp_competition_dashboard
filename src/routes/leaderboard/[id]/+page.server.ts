@@ -55,7 +55,7 @@ export const load: PageServerLoad = async ({ params }) => {
                 .select('timestamp, balance, equity, floating_pl')
                 .eq('participant_id', id)
                 .order('timestamp', { ascending: false })
-                .limit(3000),
+                .limit(10000),
             supabase
                 .from('trades')
                 .select('close_time, profit')

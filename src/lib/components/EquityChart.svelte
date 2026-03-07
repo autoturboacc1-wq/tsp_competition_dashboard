@@ -47,20 +47,25 @@
 
     // Process data for selected timeframe
     function getFilteredData(days: number) {
-        if (!equitySnapshots || equitySnapshots.length === 0) {
-            // Fallback to daily equity curve
-            return equityCurve.map((eq, i) => ({
-                time:
-                    Math.floor(Date.now() / 1000) -
-                    (equityCurve.length - i) * 86400,
-                equity: eq,
-                balance: eq,
-                floatingPL: 0,
-            }));
-        }
-
         const now = Math.floor(Date.now() / 1000);
         const cutoff = now - days * 86400;
+
+        // For timeframes > 30 days, use daily data (snapshots only cover 30 days)
+        if (days > 30 || !equitySnapshots || equitySnapshots.length === 0) {
+            if (equityCurve && equityCurve.length > 0) {
+                const dailyData = equityCurve.map((eq, i) => ({
+                    time:
+                        Math.floor(Date.now() / 1000) -
+                        (equityCurve.length - i) * 86400,
+                    equity: eq,
+                    balance: eq,
+                    floatingPL: 0,
+                }));
+                return dailyData.filter((d) => d.time >= cutoff);
+            }
+            // No daily data either, try snapshots as last resort
+            if (!equitySnapshots || equitySnapshots.length === 0) return [];
+        }
 
         return equitySnapshots
             .filter((s) => s.time >= cutoff)
@@ -237,7 +242,9 @@
     function updateChartData() {
         if (!chart || !equitySeries || !balanceSeries) return;
 
-        const data = currentRangeData;
+        const days =
+            timeframes.find((t) => t.label === currentTimeframe)?.days || 30;
+        const data = getFilteredData(days);
 
         if (data.length === 0) {
             equitySeries.setData([]);
@@ -277,7 +284,6 @@
 
     function selectTimeframe(tf: string) {
         currentTimeframe = tf;
-        updateChartData();
         dispatch("timeframeChange", { timeframe: tf });
     }
 
@@ -311,8 +317,8 @@
         }
     });
 
-    // Watch for data changes
-    $: if (equitySnapshots || equityCurve) {
+    // Watch for data changes and timeframe switches
+    $: if ((equitySnapshots || equityCurve) && currentTimeframe) {
         updateChartData();
     }
 </script>
@@ -458,15 +464,8 @@
 
     <!-- Stats Summary -->
     <div class="grid grid-cols-3 gap-3 mt-4">
-        {#if equitySnapshots.length > 0 || equityCurve.length > 0}
-            {@const chartData =
-                equitySnapshots.length > 0
-                    ? equitySnapshots
-                    : equityCurve.map((e) => ({
-                          equity: e,
-                          balance: e,
-                          floatingPL: 0,
-                      }))}
+        {#if currentRangeData.length > 0}
+            {@const chartData = currentRangeData}
             {@const latest = chartData[chartData.length - 1]}
             {@const first = chartData[0]}
             {@const growth = first?.equity
