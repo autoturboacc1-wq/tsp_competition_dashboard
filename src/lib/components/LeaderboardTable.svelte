@@ -32,6 +32,12 @@
     if (rank === 3) return "🥉";
     return `#${rank}`;
   }
+
+  function getRankChangeDisplay(change: number | undefined): { text: string; class: string } {
+    if (change == null || change === 0) return { text: '-', class: 'text-gray-400 dark:text-gray-500' };
+    if (change > 0) return { text: `▲${change}`, class: 'text-green-600 dark:text-green-400' };
+    return { text: `▼${Math.abs(change)}`, class: 'text-red-600 dark:text-red-400' };
+  }
 </script>
 
 <div
@@ -67,7 +73,10 @@
             on:click={() => (window.location.href = `/leaderboard/${entry.id}`)}
           >
             <td class="px-6 py-4 font-bold whitespace-nowrap">
-              <span class="text-lg">{getRankIcon(rank)}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-lg">{getRankIcon(rank)}</span>
+                <span class="text-[10px] font-semibold {getRankChangeDisplay(entry.rankChange).class}">{getRankChangeDisplay(entry.rankChange).text}</span>
+              </div>
             </td>
             <td class="px-6 py-4 font-medium whitespace-nowrap">
               {entry.nickname}
@@ -111,7 +120,10 @@
         <span class="text-2xl">{getRankIcon(rank)}</span>
         <div>
           <div class="font-bold">{entry.nickname}</div>
-          <div class="text-xs opacity-75">Rank {rank}</div>
+          <div class="text-xs opacity-75 flex items-center gap-1">
+            Rank {rank}
+            <span class="font-semibold {getRankChangeDisplay(entry.rankChange).class}">{getRankChangeDisplay(entry.rankChange).text}</span>
+          </div>
         </div>
       </div>
       <div class="text-right">

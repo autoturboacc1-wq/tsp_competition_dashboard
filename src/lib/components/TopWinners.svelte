@@ -32,6 +32,12 @@
     function goToProfile(id: string) {
         window.location.href = `/leaderboard/${id}`;
     }
+
+    function getRankChangeDisplay(change: number | undefined): { text: string; class: string } {
+        if (change == null || change === 0) return { text: '', class: '' };
+        if (change > 0) return { text: `▲${change}`, class: 'rank-up' };
+        return { text: `▼${Math.abs(change)}`, class: 'rank-down' };
+    }
 </script>
 
 <div class="top-winners-container">
@@ -85,6 +91,9 @@
                 </div>
                 <div class="winner-info">
                     <h3 class="nickname">{second.nickname}</h3>
+                    {#if getRankChangeDisplay(second.rankChange).text}
+                        <span class="rank-change {getRankChangeDisplay(second.rankChange).class}">{getRankChangeDisplay(second.rankChange).text}</span>
+                    {/if}
                     <div class="stats">
                         <div class="stat">
                             <span class="stat-label">Points</span>
@@ -142,6 +151,9 @@
                 </div>
                 <div class="winner-info">
                     <h3 class="nickname">{first.nickname}</h3>
+                    {#if getRankChangeDisplay(first.rankChange).text}
+                        <span class="rank-change {getRankChangeDisplay(first.rankChange).class}">{getRankChangeDisplay(first.rankChange).text}</span>
+                    {/if}
                     <div class="champion-title">🏆 Champion 🏆</div>
                     <div class="stats">
                         <div class="stat">
@@ -194,6 +206,9 @@
                 </div>
                 <div class="winner-info">
                     <h3 class="nickname">{third.nickname}</h3>
+                    {#if getRankChangeDisplay(third.rankChange).text}
+                        <span class="rank-change {getRankChangeDisplay(third.rankChange).class}">{getRankChangeDisplay(third.rankChange).text}</span>
+                    {/if}
                     <div class="stats">
                         <div class="stat">
                             <span class="stat-label">Points</span>
@@ -753,6 +768,26 @@
             opacity: 1;
             transform: scale(1);
         }
+    }
+
+    /* Rank Change */
+    .rank-change {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 0.1rem 0.4rem;
+        border-radius: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .rank-change.rank-up {
+        color: #22c55e;
+        background: rgba(34, 197, 94, 0.1);
+    }
+
+    .rank-change.rank-down {
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
     }
 
     /* Winner Info */

@@ -105,6 +105,14 @@
         ? ["ALL", ...new Set(trader.history.map((t: any) => t.symbol))].sort()
         : ["ALL"];
 
+    // Session performance data
+    $: sessionData = trader ? [
+        { name: 'Asia', time: '00:00–08:00 UTC', profit: trader.stats.sessionAsianProfit || 0, winRate: trader.stats.sessionAsianWinRate || 0, bgClass: 'bg-blue-500', textClass: 'text-blue-600 dark:text-blue-400', barColor: 'rgba(59,130,246,0.2)' },
+        { name: 'London', time: '07:00–16:00 UTC', profit: trader.stats.sessionLondonProfit || 0, winRate: trader.stats.sessionLondonWinRate || 0, bgClass: 'bg-purple-500', textClass: 'text-purple-600 dark:text-purple-400', barColor: 'rgba(168,85,247,0.2)' },
+        { name: 'New York', time: '12:00–21:00 UTC', profit: trader.stats.sessionNewYorkProfit || 0, winRate: trader.stats.sessionNewYorkWinRate || 0, bgClass: 'bg-orange-500', textClass: 'text-orange-600 dark:text-orange-400', barColor: 'rgba(249,115,22,0.2)' }
+    ] : [];
+    $: maxAbsProfit = Math.max(...sessionData.map(s => Math.abs(s.profit)), 1);
+
     // Sorting State
     let sortColumn: "symbol" | "type" | "lot" | "profit" | "closeTime" =
         "closeTime";
@@ -1587,165 +1595,70 @@
                             class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 mb-6 animate-fade-in-up stagger-4 card-hover"
                         >
                             <h3
-                                class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+                                class="text-lg font-semibold text-gray-900 dark:text-white mb-5"
                             >
                                 Session Performance
                             </h3>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <!-- Asian Session -->
-                                <div
-                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg border border-gray-100 dark:border-dark-border"
-                                >
-                                    <div
-                                        class="flex flex-col mb-2 h-8 justify-end"
-                                    >
-                                        <span
-                                            class="text-xs font-semibold text-gray-500 dark:text-gray-400"
-                                            >ASIA</span
-                                        >
-                                    </div>
-                                    <div class="flex flex-col mb-1">
-                                        <span
-                                            class="text-sm text-gray-600 dark:text-gray-300"
-                                            >Win Rate</span
-                                        >
-                                        <span
-                                            class="font-bold text-gray-900 dark:text-white"
-                                            >{Number(
-                                                trader.stats
-                                                    .sessionAsianWinRate,
-                                            ).toFixed(1)}%</span
-                                        >
-                                    </div>
-                                    <div
-                                        class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1 mb-3"
-                                    >
-                                        <div
-                                            class="bg-blue-500 h-1 rounded-full"
-                                            style="width: {trader.stats
-                                                .sessionAsianWinRate}%"
-                                        ></div>
-                                    </div>
-                                    <div class="flex justify-end items-center">
-                                        <span
-                                            class="font-bold {trader.stats
-                                                .sessionAsianProfit >= 0
-                                                ? 'text-green-600 dark:text-green-400'
-                                                : 'text-red-600 dark:text-red-400'}"
-                                        >
-                                            {trader.stats.sessionAsianProfit >=
-                                            0
-                                                ? "+"
-                                                : ""}{Number(
-                                                trader.stats.sessionAsianProfit,
-                                            ).toFixed(2)}
-                                        </span>
-                                    </div>
-                                </div>
 
-                                <!-- London Session -->
-                                <div
-                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg border border-gray-100 dark:border-dark-border"
-                                >
-                                    <div
-                                        class="flex flex-col mb-2 h-8 justify-end"
-                                    >
-                                        <span
-                                            class="text-xs font-semibold text-gray-500 dark:text-gray-400"
-                                            >LONDON</span
-                                        >
-                                    </div>
-                                    <div class="flex flex-col mb-1">
-                                        <span
-                                            class="text-sm text-gray-600 dark:text-gray-300"
-                                            >Win Rate</span
-                                        >
-                                        <span
-                                            class="font-bold text-gray-900 dark:text-white"
-                                            >{Number(
-                                                trader.stats
-                                                    .sessionLondonWinRate,
-                                            ).toFixed(1)}%</span
-                                        >
-                                    </div>
-                                    <div
-                                        class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1 mb-3"
-                                    >
-                                        <div
-                                            class="bg-purple-500 h-1 rounded-full"
-                                            style="width: {trader.stats
-                                                .sessionLondonWinRate}%"
-                                        ></div>
-                                    </div>
-                                    <div class="flex justify-end items-center">
-                                        <span
-                                            class="font-bold {trader.stats
-                                                .sessionLondonProfit >= 0
-                                                ? 'text-green-600 dark:text-green-400'
-                                                : 'text-red-600 dark:text-red-400'}"
-                                        >
-                                            {trader.stats.sessionLondonProfit >=
-                                            0
-                                                ? "+"
-                                                : ""}{Number(
-                                                trader.stats
-                                                    .sessionLondonProfit,
-                                            ).toFixed(2)}
-                                        </span>
-                                    </div>
+                            <!-- Profit Comparison Chart -->
+                            <div class="mb-6">
+                                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Profit by Session</div>
+                                <div class="space-y-3">
+                                    {#each sessionData as session}
+                                        {@const barWidth = Math.abs(session.profit) / maxAbsProfit * 100}
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-16 text-xs font-semibold {session.textClass} shrink-0">{session.name}</div>
+                                            <div class="flex-1 flex items-center h-7 bg-gray-100 dark:bg-dark-bg/50 rounded-md overflow-hidden relative">
+                                                {#if session.profit >= 0}
+                                                    <div
+                                                        class="h-full rounded-md bg-green-500/20 dark:bg-green-500/30 border border-green-500/40 transition-all duration-700"
+                                                        style="width: {barWidth}%"
+                                                    ></div>
+                                                {:else}
+                                                    <div
+                                                        class="h-full rounded-md bg-red-500/20 dark:bg-red-500/30 border border-red-500/40 transition-all duration-700"
+                                                        style="width: {barWidth}%"
+                                                    ></div>
+                                                {/if}
+                                            </div>
+                                            <div class="w-20 text-right text-sm font-mono font-bold shrink-0 {session.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
+                                                {session.profit >= 0 ? '+' : ''}{Number(session.profit).toFixed(2)}
+                                            </div>
+                                        </div>
+                                    {/each}
                                 </div>
+                            </div>
 
-                                <!-- New York Session -->
-                                <div
-                                    class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg border border-gray-100 dark:border-dark-border"
-                                >
-                                    <div
-                                        class="flex flex-col mb-2 h-8 justify-end"
-                                    >
-                                        <span
-                                            class="text-xs font-semibold text-gray-500 dark:text-gray-400"
-                                            >NEW YORK</span
-                                        >
-                                    </div>
-                                    <div class="flex flex-col mb-1">
-                                        <span
-                                            class="text-sm text-gray-600 dark:text-gray-300"
-                                            >Win Rate</span
-                                        >
-                                        <span
-                                            class="font-bold text-gray-900 dark:text-white"
-                                            >{Number(
-                                                trader.stats
-                                                    .sessionNewYorkWinRate,
-                                            ).toFixed(1)}%</span
-                                        >
-                                    </div>
-                                    <div
-                                        class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1 mb-3"
-                                    >
-                                        <div
-                                            class="bg-orange-500 h-1 rounded-full"
-                                            style="width: {trader.stats
-                                                .sessionNewYorkWinRate}%"
-                                        ></div>
-                                    </div>
-                                    <div class="flex justify-end items-center">
-                                        <span
-                                            class="font-bold {trader.stats
-                                                .sessionNewYorkProfit >= 0
-                                                ? 'text-green-600 dark:text-green-400'
-                                                : 'text-red-600 dark:text-red-400'}"
-                                        >
-                                            {trader.stats
-                                                .sessionNewYorkProfit >= 0
-                                                ? "+"
-                                                : ""}{Number(
-                                                trader.stats
-                                                    .sessionNewYorkProfit,
-                                            ).toFixed(2)}
-                                        </span>
-                                    </div>
+                            <!-- Win Rate Comparison Chart -->
+                            <div>
+                                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Win Rate by Session</div>
+                                <div class="space-y-3">
+                                    {#each sessionData as session}
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-16 text-xs font-semibold {session.textClass} shrink-0">{session.name}</div>
+                                            <div class="flex-1 h-7 bg-gray-100 dark:bg-dark-bg/50 rounded-md overflow-hidden">
+                                                <div
+                                                    class="h-full rounded-md transition-all duration-700 flex items-center justify-end pr-2"
+                                                    style="width: {Math.max(session.winRate, 2)}%; background-color: {session.barColor};"
+                                                >
+                                                </div>
+                                            </div>
+                                            <div class="w-20 text-right text-sm font-mono font-bold shrink-0 text-gray-900 dark:text-white">
+                                                {Number(session.winRate).toFixed(1)}%
+                                            </div>
+                                        </div>
+                                    {/each}
                                 </div>
+                            </div>
+
+                            <!-- Session Time Legend -->
+                            <div class="mt-4 pt-3 border-t border-gray-100 dark:border-dark-border flex flex-wrap gap-4 justify-center">
+                                {#each sessionData as session}
+                                    <div class="flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-500">
+                                        <span class="w-2 h-2 rounded-full {session.bgClass}"></span>
+                                        <span>{session.name}: {session.time}</span>
+                                    </div>
+                                {/each}
                             </div>
                         </div>
 

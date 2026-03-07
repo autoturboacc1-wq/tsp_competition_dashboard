@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount, onDestroy } from "svelte";
     import { invalidateAll } from "$app/navigation";
     import { ASYNC_COPY } from "$lib/async-state";
     import LeaderboardSkeleton from "$lib/components/LeaderboardSkeleton.svelte";
@@ -12,6 +13,16 @@
 
     let isRefreshing = false;
     let refreshError: string | null = null;
+
+    let refreshInterval: ReturnType<typeof setInterval>;
+
+    onMount(() => {
+        refreshInterval = setInterval(() => invalidateAll(), 60_000);
+    });
+
+    onDestroy(() => {
+        clearInterval(refreshInterval);
+    });
 
     $: hasLeaderboardData = data.leaderboard.length > 0;
 

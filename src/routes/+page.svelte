@@ -1,9 +1,20 @@
 <script lang="ts">
+    import { onMount, onDestroy } from 'svelte';
     import { invalidateAll } from '$app/navigation';
     import PullToRefresh from '$lib/components/PullToRefresh.svelte';
     import RecentTradesFeed from '$lib/components/RecentTradesFeed.svelte';
 
     export let data;
+
+    let refreshInterval: ReturnType<typeof setInterval>;
+
+    onMount(() => {
+        refreshInterval = setInterval(() => invalidateAll(), 60_000);
+    });
+
+    onDestroy(() => {
+        clearInterval(refreshInterval);
+    });
 
     $: ({ summary, topPerformer, recentTrades, competition, topFive } = data);
 
