@@ -4,6 +4,7 @@
     import { ASYNC_COPY } from "$lib/async-state";
     import LeaderboardSkeleton from "$lib/components/LeaderboardSkeleton.svelte";
     import LeaderboardTable from "$lib/components/LeaderboardTable.svelte";
+    import HeadToHeadModal from "$lib/components/HeadToHeadModal.svelte";
     import PullToRefresh from "$lib/components/PullToRefresh.svelte";
     import StatusBanner from "$lib/components/StatusBanner.svelte";
     import TopWinners from "$lib/components/TopWinners.svelte";
@@ -13,6 +14,7 @@
 
     let isRefreshing = false;
     let refreshError: string | null = null;
+    let showH2H = false;
 
     let refreshInterval: ReturnType<typeof setInterval>;
 
@@ -99,12 +101,20 @@
                     </p>
                 </div>
 
-                <a
-                    href="/"
-                    class="text-sm font-medium text-blue-600 hover:text-blue-500 flex items-center gap-1"
-                >
-                    &larr; Back to Home
-                </a>
+                <div class="flex items-center gap-3">
+                    <button
+                        on:click={() => (showH2H = true)}
+                        class="px-4 py-2 bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white text-sm font-medium rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
+                    >
+                        VS Head-to-Head
+                    </button>
+                    <a
+                        href="/"
+                        class="text-sm font-medium text-blue-600 hover:text-blue-500 flex items-center gap-1"
+                    >
+                        &larr; Back to Home
+                    </a>
+                </div>
             </div>
 
             {#if isRefreshing && !hasLeaderboardData}
@@ -130,3 +140,5 @@
         </div>
     </div>
 </PullToRefresh>
+
+<HeadToHeadModal bind:show={showH2H} traders={data.leaderboard} />
