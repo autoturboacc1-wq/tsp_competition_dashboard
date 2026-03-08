@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
+
     export let trades: Array<{
         id: string;
         participantId: string;
@@ -9,6 +11,9 @@
         profit: number;
         closeTime: string;
     }> = [];
+
+    let commentaries: Record<string, string> = {};
+    let loadingCommentary = false;
 
     function timeAgo(dateStr: string): string {
         const now = new Date();
@@ -22,6 +27,53 @@
         const diffDays = Math.floor(diffHours / 24);
         return `${diffDays}d ago`;
     }
+
+    async function loadCommentaries() {
+        if (trades.length === 0 || loadingCommentary) return;
+
+        // Only get commentary for notable trades (big profit/loss)
+        const notableTrades = trades
+            .filter(t => Math.abs(t.profit) >= 20)
+            .slice(0, 5)
+            .map(t => ({
+                id: t.id,
+                participantId: t.participantId,
+                nickname: t.nickname,
+                symbol: t.symbol,
+                type: t.type,
+                lot: t.lotSize,
+                profit: t.profit,
+            }));
+
+        if (notableTrades.length === 0) return;
+
+        loadingCommentary = true;
+        try {
+            const res = await fetch('/api/ai-commentary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ trades: notableTrades }),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                for (const c of data.commentaries || []) {
+                    if (c.tradeId && c.commentary) {
+                        commentaries[c.tradeId] = c.commentary;
+                    }
+                }
+                commentaries = commentaries; // trigger reactivity
+            }
+        } catch {
+            // silently fail - commentary is optional
+        } finally {
+            loadingCommentary = false;
+        }
+    }
+
+    onMount(() => {
+        loadCommentaries();
+    });
 </script>
 
 <div class="space-y-2">
@@ -57,6 +109,11 @@
                 {trade.profit >= 0 ? '+' : ''}{trade.profit.toFixed(2)}
             </span>
         </a>
+        {#if commentaries[trade.id]}
+            <div class="ml-4 mr-2 -mt-1 mb-1 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/10 border-l-2 border-amber-400 dark:border-amber-600 rounded-r-lg text-xs text-gray-600 dark:text-gray-400 italic">
+                🤖 {commentaries[trade.id]}
+            </div>
+        {/if}
     {/each}
 
     {#if trades.length === 0}
