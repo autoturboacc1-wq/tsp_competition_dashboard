@@ -6,12 +6,14 @@ from collections import Counter
 import csv
 from core import init_mt5, get_supabase_client, load_env, send_telegram_message
 from equity_service import (
-    should_record_snapshot, 
-    record_equity_snapshot, 
+    should_record_snapshot,
+    record_equity_snapshot,
     calculate_equity_growth,
     calculate_total_lots,
     cleanup_old_snapshots
 )
+from smart_alerts import check_alerts
+from weekly_report import check_weekly_report
 
 # Load environment variables
 load_env()
@@ -531,7 +533,19 @@ def main():
 
         elapsed = time.time() - start_time
         print(f"--- Sync Cycle Complete in {elapsed:.2f}s ---")
-        
+
+        # Check for smart alerts after sync
+        try:
+            check_alerts()
+        except Exception as e:
+            print(f"[Smart Alerts] Error: {e}")
+
+        # Check weekly report schedule
+        try:
+            check_weekly_report()
+        except Exception as e:
+            print(f"[Weekly Report] Error: {e}")
+
         # Cleanup old equity snapshots (once per cycle)
         cleanup_old_snapshots()
         
