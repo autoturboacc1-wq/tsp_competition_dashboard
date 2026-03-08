@@ -70,6 +70,18 @@
             label: "เทียบมาตรฐาน",
             desc: "เทียบกับมืออาชีพ",
         },
+        {
+            type: "daily",
+            icon: "📅",
+            label: "Daily Pattern",
+            desc: "วิเคราะห์ P/L รายวัน",
+        },
+        {
+            type: "lotsize",
+            icon: "⚖️",
+            label: "Lot Size",
+            desc: "Position Sizing",
+        },
     ];
 
     async function analyze(type: string, prompt?: string) {
@@ -96,19 +108,11 @@
         analysisResult = "";
 
         try {
-            // Strip large data arrays to reduce payload
-            const {
-                equityCurve: _ec,
-                equitySnapshots: _es,
-                dailyHistory: _dh,
-                ...traderData
-            } = trader;
-
             const response = await fetch("/api/ai-analysis", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    trader: traderData,
+                    traderId: trader?.id,
                     analysisType: type,
                     customPrompt: prompt,
                     provider: selectedProvider,
@@ -290,7 +294,7 @@
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
                         เลือกประเภทการวิเคราะห์:
                     </p>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {#each analysisButtons as btn}
                             <button
                                 class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all hover:scale-105 active:scale-95 {selectedType ===
