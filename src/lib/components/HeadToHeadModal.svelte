@@ -131,12 +131,16 @@
     let result = "";
     let selectionError = "";
     let aiError = "";
+    let abortController: AbortController | null = null;
+    let lastComparedKey = "";
 
     function close() {
+        abortController?.abort();
         show = false;
         selectedTraderAId = "";
         selectedTraderBId = "";
         selectionError = "";
+        lastComparedKey = "";
         resetAiState();
         dispatch("close");
     }
@@ -157,7 +161,22 @@
         if (selectionError === DUPLICATE_SELECTION_MESSAGE) {
             selectionError = "";
         }
+        lastComparedKey = "";
+        abortController?.abort();
         resetAiState();
+    }
+
+    function swapTraders() {
+        const tempA = selectedTraderAId;
+        selectedTraderAId = selectedTraderBId;
+        selectedTraderBId = tempA;
+        lastComparedKey = "";
+        resetAiState();
+    }
+
+    function cancelCompare() {
+        abortController?.abort();
+        loading = false;
     }
 
     function getComparableValue(
@@ -312,6 +331,9 @@
             return;
         }
 
+        abortController?.abort();
+        abortController = new AbortController();
+
         loading = true;
         selectionError = "";
         aiError = "";
@@ -322,6 +344,7 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ traderAId: traderA?.id, traderBId: traderB?.id }),
+                signal: abortController.signal,
             });
 
             if (!response.ok) {
@@ -363,10 +386,12 @@
 
                 if (aiError) break;
             }
-        } catch {
+        } catch (err) {
+            if ((err as Error)?.name === "AbortError") return;
             aiError = "ไม่สามารถเชื่อมต่อกับ AI ได้ กรุณาลองใหม่";
         } finally {
             loading = false;
+            abortController = null;
         }
     }
 
@@ -384,6 +409,16 @@
     $: overallEdge = getOverallEdge(winsA, winsB, traderA, traderB);
     $: readyToCompare = !!traderA && !!traderB && !duplicateSelection;
     $: canCompare = readyToCompare && !loading;
+
+    // Auto-compare when a new pair is selected
+    $: {
+        const key = `${selectedTraderAId}:${selectedTraderBId}`;
+        const isReady = !!selectedTraderAId && !!selectedTraderBId && selectedTraderAId !== selectedTraderBId;
+        if (isReady && key !== lastComparedKey && !loading) {
+            lastComparedKey = key;
+            compare();
+        }
+    }
 </script>
 
 {#if show}
@@ -516,10 +551,23 @@
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-center py-1 lg:py-0">
+                        <div class="flex flex-col items-center justify-center gap-2 py-1 lg:py-0">
                             <div class="flex h-16 w-16 items-center justify-center rounded-full border border-slate-700 bg-black text-base font-black tracking-[0.2em] text-white shadow-xl shadow-red-500/20 ring-4 ring-slate-900">
                                 VS
                             </div>
+                            {#if selectedTraderAId && selectedTraderBId}
+                                <button
+                                    class="flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition hover:border-slate-500 hover:text-white active:scale-95 disabled:opacity-40"
+                                    on:click={swapTraders}
+                                    disabled={loading}
+                                    title="สลับ A/B"
+                                >
+                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                    </svg>
+                                    สลับ
+                                </button>
+                            {/if}
                         </div>
 
                         <div class={`rounded-xl border p-3 ring-1 ${getTraderAccent("B").surface} ${getTraderAccent("B").ring}`}>
@@ -603,17 +651,30 @@
                             </div>
                         </div>
 
-                        <button
-                            class={`inline-flex items-center justify-center rounded-xl bg-gradient-to-r px-4 py-2 text-xs font-bold text-white shadow-lg transition hover:scale-[1.01] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${getTraderAccent("A").button}`}
-                            on:click={compare}
-                            disabled={!canCompare}
-                        >
-                            {#if loading}
-                                กำลังอัปเดต AI Commentary...
-                            {:else}
-                                เปรียบเทียบด้วย AI
-                            {/if}
-                        </button>
+                        {#if loading}
+                            <button
+                                class="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-bold text-slate-200 shadow transition hover:bg-slate-800 active:scale-[0.98]"
+                                on:click={cancelCompare}
+                            >
+                                <span class="h-2 w-2 animate-pulse rounded-full bg-orange-400"></span>
+                                กำลังวิเคราะห์... (ยกเลิก)
+                            </button>
+                        {:else}
+                            <button
+                                class={`inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r px-4 py-2 text-xs font-bold text-white shadow-lg transition hover:scale-[1.01] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${getTraderAccent("A").button}`}
+                                on:click={compare}
+                                disabled={!canCompare}
+                            >
+                                {#if result}
+                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    สร้างใหม่
+                                {:else}
+                                    วิเคราะห์ด้วย AI
+                                {/if}
+                            </button>
+                        {/if}
                     </div>
 
                     {#if selectionError}
@@ -883,11 +944,10 @@
                                         Ready
                                     </p>
                                     <h4 class="mt-2 text-base font-black tracking-[-0.02em] text-white">
-                                        กด "เปรียบเทียบด้วย AI" เพื่อรับบทวิเคราะห์เสริม
+                                        AI กำลังเตรียมบทวิเคราะห์...
                                     </h4>
                                     <p class="mx-auto mt-2 max-w-md text-xs leading-5 text-slate-400">
-                                        ระบบจะสรุป verdict สั้น, จุดแข็งของแต่ละฝั่ง และคำแนะนำที่ต่อยอดจาก
-                                        compare board ด้านบน
+                                        ระบบจะสรุป verdict สั้น, จุดแข็งของแต่ละฝั่ง และ insight ต่อยอดจาก compare board ด้านบน
                                     </p>
                                 </div>
                             {/if}
