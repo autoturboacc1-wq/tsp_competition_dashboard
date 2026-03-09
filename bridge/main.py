@@ -11,7 +11,8 @@ from equity_service import (
     record_equity_snapshot,
     calculate_equity_growth,
     calculate_total_lots,
-    cleanup_old_snapshots
+    cleanup_old_snapshots,
+    calculate_equity_metrics
 )
 from smart_alerts import check_alerts
 from weekly_report import check_weekly_report
@@ -68,14 +69,19 @@ def sync_participant(participant):
         print("DEBUG: No open positions found.")
 
     history_deals = mt5.history_deals_get(from_date, to_date)
-    
+
     if history_deals is None:
         print(f"No history found, error code: {mt5.last_error()}")
     else:
         print(f"Found {len(history_deals)} deals")
-        # Process deals and upload to 'trades' table
-        # (Implementation detail: Filter for entry/exit and calculate profit)
-        
+
+        # Pre-fetch all orders in date range to avoid N+1 lookups
+        all_orders = mt5.history_orders_get(from_date, to_date)
+        order_map = {}
+        if all_orders:
+            for order in all_orders:
+                order_map[order.ticket] = order
+
         # Advanced stats calculation
         gross_profit = 0
         gross_loss = 0
@@ -147,14 +153,10 @@ def sync_participant(participant):
                 tp = getattr(deal, 'tp', 0.0)
                 
                 if (sl == 0.0 or tp == 0.0) and deal.order > 0:
-                    try:
-                        orders = mt5.history_orders_get(ticket=deal.order)
-                        if orders and len(orders) > 0:
-                            order = orders[0]
-                            if sl == 0.0: sl = getattr(order, 'sl', 0.0)
-                            if tp == 0.0: tp = getattr(order, 'tp', 0.0)
-                    except Exception as e:
-                        print(f"Failed to fetch order {deal.order}: {e}")
+                    order = order_map.get(deal.order)
+                    if order:
+                        if sl == 0.0: sl = getattr(order, 'sl', 0.0)
+                        if tp == 0.0: tp = getattr(order, 'tp', 0.0)
 
                 positions[pid]['sl'] = sl
                 positions[pid]['tp'] = tp
@@ -231,16 +233,20 @@ def sync_participant(participant):
         
         profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (gross_profit if gross_profit > 0 else 0)
         
-        # Max DD % (Approximate based on Peak Balance)
-        # Reconstruct Start Balance (assuming history covers all trades)
+        # Max DD % - Closed-trade fallback (used only when equity snapshots are insufficient)
         current_balance = account_info.balance
         start_balance = current_balance - total_profit
         peak_balance = start_balance + peak_profit
-        
+
         if peak_balance > 0:
-            max_dd_percent = (max_drawdown_val / peak_balance * 100)
+            closed_trade_dd = (max_drawdown_val / peak_balance * 100)
         else:
-            max_dd_percent = 0
+            closed_trade_dd = 0
+
+        # Max DD % + Peak Equity in one pass (avoids duplicate queries)
+        equity_metrics = calculate_equity_metrics(participant['id'], fallback_dd=closed_trade_dd)
+        max_dd_percent = equity_metrics['max_drawdown']
+        peak_equity = equity_metrics['peak_equity']
 
         # Avg Win / Loss
         avg_win = (gross_profit / wins) if wins > 0 else 0
@@ -406,7 +412,8 @@ def sync_participant(participant):
             # MyFxBook-style fields
             "floating_pl": round(account_info.equity - account_info.balance, 2),
             "total_lots": calculate_total_lots(positions),
-            "equity_growth_percent": calculate_equity_growth(participant['id'], account_info.equity)
+            "equity_growth_percent": calculate_equity_growth(participant['id'], account_info.equity),
+            "peak_equity": peak_equity
         }
         
         print(f"Calculated Stats for {participant['nickname']}: WinRate={win_rate:.1f}%, HoldingTime={avg_holding_time_str}, Trades={total_trades}")

@@ -196,6 +196,77 @@ def get_equity_curve(participant_id: str, days: int = 30) -> list:
         return []
 
 
+def calculate_equity_metrics(participant_id: str, fallback_dd: float = 0.0) -> dict:
+    """
+    Calculate Max Drawdown and Peak Equity from equity curve in a single pass.
+    Fetches snapshots once and computes both metrics together.
+
+    Returns:
+        dict with 'max_drawdown' (percentage) and 'peak_equity' (float)
+    """
+    try:
+        # Single query: get all equity snapshots + stored peak from daily_stats
+        response = supabase.table('equity_snapshots') \
+            .select('equity, timestamp') \
+            .eq('participant_id', participant_id) \
+            .order('timestamp', desc=False) \
+            .execute()
+
+        snapshots = response.data or []
+
+        # Get stored peak_equity from daily_stats (single query)
+        peak_response = supabase.table('daily_stats') \
+            .select('peak_equity') \
+            .eq('participant_id', participant_id) \
+            .not_.is_('peak_equity', 'null') \
+            .order('date', desc=True) \
+            .limit(1) \
+            .execute()
+
+        stored_peak = 0.0
+        if peak_response.data and peak_response.data[0].get('peak_equity'):
+            stored_peak = float(peak_response.data[0]['peak_equity'])
+
+        if len(snapshots) < 2:
+            print(f"⚠️ Max DD: Insufficient equity data ({len(snapshots)} snapshots), using fallback")
+            return {'max_drawdown': fallback_dd, 'peak_equity': stored_peak}
+
+        # Calculate both metrics in a single pass
+        running_peak = max(float(snapshots[0]['equity']), stored_peak)
+        overall_peak = running_peak
+        max_dd = 0.0
+
+        for snap in snapshots:
+            eq = float(snap['equity'])
+            if eq > running_peak:
+                running_peak = eq
+            if running_peak > overall_peak:
+                overall_peak = running_peak
+            if running_peak > 0:
+                dd = ((running_peak - eq) / running_peak) * 100
+                if dd > max_dd:
+                    max_dd = dd
+
+        return {
+            'max_drawdown': round(max_dd, 2),
+            'peak_equity': overall_peak
+        }
+
+    except Exception as e:
+        print(f"❌ Error calculating equity metrics: {e}")
+        return {'max_drawdown': fallback_dd, 'peak_equity': 0.0}
+
+
+def calculate_max_drawdown_from_equity(participant_id: str, fallback_dd: float = 0.0) -> float:
+    """Backward-compatible wrapper."""
+    return calculate_equity_metrics(participant_id, fallback_dd)['max_drawdown']
+
+
+def get_peak_equity(participant_id: str) -> float:
+    """Backward-compatible wrapper."""
+    return calculate_equity_metrics(participant_id)['peak_equity']
+
+
 def calculate_total_lots(positions: dict) -> float:
     """
     Calculate total lots traded from positions dictionary.
