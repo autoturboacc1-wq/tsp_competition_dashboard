@@ -66,10 +66,15 @@ export const load: PageServerLoad = async ({ params }) => {
                       .from('daily_stats')
                       .select('points, profit')
                       .eq('date', stats.date)
-                : Promise.resolve({ data: null, error: null })
+                : Promise.resolve({ data: null, error: null }),
+            supabase
+                .from('achievements')
+                .select('badge_type, badge_label, description, earned_at')
+                .eq('participant_id', id)
+                .order('earned_at', { ascending: true })
         ]);
 
-        const [historyResult, equityResult, snapshotResult, allTradesResult, rankResult] =
+        const [historyResult, equityResult, snapshotResult, allTradesResult, rankResult, badgesResult] =
             optionalResults;
 
         const getResultData = <T>(
@@ -95,6 +100,7 @@ export const load: PageServerLoad = async ({ params }) => {
         const equitySnapshotsDesc = getResultData(snapshotResult, 'กราฟ equity แบบละเอียด', []);
         const allTrades = getResultData(allTradesResult, 'ปฏิทินการเทรด', []);
         const allStats = getResultData(rankResult, 'อันดับล่าสุด', null as any);
+        const badges = getResultData(badgesResult, 'เหรียญรางวัล', []);
 
         const equitySnapshots = equitySnapshotsDesc?.reverse?.() || [];
 
@@ -201,7 +207,8 @@ export const load: PageServerLoad = async ({ params }) => {
                     floatingPL: s.floating_pl || 0
                 })) || []
             },
-            rank
+            rank,
+            badges
         };
     } catch (e) {
         console.error('Supabase fetch failed:', e);

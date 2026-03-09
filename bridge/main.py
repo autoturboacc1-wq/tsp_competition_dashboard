@@ -5,6 +5,7 @@ from datetime import datetime, timezone, timedelta
 from collections import Counter
 import csv
 from core import init_mt5, get_supabase_client, load_env, send_telegram_message
+from tz_config import THAILAND_TZ
 from equity_service import (
     should_record_snapshot,
     record_equity_snapshot,
@@ -14,6 +15,7 @@ from equity_service import (
 )
 from smart_alerts import check_alerts
 from weekly_report import check_weekly_report
+from achievements import check_achievements
 
 # Load environment variables
 load_env()
@@ -368,7 +370,7 @@ def sync_participant(participant):
             favorite_pair = c.most_common(1)[0][0]
 
         # 4. Update Daily Stats in Supabase
-        today = datetime.now(timezone.utc).date().isoformat()
+        today = datetime.now(THAILAND_TZ).date().isoformat()
         
         stats_data = {
             "participant_id": participant['id'],
@@ -442,6 +444,12 @@ def sync_participant(participant):
         try:
             data, count = supabase.table('daily_stats').upsert(stats_data, on_conflict='participant_id,date').execute()
             print(f"Updated stats for {participant['nickname']}")
+
+            # Check and award achievements
+            try:
+                check_achievements(participant['id'], stats_data)
+            except Exception as e:
+                print(f"[Achievements] Error for {participant['nickname']}: {e}")
         except Exception as e:
             print(f"Error updating stats: {e}")
 
@@ -514,7 +522,7 @@ def main():
 
     while True:
         start_time = time.time()
-        print(f"\n--- Sync Cycle Start: {datetime.now().strftime('%H:%M:%S')} ---")
+        print(f"\n--- Sync Cycle Start: {datetime.now(THAILAND_TZ).strftime('%H:%M:%S')} ---")
 
         try:
             response = supabase.table('participants').select("*").execute()

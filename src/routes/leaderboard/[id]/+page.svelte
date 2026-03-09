@@ -12,6 +12,7 @@
     import TraderDetailSkeleton from "$lib/components/TraderDetailSkeleton.svelte";
     import DrawingToolbar from "$lib/chart/DrawingToolbar.svelte";
     import DrawingOverlay from "$lib/chart/DrawingOverlay.svelte";
+    import BadgeList from "$lib/components/BadgeList.svelte";
     import {
         DrawingManager,
         type Drawing,
@@ -23,6 +24,7 @@
 
     $: id = $page.params.id;
     $: trader = data.trader;
+    $: badges = data.badges || [];
     // Rank calculation would ideally come from server or context,
     // for now we might lose the global rank context in this view unless passed.
     // Let's assume for now we just show the data.
@@ -858,7 +860,54 @@
             chart = null;
         }
     }
+
+    // Share & Export
+    let showCopiedToast = false;
+
+    function exportCSV() {
+        if (!trader) return;
+        const headers = ['Symbol','Type','Lot','Open Price','Close Price','Open Time','Close Time','Profit','SL','TP'];
+        const rows = trader.history.map((t: any) => [
+            t.symbol, t.type, t.lot, t.openPrice, t.closePrice, t.openTime, t.closeTime, t.profit, t.sl ?? '', t.tp ?? ''
+        ]);
+        const csv = [headers, ...rows].map((r: any[]) => r.join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${trader.nickname}_trades.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    async function shareTrader() {
+        if (!trader) return;
+        const shareData = {
+            title: `${trader.nickname} | EliteGold Competition`,
+            text: `Rank #${rank} | ${trader.points.toLocaleString()} points | $${formatMoney(trader.profit)} profit`,
+            url: window.location.href
+        };
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (e) {
+                // User cancelled or share failed, ignore
+            }
+        } else {
+            await navigator.clipboard.writeText(window.location.href);
+            showCopiedToast = true;
+            setTimeout(() => { showCopiedToast = false; }, 2000);
+        }
+    }
 </script>
+
+<svelte:head>
+    <title>{trader?.nickname || 'Trader'} | EliteGold Competition</title>
+    <meta property="og:title" content="{trader?.nickname || 'Trader'} | EliteGold Competition" />
+    <meta property="og:description" content="Rank #{rank} | {trader?.points?.toLocaleString() || 0} points | Win Rate: {trader?.stats?.winRate || 0}%" />
+    <meta property="og:type" content="profile" />
+    <meta name="twitter:card" content="summary" />
+</svelte:head>
 
 <PullToRefresh {isRefreshing} on:refresh={handleRefresh}>
     <div
@@ -961,6 +1010,23 @@
                             <span>🤖</span>
                             <span>AI Analysis</span>
                         </button>
+                        <!-- Share Button -->
+                        <div class="relative">
+                            <button
+                                class="ml-1 p-2 bg-gray-100 dark:bg-dark-border hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-xl transition-all hover:scale-105 active:scale-95"
+                                on:click={shareTrader}
+                                title="Share trader profile"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                                </svg>
+                            </button>
+                            {#if showCopiedToast}
+                                <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
+                                    Copied!
+                                </div>
+                            {/if}
+                        </div>
                     </div>
                     <div class="text-right">
                         <p
@@ -981,6 +1047,13 @@
                     </div>
                 </div>
 
+                <!-- Badges -->
+                {#if badges.length > 0}
+                    <div class="mb-6 animate-fade-in-up">
+                        <BadgeList {badges} />
+                    </div>
+                {/if}
+
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- 1. Left Column: Equity Curve + Recent History -->
                     <div class="lg:col-span-2 space-y-6">
@@ -1000,11 +1073,23 @@
                             <div
                                 class="px-6 py-4 border-b border-gray-100 dark:border-dark-border flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                             >
-                                <h3
-                                    class="text-lg font-semibold text-gray-900 dark:text-white"
-                                >
-                                    Recent History
-                                </h3>
+                                <div class="flex items-center gap-3">
+                                    <h3
+                                        class="text-lg font-semibold text-gray-900 dark:text-white"
+                                    >
+                                        Recent History
+                                    </h3>
+                                    <button
+                                        class="px-3 py-1.5 text-xs font-medium bg-gray-100 dark:bg-dark-border hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-1.5"
+                                        on:click={exportCSV}
+                                        title="Export trades as CSV"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Export CSV
+                                    </button>
+                                </div>
 
                                 <!-- Filters -->
                                 <div class="flex flex-wrap items-center gap-3">

@@ -99,3 +99,18 @@ create policy "Allow public read access on trades"
 
 create policy "Allow public read access on market_data"
   on public.market_data for select using (true);
+
+-- 5. Achievements Table
+create table public.achievements (
+  id uuid primary key default uuid_generate_v4(),
+  participant_id uuid references public.participants(id) on delete cascade not null,
+  badge_type text not null,
+  badge_label text not null,
+  description text,
+  earned_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(participant_id, badge_type)
+);
+
+alter table public.achievements enable row level security;
+create policy "Allow public read access on achievements"
+  on public.achievements for select using (true);
