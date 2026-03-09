@@ -44,7 +44,7 @@
         { label: '14D', days: 14 },
         { label: '1M', days: 30 },
         { label: '3M', days: 90 },
-        { label: 'All', days: 365 },
+        { label: 'All', days: 0 },
     ];
 
     // Tooltip state

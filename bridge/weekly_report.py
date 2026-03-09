@@ -5,8 +5,9 @@ Generates AI-powered weekly summary and sends via Telegram
 import os
 from datetime import datetime, timezone, timedelta
 from core import get_supabase_client, send_telegram_message
+from tz_config import THAILAND_TZ
 
-# Run weekly report on Sunday at 20:00 UTC (Monday 03:00 ICT)
+# Run weekly report on Sunday at 20:00 ICT
 REPORT_DAY = int(os.getenv("WEEKLY_REPORT_DAY", "6"))  # 0=Mon, 6=Sun
 REPORT_HOUR = int(os.getenv("WEEKLY_REPORT_HOUR", "20"))
 
@@ -16,7 +17,7 @@ _last_report_week = None
 def should_send_weekly_report() -> bool:
     """Check if it's time to send the weekly report"""
     global _last_report_week
-    now = datetime.now(timezone.utc)
+    now = datetime.now(THAILAND_TZ)
 
     if now.weekday() != REPORT_DAY:
         return False
@@ -34,7 +35,7 @@ def should_send_weekly_report() -> bool:
 def generate_and_send_weekly_report():
     """Generate weekly competition report and send via Telegram"""
     global _last_report_week
-    now = datetime.now(timezone.utc)
+    now = datetime.now(THAILAND_TZ)
 
     supabase = get_supabase_client()
 

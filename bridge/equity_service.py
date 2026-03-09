@@ -10,6 +10,7 @@ Features:
 import os
 from datetime import datetime, timezone, timedelta
 from core import get_supabase_client, load_env
+from tz_config import THAILAND_TZ
 
 # Load environment variables
 load_env()
@@ -99,14 +100,14 @@ def get_previous_day_equity(participant_id: str) -> float:
     Used to calculate equity growth percentage.
     """
     try:
-        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).date()
+        yesterday = (datetime.now(THAILAND_TZ) - timedelta(days=1)).date()
         
         # Get latest snapshot from yesterday
         response = supabase.table('equity_snapshots') \
             .select('equity') \
             .eq('participant_id', participant_id) \
             .gte('timestamp', yesterday.isoformat()) \
-            .lt('timestamp', (datetime.now(timezone.utc).date()).isoformat()) \
+            .lt('timestamp', (datetime.now(THAILAND_TZ).date()).isoformat()) \
             .order('timestamp', desc=True) \
             .limit(1) \
             .execute()

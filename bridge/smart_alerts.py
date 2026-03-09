@@ -5,6 +5,7 @@ Detects notable events and sends Telegram notifications
 import os
 from datetime import datetime, timezone
 from core import get_supabase_client, send_telegram_message
+from tz_config import THAILAND_TZ
 
 # In-memory state to track changes between sync cycles
 _previous_state = {
@@ -264,7 +265,7 @@ def _send_alerts(alerts):
         lines.append(f"{alert['icon']} {alert['message']}")
 
     lines.append(f"\n{separator}")
-    lines.append(f"⏰ {datetime.now(timezone.utc).strftime('%H:%M UTC')}")
+    lines.append(f"⏰ {datetime.now(THAILAND_TZ).strftime('%H:%M ICT')}")
 
     message = "\n".join(lines)
 

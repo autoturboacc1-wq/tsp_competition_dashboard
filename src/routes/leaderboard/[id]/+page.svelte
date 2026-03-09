@@ -3,6 +3,7 @@
     import { page } from "$app/stores";
     import { invalidateAll } from "$app/navigation";
     import { createChart, ColorType } from "lightweight-charts";
+    import { THAILAND_OFFSET_SECONDS } from "$lib/timezone";
     import { ASYNC_COPY } from "$lib/async-state";
     import EquityChart from "$lib/components/EquityChart.svelte";
     import TradingCalendar from "$lib/components/TradingCalendar.svelte";
@@ -496,10 +497,9 @@
 
         // Update lines - start from entry time, not chart start
         if (processedData.length > 0 && selectedTrade) {
-            const THAILAND_OFFSET = 7 * 60 * 60;
             const entryTime =
                 new Date(selectedTrade.openTime).getTime() / 1000 +
-                THAILAND_OFFSET;
+                THAILAND_OFFSET_SECONDS;
 
             // Find nearest candle time for entry
             let entryStartTime = processedData[0].time;
@@ -669,9 +669,8 @@
             });
 
             // Format candle data with Thailand timezone offset
-            const THAILAND_OFFSET = 7 * 60 * 60;
             baseM1Data = payload.map((c: any) => ({
-                time: new Date(c.time).getTime() / 1000 + THAILAND_OFFSET,
+                time: new Date(c.time).getTime() / 1000 + THAILAND_OFFSET_SECONDS,
                 open: c.open,
                 high: c.high,
                 low: c.low,
@@ -690,9 +689,9 @@
             candlestickSeries.setData(chartData);
 
             const entryTime =
-                new Date(trade.openTime).getTime() / 1000 + THAILAND_OFFSET;
+                new Date(trade.openTime).getTime() / 1000 + THAILAND_OFFSET_SECONDS;
             const exitTime =
-                new Date(trade.closeTime).getTime() / 1000 + THAILAND_OFFSET;
+                new Date(trade.closeTime).getTime() / 1000 + THAILAND_OFFSET_SECONDS;
 
             const findNearestTime = (targetTime: number) => {
                 let nearest = chartData[0].time;

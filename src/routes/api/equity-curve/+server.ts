@@ -14,18 +14,23 @@ export async function GET({ url }) {
         return json({ error: 'Missing participant_id parameter' }, { status: 400 });
     }
 
-    // Calculate date range
-    const since = new Date();
-    since.setDate(since.getDate() - days);
+    // Calculate date range (days=0 means all data)
+    const since = days > 0 ? new Date() : null;
+    if (since) since.setDate(since.getDate() - days);
 
     try {
         // Fetch equity snapshots
-        const { data, error } = await supabase
+        let query = supabase
             .from('equity_snapshots')
             .select('timestamp, balance, equity, floating_pl')
             .eq('participant_id', participantId)
-            .gte('timestamp', since.toISOString())
             .order('timestamp', { ascending: true });
+
+        if (since) {
+            query = query.gte('timestamp', since.toISOString());
+        }
+
+        const { data, error } = await query;
 
         if (error) {
             console.error('Error fetching equity curve:', error);
@@ -45,7 +50,7 @@ export async function GET({ url }) {
             data: chartData,
             count: chartData.length,
             range: {
-                from: since.toISOString(),
+                from: since?.toISOString() || 'all',
                 to: new Date().toISOString()
             }
         });

@@ -2,6 +2,7 @@ import time
 import MetaTrader5 as mt5
 from datetime import datetime, timezone, timedelta
 from core import init_mt5, get_supabase_client, load_env, send_telegram_message
+from tz_config import THAILAND_TZ
 import os
 
 # Load environment variables
@@ -92,7 +93,7 @@ def sync_market_data():
         print("❌ Failed to select any gold symbol")
         return
     
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Syncing {symbol}...")
+    print(f"[{datetime.now(THAILAND_TZ).strftime('%H:%M:%S')}] Syncing {symbol}...")
     
     total_candles = 0
     for tf_name, (mt5_tf, _, count) in TIMEFRAMES.items():

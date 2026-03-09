@@ -1,12 +1,10 @@
 import { supabase } from '$lib/supabase';
+import { getTodayDateThai } from '$lib/timezone';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
     try {
-        const now = new Date();
-        const thaiDate = new Date(now.getTime() + 7 * 60 * 60 * 1000)
-            .toISOString()
-            .split('T')[0];
+        const thaiDate = getTodayDateThai();
 
         const [statsResult, recentTradesResult, dateRangeResult] = await Promise.all([
             // Query 1: All daily_stats with participants (for summary, top performer, mini leaderboard)

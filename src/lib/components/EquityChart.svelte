@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy, createEventDispatcher } from "svelte";
     import { createChart, ColorType, LineStyle } from "lightweight-charts";
+    import { THAILAND_OFFSET_SECONDS } from "$lib/timezone";
     import StatusBanner from "$lib/components/StatusBanner.svelte";
 
     // Props
@@ -255,13 +256,12 @@
         }
 
         // Prepare series data with Thailand offset (UTC+7)
-        const THAILAND_OFFSET = 7 * 60 * 60;
         const equityData = data.map((d) => ({
-            time: (d.time + THAILAND_OFFSET) as any,
+            time: (d.time + THAILAND_OFFSET_SECONDS) as any,
             value: d.equity,
         }));
         const balanceData = data.map((d) => ({
-            time: (d.time + THAILAND_OFFSET) as any,
+            time: (d.time + THAILAND_OFFSET_SECONDS) as any,
             value: d.balance,
         }));
 
@@ -270,7 +270,7 @@
 
         // Calculate floating zone data - color based on P/L
         const zoneData = data.map((d) => ({
-            time: (d.time + THAILAND_OFFSET) as any,
+            time: (d.time + THAILAND_OFFSET_SECONDS) as any,
             value: d.equity,
             color:
                 d.floatingPL >= 0
