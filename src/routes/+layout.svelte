@@ -24,6 +24,10 @@
 			</a>
 			<nav class="hidden sm:flex items-center gap-6 ml-8">
 				<a href="/" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">Dashboard</a>
+				<a href="/feed" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors flex items-center gap-1.5">
+					Live
+					<span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span>
+				</a>
 				<a href="/leaderboard" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">Leaderboard</a>
 				<a href="/rules" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">Rules</a>
 				<a href="/history" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">History</a>
@@ -60,10 +64,17 @@
 
 	<!-- Mobile Bottom Navigation -->
 	<nav class="fixed bottom-0 inset-x-0 z-50 bg-white dark:bg-dark-surface border-t border-gray-200 dark:border-dark-border sm:hidden pb-[env(safe-area-inset-bottom)]">
-		<div class="grid grid-cols-4 h-14">
+		<div class="grid grid-cols-5 h-14">
 			<a href="/" class="flex flex-col items-center justify-center gap-0.5 {pathname === '/' ? 'text-gold' : 'text-gray-400 dark:text-gray-500'}">
 				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z" /></svg>
 				<span class="text-[10px] font-medium">Home</span>
+			</a>
+			<a href="/feed" class="flex flex-col items-center justify-center gap-0.5 {pathname === '/feed' ? 'text-gold' : 'text-gray-400 dark:text-gray-500'}">
+				<span class="relative">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+					<span class="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span></span>
+				</span>
+				<span class="text-[10px] font-medium">Live</span>
 			</a>
 			<a href="/leaderboard" class="flex flex-col items-center justify-center gap-0.5 {pathname.startsWith('/leaderboard') ? 'text-gold' : 'text-gray-400 dark:text-gray-500'}">
 				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
