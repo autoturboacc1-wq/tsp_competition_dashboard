@@ -3,6 +3,9 @@
 
     export let data: PageData;
 
+    let days: PageData['days'] = [];
+    let availableDates: PageData['availableDates'] = [];
+
     $: ({ days, availableDates } = data);
 
     let selectedDate = '';
@@ -11,7 +14,10 @@
         selectedDate = availableDates[0];
     }
 
-    $: selectedDay = days.find(d => d.date === selectedDate);
+    $: availableDateSet = new Set(availableDates);
+    $: minAvailableDate = availableDates[availableDates.length - 1] ?? '';
+    $: maxAvailableDate = availableDates[0] ?? '';
+    $: selectedDay = days.find((d: PageData['days'][number]) => d.date === selectedDate);
 
     function formatProfit(profit: number): string {
         const sign = profit > 0 ? '+' : '';
@@ -50,19 +56,21 @@
             </div>
         {:else}
             <!-- Date Selector -->
-            <div class="mb-6 flex items-center gap-3">
+            <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <label for="history-date" class="text-sm font-medium dark:text-gray-300">Date:</label>
-                <select
+                <input
                     id="history-date"
+                    type="date"
                     bind:value={selectedDate}
+                    min={minAvailableDate}
+                    max={maxAvailableDate}
                     class="px-3 py-2 rounded-lg border border-gray-300 dark:border-dark-border bg-white dark:bg-dark-surface text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-amber-500"
-                >
-                    {#each availableDates as date}
-                        <option value={date}>{formatDate(date)}</option>
-                    {/each}
-                </select>
+                />
                 <span class="text-xs text-gray-400 dark:text-gray-500">
                     {availableDates.length} days recorded
+                    {#if selectedDate && !availableDateSet.has(selectedDate)}
+                        · No snapshot on {formatDate(selectedDate)}
+                    {/if}
                 </span>
             </div>
 

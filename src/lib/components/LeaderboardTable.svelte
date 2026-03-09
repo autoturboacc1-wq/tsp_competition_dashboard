@@ -53,14 +53,13 @@
         <th scope="col" class="px-6 py-3 text-right">Points</th>
         <th scope="col" class="px-6 py-3 text-right">Profit (USD)</th>
         <th scope="col" class="px-6 py-3 text-right">Win Rate</th>
-        <th scope="col" class="px-6 py-3 text-right">Max DD</th>
         <th scope="col" class="px-6 py-3 text-right">Trades</th>
       </tr>
     </thead>
     <tbody>
       {#if sortedData.length === 0}
         <tr>
-          <td colspan="7" class="px-6 py-4 text-center dark:text-gray-400"
+          <td colspan="6" class="px-6 py-4 text-center dark:text-gray-400"
             >No participants yet.</td
           >
         </tr>
@@ -96,9 +95,6 @@
             </td>
             <td class="px-6 py-4 text-right font-mono {entry.stats?.winRate >= 50 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
               {entry.stats?.winRate != null ? `${entry.stats.winRate.toFixed(1)}%` : '-'}
-            </td>
-            <td class="px-6 py-4 text-right font-mono {(entry.stats?.maxDrawdown ?? 0) > 20 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-300'}">
-              {entry.stats?.maxDrawdown != null ? `${entry.stats.maxDrawdown.toFixed(1)}%` : '-'}
             </td>
             <td class="px-6 py-4 text-right font-mono text-gray-600 dark:text-gray-300">
               {entry.stats?.totalTrades?.toLocaleString() ?? '-'}
@@ -152,9 +148,6 @@
     <div class="flex justify-between mt-2 pt-2 border-t border-gray-200/50 dark:border-dark-border/30 text-xs">
       <span class="font-mono {(entry.stats?.winRate ?? 0) >= 50 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
         WR: {entry.stats?.winRate != null ? `${entry.stats.winRate.toFixed(1)}%` : '-'}
-      </span>
-      <span class="font-mono {(entry.stats?.maxDrawdown ?? 0) > 20 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}">
-        DD: {entry.stats?.maxDrawdown != null ? `${entry.stats.maxDrawdown.toFixed(1)}%` : '-'}
       </span>
       <span class="font-mono text-gray-500 dark:text-gray-400">
         Trades: {entry.stats?.totalTrades?.toLocaleString() ?? '-'}
