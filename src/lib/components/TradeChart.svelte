@@ -363,7 +363,7 @@
     class="relative w-full h-full flex flex-col bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-xl"
 >
     <!-- Chart Container -->
-    <div class="relative flex-1 min-h-[500px]" bind:this={chartContainer}>
+    <div class="relative flex-1 min-h-[300px] sm:min-h-[500px]" bind:this={chartContainer}>
         {#if chartError && !isLoading}
             <div class="absolute inset-0 z-20 flex items-center justify-center p-6 bg-gray-900/80">
                 <div class="w-full max-w-md">

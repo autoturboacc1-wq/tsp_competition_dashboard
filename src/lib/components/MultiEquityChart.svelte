@@ -177,7 +177,7 @@
                 horzLines: { color: "rgba(55, 65, 81, 0.5)", style: LineStyle.Dotted },
             },
             width: chartContainer.clientWidth,
-            height: Math.max(320, Math.min(600, traders.length * 60)),
+            height: Math.max(window.innerWidth < 640 ? 240 : 320, Math.min(600, traders.length * 60)),
             rightPriceScale: {
                 borderColor: "rgba(55, 65, 81, 0.5)",
                 scaleMargins: { top: 0.1, bottom: 0.1 },
