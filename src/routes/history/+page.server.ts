@@ -1,14 +1,22 @@
 import { supabase } from '$lib/supabase';
+import { getCached, setCache } from '$lib/cache';
 import type { PageServerLoad } from './$types';
 
+const CACHE_KEY = 'history';
+const CACHE_TTL = 60_000;
+
 export const load: PageServerLoad = async () => {
+    const cached = getCached<any>(CACHE_KEY);
+    if (cached) return cached;
+
     try {
-        // Fetch all daily stats with participant info, grouped by date
+        // Fetch daily stats limited to recent entries (~50 participants × 10 days)
         const { data: allStats, error } = await supabase
             .from('daily_stats')
             .select('participant_id, date, balance, equity, profit, points, win_rate, total_trades, participants(nickname)')
             .order('date', { ascending: false })
-            .order('points', { ascending: false });
+            .order('points', { ascending: false })
+            .limit(500);
 
         if (error) throw error;
 
@@ -44,7 +52,9 @@ export const load: PageServerLoad = async () => {
 
         const availableDates = days.map(d => d.date);
 
-        return { days, availableDates };
+        const result = { days, availableDates };
+        setCache(CACHE_KEY, result, CACHE_TTL);
+        return result;
     } catch (e) {
         console.error('History data fetch failed:', e);
         return { days: [], availableDates: [] };

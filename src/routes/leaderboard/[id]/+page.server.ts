@@ -39,6 +39,11 @@ export const load: PageServerLoad = async ({ params }) => {
             partialFailures.push(buildPartialFailureMessage('สถิติหลัก'));
         }
 
+        // Calculate date boundaries for limiting queries
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
+
         const optionalResults = await Promise.allSettled([
             supabase
                 .from('trades')
@@ -55,12 +60,13 @@ export const load: PageServerLoad = async ({ params }) => {
                 .from('equity_snapshots')
                 .select('timestamp, balance, equity, floating_pl')
                 .eq('participant_id', id)
-                .order('timestamp', { ascending: false })
-                .limit(10000),
+                .gte('timestamp', thirtyDaysAgo)
+                .order('timestamp', { ascending: false }),
             supabase
                 .from('trades')
                 .select('close_time, profit')
                 .eq('participant_id', id)
+                .gte('close_time', ninetyDaysAgo)
                 .order('close_time', { ascending: true }),
             stats?.date
                 ? supabase

@@ -1,17 +1,25 @@
 import { supabase } from '$lib/supabase';
 import { getTodayDateThai } from '$lib/timezone';
+import { getCached, setCache } from '$lib/cache';
 import type { PageServerLoad } from './$types';
 
+const CACHE_KEY = 'dashboard';
+const CACHE_TTL = 60_000; // 60 seconds
+
 export const load: PageServerLoad = async () => {
+    const cached = getCached<any>(CACHE_KEY);
+    if (cached) return cached;
+
     try {
         const thaiDate = getTodayDateThai();
 
-        const [statsResult, recentTradesResult, dateRangeResult] = await Promise.all([
-            // Query 1: All daily_stats with participants (for summary, top performer, mini leaderboard)
+        // First: get the earliest date (for competition days) and try today's stats
+        const [todayStatsResult, recentTradesResult, dateRangeResult] = await Promise.all([
+            // Query 1: Today's daily_stats only
             supabase
                 .from('daily_stats')
                 .select('participant_id, date, balance, equity, profit, points, win_rate, total_trades, total_lots, participants(nickname, avatar_url)')
-                .order('date', { ascending: false }),
+                .eq('date', thaiDate),
 
             // Query 2: Recent trades
             supabase
@@ -21,7 +29,7 @@ export const load: PageServerLoad = async () => {
                 .order('close_time', { ascending: false })
                 .limit(15),
 
-            // Query 3: Competition date range
+            // Query 3: Competition date range (first + last date)
             supabase
                 .from('daily_stats')
                 .select('date')
@@ -29,19 +37,27 @@ export const load: PageServerLoad = async () => {
                 .limit(1)
         ]);
 
-        const allStats = statsResult.data || [];
+        let latestArray = todayStatsResult.data || [];
         const recentTrades = recentTradesResult.data || [];
         const firstDate = dateRangeResult.data?.[0]?.date || thaiDate;
 
-        // Deduplicate: latest entry per participant
-        const latestEntries = new Map<string, typeof allStats[0]>();
-        allStats.forEach((entry) => {
-            if (!latestEntries.has(entry.participant_id)) {
-                latestEntries.set(entry.participant_id, entry);
-            }
-        });
+        // Fallback: if no data for today, get the latest date's stats
+        if (latestArray.length === 0) {
+            const { data: latestDateRow } = await supabase
+                .from('daily_stats')
+                .select('date')
+                .order('date', { ascending: false })
+                .limit(1);
 
-        const latestArray = Array.from(latestEntries.values());
+            const latestDate = latestDateRow?.[0]?.date;
+            if (latestDate) {
+                const { data } = await supabase
+                    .from('daily_stats')
+                    .select('participant_id, date, balance, equity, profit, points, win_rate, total_trades, total_lots, participants(nickname, avatar_url)')
+                    .eq('date', latestDate);
+                latestArray = data || [];
+            }
+        }
 
         // Summary stats
         const totalParticipants = latestArray.length;
@@ -52,13 +68,9 @@ export const load: PageServerLoad = async () => {
                 ? latestArray.reduce((sum, e) => sum + (e.win_rate || 0), 0) / totalParticipants
                 : 0;
 
-        // Top performer: try today first, fallback to latest date
+        // Top performer from latest data
         let topPerformer = null;
-        const todayEntries = allStats.filter((e) => e.date === thaiDate);
-        const topEntry =
-            todayEntries.length > 0
-                ? todayEntries.sort((a, b) => b.profit - a.profit)[0]
-                : latestArray.sort((a, b) => b.profit - a.profit)[0];
+        const topEntry = [...latestArray].sort((a, b) => b.profit - a.profit)[0];
 
         if (topEntry) {
             topPerformer = {
@@ -93,7 +105,7 @@ export const load: PageServerLoad = async () => {
         const todayDate = new Date(thaiDate);
         const totalDays = Math.max(1, Math.ceil((todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
-        return {
+        const result = {
             summary: {
                 totalParticipants,
                 totalTrades,
@@ -123,6 +135,9 @@ export const load: PageServerLoad = async () => {
             },
             topFive
         };
+
+        setCache(CACHE_KEY, result, CACHE_TTL);
+        return result;
     } catch (e) {
         console.error('Dashboard data fetch failed:', e);
         return {
