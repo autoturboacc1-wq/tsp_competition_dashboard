@@ -1,9 +1,17 @@
 import { supabase } from '$lib/supabase';
 import { leaderboardData } from '$lib/mock/leaderboard';
 import { createAsyncMeta, formatSupabaseLoadError } from '$lib/async-state';
+import { getCached, setCache } from '$lib/cache';
 import type { PageServerLoad } from './$types';
 
+const CACHE_KEY = 'leaderboard';
+const CACHE_TTL = 15_000; // 15 seconds
+
 export const load: PageServerLoad = async () => {
+    // Check cache first
+    const cached = getCached<any>(CACHE_KEY);
+    if (cached) return cached;
+
     try {
         const { data, error } = await supabase
             .from('daily_stats')
@@ -44,7 +52,7 @@ export const load: PageServerLoad = async () => {
                 });
             }
 
-            return {
+            const result = {
                 ...createAsyncMeta(),
                 leaderboard: sortedData.map((entry, idx) => {
                     const currentRank = idx + 1;
@@ -73,6 +81,8 @@ export const load: PageServerLoad = async () => {
                     };
                 })
             };
+            setCache(CACHE_KEY, result, CACHE_TTL);
+            return result;
         }
 
         return {

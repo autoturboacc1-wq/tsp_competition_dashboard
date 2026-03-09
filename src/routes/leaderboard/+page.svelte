@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { invalidateAll } from "$app/navigation";
+    import { supabase } from "$lib/supabase";
     import { ASYNC_COPY } from "$lib/async-state";
     import LeaderboardSkeleton from "$lib/components/LeaderboardSkeleton.svelte";
     import LeaderboardTable from "$lib/components/LeaderboardTable.svelte";
@@ -8,6 +9,7 @@
     import PullToRefresh from "$lib/components/PullToRefresh.svelte";
     import StatusBanner from "$lib/components/StatusBanner.svelte";
     import TopWinners from "$lib/components/TopWinners.svelte";
+    import MultiEquityChart from "$lib/components/MultiEquityChart.svelte";
     import type { PageData } from "./$types";
 
     export let data: PageData;
@@ -15,18 +17,24 @@
     let isRefreshing = false;
     let refreshError: string | null = null;
     let showH2H = false;
+    type LeaderboardEntry = PageData["leaderboard"][number];
+    type ChartTrader = { id: string; nickname: string };
 
-    let refreshInterval: ReturnType<typeof setInterval>;
+    let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
 
     onMount(() => {
-        refreshInterval = setInterval(() => invalidateAll(), 60_000);
+        realtimeChannel = supabase
+            .channel('leaderboard-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_stats' }, () => invalidateAll())
+            .subscribe();
     });
 
     onDestroy(() => {
-        clearInterval(refreshInterval);
+        if (realtimeChannel) supabase.removeChannel(realtimeChannel);
     });
 
     $: hasLeaderboardData = data.leaderboard.length > 0;
+    $: chartTraders = data.leaderboard.map((t: LeaderboardEntry): ChartTrader => ({ id: t.id, nickname: t.nickname }));
 
     async function handleRefresh() {
         isRefreshing = true;
@@ -124,6 +132,10 @@
 
                 <div class="bg-white dark:bg-dark-surface rounded-lg shadow">
                     <LeaderboardTable data={data.leaderboard} />
+                </div>
+
+                <div class="mt-6">
+                    <MultiEquityChart traders={chartTraders} />
                 </div>
             {:else}
                 <div
