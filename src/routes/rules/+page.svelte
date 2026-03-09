@@ -38,7 +38,7 @@
 					title: "General Rules",
 					items: [
 						"All participants must trade on their registered MT5 account only.",
-						"Trading instruments allowed: Forex, Gold (XAUUSD), Indices.",
+						"Trading instruments allowed: Gold (XAUUSD) only.",
 						"No use of arbitrage, HFT bots, or exploit-based strategies.",
 						"Each participant starts with the same initial balance.",
 						"Data is synced automatically from MT5 every 60 seconds.",
@@ -100,7 +100,7 @@
 					title: "กติกาทั่วไป",
 					items: [
 						"ผู้เข้าแข่งขันทุกคนต้องเทรดผ่านบัญชี MT5 ที่ลงทะเบียนไว้เท่านั้น",
-						"สินทรัพย์ที่อนุญาต: Forex, Gold (XAUUSD), Indices",
+						"สินทรัพย์ที่อนุญาต: Gold (XAUUSD) เท่านั้น",
 						"ห้ามใช้กลยุทธ์แบบ arbitrage, HFT bots หรือการเอาช่องโหว่ของระบบ",
 						"ผู้เข้าแข่งขันทุกคนเริ่มต้นด้วยยอดเงินตั้งต้นเท่ากัน",
 						"ระบบจะซิงก์ข้อมูลจาก MT5 อัตโนมัติทุก 60 วินาที",
