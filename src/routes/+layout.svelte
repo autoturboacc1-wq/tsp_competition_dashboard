@@ -22,6 +22,8 @@
 			<nav class="hidden sm:flex items-center gap-6 ml-8">
 				<a href="/" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">Dashboard</a>
 				<a href="/leaderboard" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">Leaderboard</a>
+				<a href="/rules" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">Rules</a>
+				<a href="/history" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">History</a>
 			</nav>
 			<div class="flex items-center gap-4">
 				<a
