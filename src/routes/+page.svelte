@@ -5,12 +5,32 @@
     import { marked } from 'marked';
     import DOMPurify from 'isomorphic-dompurify';
     import PullToRefresh from '$lib/components/PullToRefresh.svelte';
+    import DailyHighlightCard from '$lib/components/DailyHighlightCard.svelte';
     import RecentTradesFeed from '$lib/components/RecentTradesFeed.svelte';
 
     export let data;
 
+    type DailyHighlight = {
+        highlight: string;
+        date: string;
+        topTrader: {
+            nickname: string;
+            profit: number;
+            points: number;
+        } | null;
+        notableTrades: Array<{
+            nickname: string;
+            symbol: string;
+            type: string;
+            lotSize: number;
+            profit: number;
+            closeTime: string;
+        }>;
+    };
+
     let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
-    let dailyHighlight: { highlight: string; date: string; topTrader: any; notableTrades: any[] } | null = null;
+    let dailyHighlight: DailyHighlight | null = null;
+    let dailyHighlightHtml = '';
     let highlightLoading = true;
     let highlightError = false;
 
@@ -27,7 +47,7 @@
             if (!res.ok) throw new Error('Failed to fetch');
             const json = await res.json();
             if (json.success) {
-                dailyHighlight = json;
+                dailyHighlight = json as DailyHighlight;
             } else {
                 highlightError = true;
             }
@@ -53,6 +73,7 @@
     });
 
     $: ({ summary, topPerformer, recentTrades, competition, topFive } = data);
+    $: dailyHighlightHtml = dailyHighlight?.highlight ? renderMarkdown(dailyHighlight.highlight) : '';
 
     function formatNumber(n: number): string {
         if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
@@ -164,35 +185,14 @@
                 {/if}
 
                 <!-- Highlight of the Day -->
-                {#if highlightLoading}
-                    <div class="p-5 rounded-xl highlight-card border border-purple-200/30 dark:border-purple-500/20 animate-fade-in-up stagger-6">
-                        <div class="flex items-center gap-2 mb-3">
-                            <span class="text-xs font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400">
-                                Highlight of the Day
-                            </span>
-                            <span class="text-lg">&#x2728;</span>
-                        </div>
-                        <div class="flex items-center justify-center py-6">
-                            <div class="animate-spin rounded-full h-6 w-6 border-2 border-purple-400 border-t-transparent"></div>
-                            <span class="ml-3 text-sm text-gray-500 dark:text-gray-400">Loading highlight...</span>
-                        </div>
-                    </div>
-                {:else if dailyHighlight && !highlightError}
-                    <div class="p-5 rounded-xl highlight-card border border-purple-200/30 dark:border-purple-500/20 animate-fade-in-up stagger-6">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400">
-                                    Highlight of the Day
-                                </span>
-                                <span class="text-lg">&#x2728;</span>
-                            </div>
-                            <span class="text-xs text-gray-400 dark:text-gray-500">{dailyHighlight.date}</span>
-                        </div>
-                        <div class="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed highlight-content">
-                            {@html renderMarkdown(dailyHighlight.highlight)}
-                        </div>
-                    </div>
-                {/if}
+                <DailyHighlightCard
+                    loading={highlightLoading}
+                    error={highlightError}
+                    highlight={dailyHighlightHtml}
+                    date={dailyHighlight?.date || ''}
+                    topTrader={dailyHighlight?.topTrader || null}
+                    notableTrades={dailyHighlight?.notableTrades || []}
+                />
 
                 <!-- Recent Trades -->
                 <div class="animate-fade-in-up stagger-6">
@@ -294,26 +294,5 @@
 
     :global(.dark) .top-performer-card {
         background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(17, 17, 17, 0.5) 100%);
-    }
-
-    .highlight-card {
-        background: linear-gradient(135deg, rgba(147, 51, 234, 0.05) 0%, rgba(79, 70, 229, 0.03) 50%, rgba(255, 255, 255, 0) 100%);
-    }
-
-    :global(.dark) .highlight-card {
-        background: linear-gradient(135deg, rgba(147, 51, 234, 0.08) 0%, rgba(79, 70, 229, 0.05) 50%, rgba(17, 17, 17, 0.5) 100%);
-    }
-
-    .highlight-content :global(p) {
-        margin-bottom: 0.5rem;
-    }
-
-    .highlight-content :global(p:last-child) {
-        margin-bottom: 0;
-    }
-
-    .highlight-content :global(ul), .highlight-content :global(ol) {
-        margin: 0.25rem 0;
-        padding-left: 1.25rem;
     }
 </style>
