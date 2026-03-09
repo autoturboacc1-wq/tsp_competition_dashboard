@@ -1,4 +1,5 @@
 import { supabase } from '$lib/supabase';
+import { THAILAND_OFFSET_MS } from '$lib/timezone';
 import { error } from '@sveltejs/kit';
 import { leaderboardData } from '$lib/mock/leaderboard';
 import {
@@ -114,7 +115,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
             for (const trade of allTrades) {
                 const closeTime = new Date(trade.close_time);
-                const thaiTime = new Date(closeTime.getTime() + (7 * 60 * 60 * 1000));
+                const thaiTime = new Date(closeTime.getTime() + THAILAND_OFFSET_MS);
                 const dateKey = thaiTime.toISOString().split('T')[0];
 
                 if (!dailyMap.has(dateKey)) {
