@@ -170,7 +170,7 @@
             layout: {
                 background: { type: ColorType.Solid, color: "transparent" },
                 textColor: "#9CA3AF",
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "'Inter', 'IBM Plex Sans Thai', sans-serif",
             },
             grid: {
                 vertLines: { color: "rgba(55, 65, 81, 0.5)", style: LineStyle.Dotted },

@@ -6,6 +6,17 @@ export default {
 
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'SF Pro Text',
+          'SF Pro Thai',
+          'Inter',
+          'Helvetica Neue',
+          'sans-serif',
+        ],
+      },
       colors: {
         dark: {
           bg: '#000000', // Black

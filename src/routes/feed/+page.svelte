@@ -73,7 +73,7 @@
             nickname: nicknames.get(trade.participant_id) || 'Unknown',
             symbol: trade.symbol || 'XAUUSD',
             tradeType: trade.type === 'BUY' || trade.type === 0 ? 'BUY' : 'SELL',
-            lot: trade.lot || 0,
+            lot: trade.lot_size || trade.lot || 0,
             profit: type === 'trade_closed' ? trade.profit : undefined,
             timestamp: type === 'trade_closed' ? trade.close_time : trade.open_time,
         };
@@ -170,9 +170,9 @@
         {#each filters as f}
             <button
                 on:click={() => filterType = f.key}
-                class="shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors
+                class="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all
                     {filterType === f.key
-                        ? 'bg-gold text-black'
+                        ? 'bg-gradient-to-r from-amber-400 to-amber-600 text-black shadow-md shadow-amber-500/30'
                         : 'bg-gray-100 dark:bg-dark-border text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}"
             >
                 {f.label}

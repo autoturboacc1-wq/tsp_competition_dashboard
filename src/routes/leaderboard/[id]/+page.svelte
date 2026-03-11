@@ -915,18 +915,18 @@
 
 <PullToRefresh {isRefreshing} on:refresh={handleRefresh}>
     <div
-        class="min-h-screen bg-gray-50 dark:bg-dark-bg py-8 px-4 sm:px-6 lg:px-8"
+        class="min-h-screen bg-gray-50 dark:bg-dark-bg py-4 px-3 sm:px-4 lg:px-6"
     >
-        <div class="max-w-5xl mx-auto">
-            <!-- Back Button -->
+        <div class="max-w-6xl mx-auto">
+            <!-- Back -->
             <a
                 href="/leaderboard"
-                class="inline-flex items-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 mb-6"
+                class="inline-flex items-center text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-3"
             >
-                &larr; Back to Leaderboard
+                &larr; Leaderboard
             </a>
 
-            <div class="mb-4 space-y-3">
+            <div class="mb-3 space-y-2">
                 {#if isRefreshing}
                     <StatusBanner
                         tone="info"
@@ -987,114 +987,99 @@
                 </div>
             {:else}
                 <!-- Header -->
-                <div
-                    class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in-up card-hover"
-                >
-                    <div class="flex items-center gap-4">
-                        <div
-                            class="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-3xl"
-                        >
-                            {getRankIcon(rank)}
+                <div class="pb-3 mb-4 border-b border-gray-200 dark:border-dark-border">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-xl font-bold text-gray-900 dark:text-white truncate">
+                                    {trader.nickname}
+                                </h1>
+                                <span class="text-sm font-medium text-gray-400 dark:text-gray-500 shrink-0">
+                                    {getRankIcon(rank)}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-3 mt-0.5">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                    {trader.points.toLocaleString()} pts
+                                </span>
+                                <span class="text-sm font-mono font-semibold {trader.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
+                                    {trader.profit >= 0 ? "+" : ""}{formatMoney(trader.profit)}
+                                </span>
+                            </div>
                         </div>
-                        <div>
-                            <h1
-                                class="text-3xl font-bold text-gray-900 dark:text-white"
-                            >
-                                {trader.nickname}
-                            </h1>
-                            <p class="text-gray-500 dark:text-gray-300">
-                                Rank {rank} • {trader.points.toLocaleString()} Points
-                            </p>
-                        </div>
-                        <!-- Ask AI Button -->
-                        <button
-                            class="ml-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-medium text-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-purple-500/25"
-                            on:click={() => (showAiModal = true)}
-                        >
-                            <span>🤖</span>
-                            <span>AI Analysis</span>
-                        </button>
-                        <!-- Share Button -->
-                        <div class="relative">
+                        <div class="flex items-center gap-1 shrink-0">
                             <button
-                                class="ml-1 p-2 bg-gray-100 dark:bg-dark-border hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-xl transition-all hover:scale-105 active:scale-95"
-                                on:click={shareTrader}
-                                title="Share trader profile"
+                                class="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                                on:click={() => (showAiModal = true)}
+                                title="AI Analysis"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                 </svg>
                             </button>
-                            {#if showCopiedToast}
-                                <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
-                                    Copied!
-                                </div>
-                            {/if}
+                            <div class="relative">
+                                <button
+                                    class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-border rounded-lg transition-colors"
+                                    on:click={shareTrader}
+                                    title="Share"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                                    </svg>
+                                </button>
+                                {#if showCopiedToast}
+                                    <div class="absolute -bottom-7 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap z-50">
+                                        Copied!
+                                    </div>
+                                {/if}
+                            </div>
+                            <div class="relative">
+                                <button
+                                    class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-border rounded-lg transition-colors"
+                                    on:click={() => showExportMenu = !showExportMenu}
+                                    title="Export"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                </button>
+                                {#if showExportMenu}
+                                    <div class="absolute right-0 top-full mt-1 bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-lg shadow-lg z-50 py-1 min-w-[140px]">
+                                        <a
+                                            href="/api/export?participant_id={id}&format=trades"
+                                            download
+                                            class="block px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-bg"
+                                            on:click={() => showExportMenu = false}
+                                        >
+                                            Trades (CSV)
+                                        </a>
+                                        <a
+                                            href="/api/export?participant_id={id}&format=stats"
+                                            download
+                                            class="block px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-bg"
+                                            on:click={() => showExportMenu = false}
+                                        >
+                                            Daily Stats (CSV)
+                                        </a>
+                                    </div>
+                                {/if}
+                            </div>
                         </div>
-                        <!-- Export Dropdown -->
-                        <div class="relative">
-                            <button
-                                class="ml-1 p-2 bg-gray-100 dark:bg-dark-border hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-xl transition-all hover:scale-105 active:scale-95"
-                                on:click={() => showExportMenu = !showExportMenu}
-                                title="Export data"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                            </button>
-                            {#if showExportMenu}
-                                <div class="absolute right-0 top-full mt-1 bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-lg shadow-xl z-50 py-1 min-w-[160px]">
-                                    <a
-                                        href="/api/export?participant_id={id}&format=trades"
-                                        download
-                                        class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-bg"
-                                        on:click={() => showExportMenu = false}
-                                    >
-                                        Trades (CSV)
-                                    </a>
-                                    <a
-                                        href="/api/export?participant_id={id}&format=stats"
-                                        download
-                                        class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-bg"
-                                        on:click={() => showExportMenu = false}
-                                    >
-                                        Daily Stats (CSV)
-                                    </a>
-                                </div>
-                            {/if}
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p
-                            class="text-sm text-gray-500 dark:text-gray-300 uppercase tracking-wide"
-                        >
-                            Total Profit
-                        </p>
-                        <p
-                            class="text-3xl font-mono font-bold {trader.profit >=
-                            0
-                                ? 'text-green-600 dark:text-green-400'
-                                : 'text-red-600 dark:text-red-400'}"
-                        >
-                            {trader.profit >= 0 ? "+" : ""}{formatMoney(
-                                trader.profit,
-                            )}
-                        </p>
                     </div>
                 </div>
 
                 <!-- Badges -->
                 {#if badges.length > 0}
-                    <div class="mb-6 animate-fade-in-up">
+                    <div class="mb-4">
                         <BadgeList {badges} />
                     </div>
                 {/if}
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <!-- 1. Left Column: Equity Curve + Recent History -->
-                    <div class="lg:col-span-2 space-y-6">
+                    <div class="lg:col-span-2 space-y-4">
                         <div
-                            class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 animate-fade-in-up stagger-1 card-hover"
+                            class="bg-white dark:bg-dark-surface rounded-lg border border-gray-200 dark:border-dark-border p-4"
                         >
                             <EquityChart
                                 equitySnapshots={trader.equitySnapshots || []}
@@ -1102,58 +1087,25 @@
                             />
                         </div>
 
-                        <!-- Trade History (directly below Equity Chart) -->
+                        <!-- Trade History -->
                         <div
-                            class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border overflow-hidden animate-fade-in-up stagger-2 card-hover"
+                            class="bg-white dark:bg-dark-surface rounded-lg border border-gray-200 dark:border-dark-border overflow-hidden"
                         >
                             <div
-                                class="px-6 py-4 border-b border-gray-100 dark:border-dark-border flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                                class="px-4 py-3 border-b border-gray-100 dark:border-dark-border flex flex-col sm:flex-row sm:items-center justify-between gap-2"
                             >
-                                <div class="flex items-center gap-3">
-                                    <h3
-                                        class="text-lg font-semibold text-gray-900 dark:text-white"
-                                    >
-                                        Recent History
-                                    </h3>
-                                    <button
-                                        class="px-3 py-1.5 text-xs font-medium bg-gray-100 dark:bg-dark-border hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-1.5"
-                                        on:click={exportCSV}
-                                        title="Export trades as CSV"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                        </svg>
-                                        Export CSV
-                                    </button>
-                                </div>
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+                                    Recent History
+                                </h3>
 
                                 <!-- Filters -->
-                                <div class="flex flex-wrap items-center gap-3">
-                                    <!-- Filter Icon -->
-                                    <div
-                                        class="text-gray-500 dark:text-gray-400"
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            class="h-4 w-4"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                        >
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                                            />
-                                        </svg>
-                                    </div>
+                                <div class="flex flex-wrap items-center gap-2">
 
                                     <!-- Symbol Filter -->
                                     <div class="relative">
                                         <select
                                             bind:value={filterSymbol}
-                                            class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
+                                            class="appearance-none pl-2 pr-6 py-1 text-xs bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500/20 cursor-pointer"
                                         >
                                             {#each uniqueSymbols as symbol}
                                                 <option value={symbol}
@@ -1185,7 +1137,7 @@
                                     <div class="relative">
                                         <select
                                             bind:value={filterType}
-                                            class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
+                                            class="appearance-none pl-2 pr-6 py-1 text-xs bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500/20 cursor-pointer"
                                         >
                                             <option value="ALL"
                                                 >All Types</option
@@ -1215,7 +1167,7 @@
                                     <div class="relative">
                                         <select
                                             bind:value={filterOutcome}
-                                            class="appearance-none pl-3 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"
+                                            class="appearance-none pl-2 pr-6 py-1 text-xs bg-gray-50 dark:bg-dark-bg/50 border border-gray-200 dark:border-dark-border rounded text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500/20 cursor-pointer"
                                         >
                                             <option value="ALL"
                                                 >All Outcomes</option
@@ -1241,216 +1193,68 @@
                                         </div>
                                     </div>
 
-                                    <!-- Clear Filter Button -->
                                     {#if filterSymbol !== "ALL" || filterType !== "ALL" || filterOutcome !== "ALL"}
                                         <button
-                                            on:click={() => {
-                                                filterSymbol = "ALL";
-                                                filterType = "ALL";
-                                                filterOutcome = "ALL";
-                                            }}
-                                            class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
-                                            title="Clear Filters"
+                                            on:click={() => { filterSymbol = "ALL"; filterType = "ALL"; filterOutcome = "ALL"; }}
+                                            class="text-[10px] text-gray-400 hover:text-red-500 transition-colors"
                                         >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                class="h-5 w-5"
-                                                viewBox="0 0 20 20"
-                                                fill="currentColor"
-                                            >
-                                                <path
-                                                    fill-rule="evenodd"
-                                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                                    clip-rule="evenodd"
-                                                />
-                                            </svg>
+                                            Clear
                                         </button>
                                     {/if}
                                 </div>
                             </div>
                             <div class="overflow-x-auto">
                                 <table
-                                    class="w-full text-sm text-left text-gray-500 dark:text-gray-400"
+                                    class="w-full text-xs text-left text-gray-500 dark:text-gray-400"
                                 >
                                     <thead
-                                        class="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-dark-surface"
+                                        class="text-[10px] text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-dark-surface"
                                     >
                                         <tr>
-                                            <th class="px-6 py-3">
-                                                <button
-                                                    on:click={() =>
-                                                        handleSort("symbol")}
-                                                    class="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                                >
-                                                    Symbol
-                                                    {#if sortColumn === "symbol"}
-                                                        <span
-                                                            class="text-blue-600 dark:text-blue-400"
-                                                            >{sortDirection ===
-                                                            "asc"
-                                                                ? "↑"
-                                                                : "↓"}</span
-                                                        >
-                                                    {:else}
-                                                        <span
-                                                            class="text-gray-400"
-                                                            >↕</span
-                                                        >
-                                                    {/if}
-                                                </button>
-                                            </th>
-                                            <th class="px-6 py-3">
-                                                <button
-                                                    on:click={() =>
-                                                        handleSort("type")}
-                                                    class="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                                >
-                                                    Type
-                                                    {#if sortColumn === "type"}
-                                                        <span
-                                                            class="text-blue-600 dark:text-blue-400"
-                                                            >{sortDirection ===
-                                                            "asc"
-                                                                ? "↑"
-                                                                : "↓"}</span
-                                                        >
-                                                    {:else}
-                                                        <span
-                                                            class="text-gray-400"
-                                                            >↕</span
-                                                        >
-                                                    {/if}
-                                                </button>
-                                            </th>
-                                            <th class="px-6 py-3 text-right">
-                                                <button
-                                                    on:click={() =>
-                                                        handleSort("lot")}
-                                                    class="flex items-center gap-1 ml-auto hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                                >
-                                                    Lot
-                                                    {#if sortColumn === "lot"}
-                                                        <span
-                                                            class="text-blue-600 dark:text-blue-400"
-                                                            >{sortDirection ===
-                                                            "asc"
-                                                                ? "↑"
-                                                                : "↓"}</span
-                                                        >
-                                                    {:else}
-                                                        <span
-                                                            class="text-gray-400"
-                                                            >↕</span
-                                                        >
-                                                    {/if}
-                                                </button>
-                                            </th>
-                                            <th class="px-6 py-3 text-right">
-                                                <button
-                                                    on:click={() =>
-                                                        handleSort("profit")}
-                                                    class="flex items-center gap-1 ml-auto hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                                >
-                                                    Profit
-                                                    {#if sortColumn === "profit"}
-                                                        <span
-                                                            class="text-blue-600 dark:text-blue-400"
-                                                            >{sortDirection ===
-                                                            "asc"
-                                                                ? "↑"
-                                                                : "↓"}</span
-                                                        >
-                                                    {:else}
-                                                        <span
-                                                            class="text-gray-400"
-                                                            >↕</span
-                                                        >
-                                                    {/if}
-                                                </button>
-                                            </th>
-                                            <th class="px-6 py-3 text-right">
-                                                <button
-                                                    on:click={() =>
-                                                        handleSort("closeTime")}
-                                                    class="flex items-center gap-1 ml-auto hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                                >
-                                                    Time
-                                                    {#if sortColumn === "closeTime"}
-                                                        <span
-                                                            class="text-blue-600 dark:text-blue-400"
-                                                            >{sortDirection ===
-                                                            "asc"
-                                                                ? "↑"
-                                                                : "↓"}</span
-                                                        >
-                                                    {:else}
-                                                        <span
-                                                            class="text-gray-400"
-                                                            >↕</span
-                                                        >
-                                                    {/if}
-                                                </button>
-                                            </th>
+                                            {#each [
+                                                { key: 'symbol', label: 'Symbol', align: '' },
+                                                { key: 'type', label: 'Type', align: '' },
+                                                { key: 'lot', label: 'Lot', align: 'text-right' },
+                                                { key: 'profit', label: 'P/L', align: 'text-right' },
+                                                { key: 'closeTime', label: 'Time', align: 'text-right' }
+                                            ] as col}
+                                                <th class="px-3 py-2 {col.align}">
+                                                    <button
+                                                        on:click={() => handleSort(col.key as "symbol" | "type" | "lot" | "profit" | "closeTime")}
+                                                        class="flex items-center gap-0.5 {col.align === 'text-right' ? 'ml-auto' : ''} hover:text-gray-800 dark:hover:text-gray-200"
+                                                    >
+                                                        {col.label}
+                                                        <span class="text-gray-300 dark:text-gray-600">{sortColumn === col.key ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+                                                    </button>
+                                                </th>
+                                            {/each}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {#if sortedHistory.length === 0}
                                             <tr>
-                                                <td
-                                                    colspan="5"
-                                                    class="px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400"
-                                                >
-                                                    ยังไม่มีรายการเทรดที่ตรงกับตัวกรองนี้
+                                                <td colspan="5" class="px-3 py-6 text-center text-xs text-gray-400">
+                                                    No trades match filters
                                                 </td>
                                             </tr>
                                         {:else}
                                             {#each sortedHistory as trade}
                                                 <tr
-                                                    class="border-b dark:border-dark-border hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] active:bg-blue-100 dark:active:bg-blue-900/20"
-                                                    on:click={() =>
-                                                        openChart(trade)}
+                                                    class="border-b border-gray-50 dark:border-dark-border/50 hover:bg-gray-50 dark:hover:bg-dark-bg/30 cursor-pointer transition-colors"
+                                                    on:click={() => openChart(trade)}
                                                 >
-                                                    <td
-                                                        class="px-6 py-4 font-medium text-gray-900 dark:text-white"
-                                                        >{trade.symbol}</td
-                                                    >
-                                                    <td class="px-6 py-4">
-                                                        <span
-                                                            class="px-2 py-1 rounded text-xs font-bold {trade.type ===
-                                                            'BUY'
-                                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                                                                : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'}"
-                                                        >
+                                                    <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">{trade.symbol}</td>
+                                                    <td class="px-3 py-2">
+                                                        <span class="text-[10px] font-semibold {trade.type === 'BUY' ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}">
                                                             {trade.type}
                                                         </span>
                                                     </td>
-                                                    <td class="px-6 py-4 text-right"
-                                                        >{trade.lot.toFixed(2)}</td
-                                                    >
-                                                    <td
-                                                        class="px-6 py-4 text-right font-mono {trade.profit >=
-                                                        0
-                                                            ? 'text-green-600 dark:text-green-400'
-                                                            : 'text-red-600 dark:text-red-400'}"
-                                                    >
-                                                        {trade.profit >= 0
-                                                            ? "+"
-                                                            : ""}{trade.profit.toFixed(
-                                                            2,
-                                                        )}
+                                                    <td class="px-3 py-2 text-right tabular-nums">{trade.lot.toFixed(2)}</td>
+                                                    <td class="px-3 py-2 text-right font-mono tabular-nums {trade.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}">
+                                                        {trade.profit >= 0 ? "+" : ""}{trade.profit.toFixed(2)}
                                                     </td>
-                                                    <td
-                                                        class="px-6 py-4 text-right text-xs text-gray-400 dark:text-gray-500"
-                                                    >
-                                                        {new Date(
-                                                            trade.closeTime,
-                                                        ).toLocaleTimeString(
-                                                            "th-TH",
-                                                            {
-                                                                timeZone:
-                                                                    "Asia/Bangkok",
-                                                            },
-                                                        )}
+                                                    <td class="px-3 py-2 text-right text-[10px] text-gray-400">
+                                                        {new Date(trade.closeTime).toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok" })}
                                                     </td>
                                                 </tr>
                                             {/each}
@@ -1461,330 +1265,94 @@
                         </div>
                     </div>
 
-                    <!-- 2. Sidebar Stats (Right on Desktop, 2nd on Mobile) -->
-                    <div class="lg:col-span-1 space-y-6 h-fit">
-                        <div
-                            class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 animate-fade-in-up stagger-3 card-hover"
-                        >
-                            <h3
-                                class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
-                            >
-                                Performance Stats
-                            </h3>
-                            <div class="space-y-4">
-                                <div>
-                                    <div
-                                        class="flex justify-between text-sm mb-1"
-                                    >
-                                        <span
-                                            class="text-gray-500 dark:text-gray-300"
-                                            >Win Rate</span
-                                        >
-                                        <span
-                                            class="font-medium text-gray-900 dark:text-white"
-                                            >{Number(
-                                                trader.stats.winRate,
-                                            ).toFixed(2)}%</span
-                                        >
-                                    </div>
-                                    <div
-                                        class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-2 overflow-hidden"
-                                    >
-                                        <div
-                                            class="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-700 ease-out"
-                                            style="width: {trader.stats
-                                                .winRate}%"
-                                        ></div>
-                                    </div>
-                                </div>
+                    <!-- 2. Sidebar Stats -->
+                    <div class="lg:col-span-1 space-y-4 h-fit">
+                        <div class="bg-white dark:bg-dark-surface rounded-lg border border-gray-200 dark:border-dark-border p-4">
+                            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Stats</h3>
 
-                                <div class="grid grid-cols-2 gap-4">
+                            <!-- Win Rate -->
+                            <div class="mb-3">
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-gray-500 dark:text-gray-400">Win Rate</span>
+                                    <span class="font-medium text-gray-900 dark:text-white">{Number(trader.stats.winRate).toFixed(1)}%</span>
+                                </div>
+                                <div class="w-full bg-gray-100 dark:bg-dark-border rounded-full h-1 overflow-hidden">
+                                    <div class="bg-blue-500 h-1 rounded-full" style="width: {trader.stats.winRate}%"></div>
+                                </div>
+                                <div class="flex justify-between text-[10px] text-gray-400 mt-1">
+                                    <span>Long {Number(trader.stats.winRateBuy).toFixed(0)}%</span>
+                                    <span>Short {Number(trader.stats.winRateSell).toFixed(0)}%</span>
+                                </div>
+                            </div>
+
+                            <!-- Stats Grid -->
+                            <div class="grid grid-cols-3 gap-x-3 gap-y-2.5">
+                                {#each [
+                                    { label: 'PF', value: trader.stats.profitFactor, color: '' },
+                                    { label: 'Max DD', value: `${trader.stats.maxDrawdown}%`, color: 'text-red-500' },
+                                    { label: 'Trades', value: trader.stats.totalTrades, color: '' },
+                                    { label: 'RR', value: trader.stats.rrRatio, color: trader.stats.rrRatio >= 1 ? 'text-green-600 dark:text-green-400' : 'text-red-500' },
+                                    { label: 'Avg Win', value: `$${trader.stats.avgWin}`, color: 'text-green-600 dark:text-green-400' },
+                                    { label: 'Avg Loss', value: `$${trader.stats.avgLoss}`, color: 'text-red-500' },
+                                    { label: 'Best', value: `+$${formatMoney(trader.stats.bestTrade)}`, color: 'text-green-600 dark:text-green-400' },
+                                    { label: 'Worst', value: `${trader.stats.worstTrade >= 0 ? '+' : ''}$${formatMoney(trader.stats.worstTrade)}`, color: trader.stats.worstTrade >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500' },
+                                    { label: 'Consec W/L', value: `${trader.stats.maxConsecutiveWins}/${trader.stats.maxConsecutiveLosses}`, color: '' }
+                                ] as stat}
                                     <div>
-                                        <div
-                                            class="flex justify-between text-xs mb-1"
-                                        >
-                                            <span
-                                                class="text-gray-500 dark:text-gray-300"
-                                                >Long Win Rate</span
-                                            >
-                                            <span
-                                                class="font-medium text-green-600 dark:text-green-400"
-                                                >{Number(
-                                                    trader.stats.winRateBuy,
-                                                ).toFixed(1)}%</span
-                                            >
-                                        </div>
-                                        <div
-                                            class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1.5"
-                                        >
-                                            <div
-                                                class="bg-green-500 h-1.5 rounded-full"
-                                                style="width: {trader.stats
-                                                    .winRateBuy}%"
-                                            ></div>
-                                        </div>
+                                        <div class="text-[10px] text-gray-400 dark:text-gray-500">{stat.label}</div>
+                                        <div class="text-sm font-semibold tabular-nums {stat.color || 'text-gray-900 dark:text-white'}">{stat.value}</div>
                                     </div>
-                                    <div>
-                                        <div
-                                            class="flex justify-between text-xs mb-1"
-                                        >
-                                            <span
-                                                class="text-gray-500 dark:text-gray-300"
-                                                >Short Win Rate</span
-                                            >
-                                            <span
-                                                class="font-medium text-red-600 dark:text-red-400"
-                                                >{Number(
-                                                    trader.stats.winRateSell,
-                                                ).toFixed(1)}%</span
-                                            >
-                                        </div>
-                                        <div
-                                            class="w-full bg-gray-200 dark:bg-dark-border rounded-full h-1.5"
-                                        >
-                                            <div
-                                                class="bg-red-500 h-1.5 rounded-full"
-                                                style="width: {trader.stats
-                                                    .winRateSell}%"
-                                            ></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div
-                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                    >
-                                        <div
-                                            class="text-xs text-gray-500 dark:text-gray-300"
-                                        >
-                                            Max Consec. Wins
-                                        </div>
-                                        <div
-                                            class="text-xl font-bold text-green-600 dark:text-green-400"
-                                        >
-                                            {trader.stats.maxConsecutiveWins}
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                    >
-                                        <div
-                                            class="text-xs text-gray-500 dark:text-gray-300"
-                                        >
-                                            Max Consec. Losses
-                                        </div>
-                                        <div
-                                            class="text-xl font-bold text-red-600 dark:text-red-400"
-                                        >
-                                            {trader.stats.maxConsecutiveLosses}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-4 pt-2">
-                                    <div
-                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                    >
-                                        <div
-                                            class="text-xs text-gray-500 dark:text-gray-300"
-                                        >
-                                            Profit Factor
-                                        </div>
-                                        <div
-                                            class="text-xl font-bold text-gray-900 dark:text-white"
-                                        >
-                                            {trader.stats.profitFactor}
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                    >
-                                        <div
-                                            class="text-xs text-gray-500 dark:text-gray-300"
-                                        >
-                                            Max DD
-                                        </div>
-                                        <div
-                                            class="text-xl font-bold text-red-600 dark:text-red-400"
-                                        >
-                                            {trader.stats.maxDrawdown}%
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                    >
-                                        <div
-                                            class="text-xs text-gray-500 dark:text-gray-300"
-                                        >
-                                            Trades
-                                        </div>
-                                        <div
-                                            class="text-xl font-bold text-gray-900 dark:text-white"
-                                        >
-                                            {trader.stats.totalTrades}
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                    >
-                                        <div
-                                            class="text-xs text-gray-500 dark:text-gray-300"
-                                        >
-                                            RR Ratio
-                                        </div>
-                                        <div
-                                            class="text-xl font-bold {trader
-                                                .stats.rrRatio >= 1
-                                                ? 'text-green-600 dark:text-green-400'
-                                                : 'text-red-600 dark:text-red-400'}"
-                                        >
-                                            {trader.stats.rrRatio}
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                    >
-                                        <div
-                                            class="text-xs text-gray-500 dark:text-gray-300"
-                                        >
-                                            Avg Win
-                                        </div>
-                                        <div
-                                            class="text-xl font-bold text-green-600 dark:text-green-400"
-                                        >
-                                            ${trader.stats.avgWin}
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                    >
-                                        <div
-                                            class="text-xs text-gray-500 dark:text-gray-300"
-                                        >
-                                            Avg Loss
-                                        </div>
-                                        <div
-                                            class="text-xl font-bold text-red-600 dark:text-red-400"
-                                        >
-                                            ${trader.stats.avgLoss}
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                    >
-                                        <div
-                                            class="text-xs text-gray-500 dark:text-gray-300"
-                                        >
-                                            Best Trade
-                                        </div>
-                                        <div
-                                            class="text-xl font-bold text-green-600 dark:text-green-400"
-                                        >
-                                            +${formatMoney(
-                                                trader.stats.bestTrade,
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="p-3 bg-gray-50 dark:bg-dark-bg/50 rounded-lg"
-                                    >
-                                        <div
-                                            class="text-xs text-gray-500 dark:text-gray-300"
-                                        >
-                                            Worst Trade
-                                        </div>
-                                        <div
-                                            class="text-xl font-bold {trader
-                                                .stats.worstTrade >= 0
-                                                ? 'text-green-600 dark:text-green-400'
-                                                : 'text-red-600 dark:text-red-400'}"
-                                        >
-                                            {trader.stats.worstTrade >= 0
-                                                ? "+"
-                                                : ""}${formatMoney(
-                                                trader.stats.worstTrade,
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
+                                {/each}
                             </div>
                         </div>
 
                         <!-- Session Performance -->
-                        <div
-                            class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 mb-6 animate-fade-in-up stagger-4 card-hover"
-                        >
-                            <h3
-                                class="text-lg font-semibold text-gray-900 dark:text-white mb-5"
-                            >
-                                Session Performance
-                            </h3>
-
-                            <!-- Profit Comparison Chart -->
-                            <div class="mb-6">
-                                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Profit by Session</div>
-                                <div class="space-y-3">
-                                    {#each sessionData as session}
-                                        {@const barWidth = Math.abs(session.profit) / maxAbsProfit * 100}
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-16 text-xs font-semibold {session.textClass} shrink-0">{session.name}</div>
-                                            <div class="flex-1 flex items-center h-7 bg-gray-100 dark:bg-dark-bg/50 rounded-md overflow-hidden relative">
-                                                {#if session.profit >= 0}
-                                                    <div
-                                                        class="h-full rounded-md bg-green-500/20 dark:bg-green-500/30 border border-green-500/40 transition-all duration-700"
-                                                        style="width: {barWidth}%"
-                                                    ></div>
-                                                {:else}
-                                                    <div
-                                                        class="h-full rounded-md bg-red-500/20 dark:bg-red-500/30 border border-red-500/40 transition-all duration-700"
-                                                        style="width: {barWidth}%"
-                                                    ></div>
-                                                {/if}
-                                            </div>
-                                            <div class="w-20 text-right text-sm font-mono font-bold shrink-0 {session.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
-                                                {session.profit >= 0 ? '+' : ''}{Number(session.profit).toFixed(2)}
-                                            </div>
-                                        </div>
-                                    {/each}
-                                </div>
-                            </div>
-
-                            <!-- Win Rate Comparison Chart -->
-                            <div>
-                                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Win Rate by Session</div>
-                                <div class="space-y-3">
-                                    {#each sessionData as session}
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-16 text-xs font-semibold {session.textClass} shrink-0">{session.name}</div>
-                                            <div class="flex-1 h-7 bg-gray-100 dark:bg-dark-bg/50 rounded-md overflow-hidden">
-                                                <div
-                                                    class="h-full rounded-md transition-all duration-700 flex items-center justify-end pr-2"
-                                                    style="width: {Math.max(session.winRate, 2)}%; background-color: {session.barColor};"
-                                                >
-                                                </div>
-                                            </div>
-                                            <div class="w-20 text-right text-sm font-mono font-bold shrink-0 text-gray-900 dark:text-white">
-                                                {Number(session.winRate).toFixed(1)}%
-                                            </div>
-                                        </div>
-                                    {/each}
-                                </div>
-                            </div>
-
-                            <!-- Session Time Legend -->
-                            <div class="mt-4 pt-3 border-t border-gray-100 dark:border-dark-border flex flex-wrap gap-4 justify-center">
+                        <div class="bg-white dark:bg-dark-surface rounded-lg border border-gray-200 dark:border-dark-border p-4">
+                            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Sessions</h3>
+                            <div class="space-y-2">
                                 {#each sessionData as session}
-                                    <div class="flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-500">
-                                        <span class="w-2 h-2 rounded-full {session.bgClass}"></span>
-                                        <span>{session.name}: {session.time}</span>
+                                    {@const barWidth = Math.abs(session.profit) / maxAbsProfit * 100}
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-12 text-[10px] font-medium {session.textClass} shrink-0">{session.name}</div>
+                                        <div class="flex-1 h-4 bg-gray-100 dark:bg-dark-bg/50 rounded overflow-hidden">
+                                            <div
+                                                class="h-full rounded {session.profit >= 0 ? 'bg-green-500/25' : 'bg-red-500/25'}"
+                                                style="width: {barWidth}%"
+                                            ></div>
+                                        </div>
+                                        <div class="w-16 text-right text-[10px] font-mono tabular-nums shrink-0 {session.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}">
+                                            {session.profit >= 0 ? '+' : ''}{Number(session.profit).toFixed(0)}
+                                        </div>
+                                        <div class="w-10 text-right text-[10px] font-mono tabular-nums text-gray-400 shrink-0">
+                                            {Number(session.winRate).toFixed(0)}%
+                                        </div>
+                                    </div>
+                                {/each}
+                            </div>
+                        </div>
+
+                        <!-- Trading Style -->
+                        <div class="bg-white dark:bg-dark-surface rounded-lg border border-gray-200 dark:border-dark-border p-4">
+                            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                                {trader.stats.tradingStyle}
+                            </h3>
+                            <div class="space-y-1.5">
+                                {#each [
+                                    { label: 'Favorite', value: trader.stats.favoritePair, color: '' },
+                                    { label: 'Avg Hold', value: trader.stats.avgHoldingTime, color: '' },
+                                    { label: 'Hold (W)', value: trader.stats.avgHoldingTimeWin, color: 'text-green-600 dark:text-green-400' },
+                                    { label: 'Hold (L)', value: trader.stats.avgHoldingTimeLoss, color: 'text-red-500' }
+                                ] as row}
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="text-gray-400">{row.label}</span>
+                                        <span class="font-medium {row.color || 'text-gray-900 dark:text-white'}">{row.value}</span>
                                     </div>
                                 {/each}
                             </div>
                         </div>
 
                         <!-- Points Breakdown -->
-                        <div class="mb-6 animate-fade-in-up stagger-5">
+                        <div>
                             <ScoreBreakdown
                                 totalPoints={trader.points}
                                 totalTrades={trader.stats.totalTrades}
@@ -1797,78 +1365,18 @@
                         </div>
 
                         <!-- Trading Performance Calendar -->
-                        <div class="mb-6 animate-fade-in-up stagger-5">
+                        <div>
                             <TradingCalendar
                                 dailyData={trader.dailyHistory || []}
                             />
-                        </div>
-
-                        <div
-                            class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border p-6 animate-fade-in-up stagger-6 card-hover"
-                        >
-                            <h3
-                                class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
-                            >
-                                Trading Style: {trader.stats.tradingStyle}
-                            </h3>
-                            <div class="space-y-3">
-                                <div
-                                    class="flex items-center justify-between text-sm"
-                                >
-                                    <span
-                                        class="text-gray-600 dark:text-gray-300"
-                                        >Favorite Pair</span
-                                    >
-                                    <span
-                                        class="font-medium text-gray-900 dark:text-white"
-                                        >{trader.stats.favoritePair}</span
-                                    >
-                                </div>
-                                <div
-                                    class="flex items-center justify-between text-sm"
-                                >
-                                    <span
-                                        class="text-gray-600 dark:text-gray-300"
-                                        >Avg Holding Time</span
-                                    >
-                                    <span
-                                        class="font-medium text-gray-900 dark:text-white"
-                                        >{trader.stats.avgHoldingTime}</span
-                                    >
-                                </div>
-                                <div
-                                    class="flex items-center justify-between text-sm"
-                                >
-                                    <span
-                                        class="text-gray-600 dark:text-gray-300"
-                                        >Avg Hold (Win)</span
-                                    >
-                                    <span
-                                        class="font-medium text-green-600 dark:text-green-400"
-                                        >{trader.stats.avgHoldingTimeWin}</span
-                                    >
-                                </div>
-                                <div
-                                    class="flex items-center justify-between text-sm"
-                                >
-                                    <span
-                                        class="text-gray-600 dark:text-gray-300"
-                                        >Avg Hold (Loss)</span
-                                    >
-                                    <span
-                                        class="font-medium text-red-600 dark:text-red-400"
-                                        >{trader.stats.avgHoldingTimeLoss}</span
-                                    >
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Advanced Analytics -->
                 {#if analytics}
-                    <div class="mt-6 animate-fade-in-up">
-                        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                    <div class="mt-4">
+                        <h2 class="text-sm font-bold text-gray-900 dark:text-white mb-3">
                             Advanced Analytics
                         </h2>
                         <AnalyticsDashboard {analytics} />

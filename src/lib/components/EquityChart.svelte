@@ -80,7 +80,7 @@
             layout: {
                 background: { type: ColorType.Solid, color: "transparent" },
                 textColor: "#9CA3AF",
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "'Inter', 'IBM Plex Sans Thai', sans-serif",
             },
             localization: {
                 timeFormatter: (timestamp: number) => {
