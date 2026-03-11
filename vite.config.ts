@@ -10,6 +10,7 @@ export default defineConfig({
 			manifest: false, // use static/manifest.json
 			workbox: {
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
+				importScripts: ['/sw-push.js'],
 				runtimeCaching: [
 					{
 						urlPattern: /^https:\/\/.*\/api\/.*/i,

@@ -7,6 +7,7 @@
     import PullToRefresh from '$lib/components/PullToRefresh.svelte';
     import DailyHighlightCard from '$lib/components/DailyHighlightCard.svelte';
     import RecentTradesFeed from '$lib/components/RecentTradesFeed.svelte';
+    import NotificationSettings from '$lib/components/NotificationSettings.svelte';
 
     export let data;
 
@@ -266,6 +267,11 @@
                             No data yet
                         </div>
                     {/if}
+                </div>
+
+                <!-- Push Notifications -->
+                <div class="animate-fade-in-up stagger-6">
+                    <NotificationSettings vapidPublicKey={data.vapidPublicKey || ''} />
                 </div>
             </div>
         </div>

@@ -1,6 +1,7 @@
 import { supabase } from '$lib/supabase';
 import { getTodayDateThai } from '$lib/timezone';
 import { getCached, setCache } from '$lib/cache';
+import { env } from '$env/dynamic/private';
 import type { PageServerLoad } from './$types';
 
 const CACHE_KEY = 'dashboard';
@@ -137,7 +138,7 @@ export const load: PageServerLoad = async () => {
         };
 
         setCache(CACHE_KEY, result, CACHE_TTL);
-        return result;
+        return { ...result, vapidPublicKey: env.VAPID_PUBLIC_KEY || '' };
     } catch (e) {
         console.error('Dashboard data fetch failed:', e);
         return {
@@ -145,7 +146,8 @@ export const load: PageServerLoad = async () => {
             topPerformer: null,
             recentTrades: [],
             competition: { totalDays: 0, startDate: '', mostActiveTrader: null },
-            topFive: []
+            topFive: [],
+            vapidPublicKey: env.VAPID_PUBLIC_KEY || ''
         };
     }
 };
