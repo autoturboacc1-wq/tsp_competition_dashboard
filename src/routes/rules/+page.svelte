@@ -14,23 +14,23 @@
 			sections: {
 				points: {
 					title: "Points System",
-					description: "Points are calculated based on multiple performance factors:",
+					description: "Points are based on total pips captured from closed trades:",
 					items: [
 						{
-							title: "Net Profit",
-							description: "Total realized P/L from closed trades"
+							title: "Pip Calculation",
+							description: "Each trade earns (price difference / symbol point size) pips"
 						},
 						{
-							title: "Win Rate",
-							description: "Percentage of profitable trades"
+							title: "BUY Trades",
+							description: "Pips = (Close Price - Open Price) / Point Size"
 						},
 						{
-							title: "Profit Factor",
-							description: "Ratio of gross profit to gross loss"
+							title: "SELL Trades",
+							description: "Pips = (Open Price - Close Price) / Point Size"
 						},
 						{
-							title: "Risk Management",
-							description: "Max drawdown penalty applied"
+							title: "Total Points",
+							description: "Sum of all pips from every closed trade. More pips = higher rank"
 						}
 					]
 				},
@@ -76,23 +76,23 @@
 			sections: {
 				points: {
 					title: "ระบบคะแนน",
-					description: "คะแนนจะคำนวณจากหลายปัจจัยด้านผลการเทรด:",
+					description: "คะแนนคำนวณจาก pips ที่ได้จากออเดอร์ที่ปิดแล้วทั้งหมด:",
 					items: [
 						{
-							title: "กำไรสุทธิ",
-							description: "ผลรวมกำไร/ขาดทุนที่ปิดออเดอร์แล้วทั้งหมด"
+							title: "การคำนวณ Pip",
+							description: "แต่ละเทรดได้ (ส่วนต่างราคา / point size ของสินทรัพย์) pips"
 						},
 						{
-							title: "อัตราชนะ",
-							description: "เปอร์เซ็นต์ของออเดอร์ที่มีกำไร"
+							title: "ออเดอร์ BUY",
+							description: "Pips = (ราคาปิด - ราคาเปิด) / Point Size"
 						},
 						{
-							title: "Profit Factor",
-							description: "อัตราส่วนกำไรรวมเทียบกับขาดทุนรวม"
+							title: "ออเดอร์ SELL",
+							description: "Pips = (ราคาเปิด - ราคาปิด) / Point Size"
 						},
 						{
-							title: "การบริหารความเสี่ยง",
-							description: "มีการหักคะแนนจากค่า drawdown สูงสุด"
+							title: "คะแนนรวม",
+							description: "ผลรวม pips จากทุกออเดอร์ที่ปิดแล้ว ยิ่ง pips เยอะ = อันดับสูง"
 						}
 					]
 				},

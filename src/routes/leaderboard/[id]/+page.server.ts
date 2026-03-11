@@ -1,4 +1,5 @@
 import { supabase } from '$lib/supabase';
+import { computeAnalytics } from '$lib/analytics';
 import { THAILAND_OFFSET_MS } from '$lib/timezone';
 import { error } from '@sveltejs/kit';
 import { leaderboardData } from '$lib/mock/leaderboard';
@@ -53,7 +54,7 @@ export const load: PageServerLoad = async ({ params }) => {
                 .limit(50),
             supabase
                 .from('daily_stats')
-                .select('equity, date')
+                .select('equity, date, balance, profit')
                 .eq('participant_id', id)
                 .order('date', { ascending: true }),
             supabase
@@ -78,10 +79,15 @@ export const load: PageServerLoad = async ({ params }) => {
                 .from('achievements')
                 .select('badge_type, badge_label, description, earned_at')
                 .eq('participant_id', id)
-                .order('earned_at', { ascending: true })
+                .order('earned_at', { ascending: true }),
+            supabase
+                .from('trades')
+                .select('close_time, open_time, profit, lot_size, open_price, close_price, symbol, type')
+                .eq('participant_id', id)
+                .order('close_time', { ascending: true })
         ]);
 
-        const [historyResult, equityResult, snapshotResult, allTradesResult, rankResult, badgesResult] =
+        const [historyResult, equityResult, snapshotResult, allTradesResult, rankResult, badgesResult, allTradesFullResult] =
             optionalResults;
 
         const getResultData = <T>(
@@ -108,6 +114,7 @@ export const load: PageServerLoad = async ({ params }) => {
         const allTrades = getResultData(allTradesResult, 'ปฏิทินการเทรด', []);
         const allStats = getResultData(rankResult, 'อันดับล่าสุด', null as any);
         const badges = getResultData(badgesResult, 'เหรียญรางวัล', []);
+        const allTradesFull = getResultData(allTradesFullResult, 'ข้อมูลเทรดทั้งหมด', []);
 
         const equitySnapshots = equitySnapshotsDesc?.reverse?.() || [];
 
@@ -157,10 +164,34 @@ export const load: PageServerLoad = async ({ params }) => {
             return betterStats.length + 1;
         })();
 
+        // Compute analytics from daily stats and trades
+        const analyticsData = (() => {
+            const dailyStatsForAnalytics = (equityData || []).map((d: any) => ({
+                date: d.date,
+                balance: d.balance || d.equity || 0,
+                profit: d.profit || 0
+            })).filter((d: any) => d.balance > 0);
+
+            const tradesForAnalytics = (allTradesFull || []).map((t: any) => ({
+                closeTime: t.close_time,
+                openTime: t.open_time,
+                profit: t.profit || 0,
+                lot: t.lot_size || 0
+            }));
+
+            return computeAnalytics(
+                dailyStatsForAnalytics,
+                tradesForAnalytics,
+                stats?.points || 0,
+                stats?.max_drawdown || 0
+            );
+        })();
+
         return {
             ...createAsyncMeta({
                 partialFailures
             }),
+            analytics: analyticsData,
             trader: {
                 id: participant.id,
                 nickname: participant.nickname,
@@ -231,6 +262,7 @@ export const load: PageServerLoad = async ({ params }) => {
             isFallbackData: true
         }),
         trader: mockTrader,
-        rank: mockTraderIndex + 1
+        rank: mockTraderIndex + 1,
+        analytics: null
     };
 };

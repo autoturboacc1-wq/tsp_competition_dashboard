@@ -14,6 +14,8 @@
     import DrawingToolbar from "$lib/chart/DrawingToolbar.svelte";
     import DrawingOverlay from "$lib/chart/DrawingOverlay.svelte";
     import BadgeList from "$lib/components/BadgeList.svelte";
+    import ScoreBreakdown from "$lib/components/ScoreBreakdown.svelte";
+    import AnalyticsDashboard from "$lib/components/AnalyticsDashboard.svelte";
     import {
         DrawingManager,
         type Drawing,
@@ -22,6 +24,8 @@
     import type { PageData } from "./$types";
 
     export let data: PageData;
+
+    $: analytics = data.analytics;
 
     $: id = $page.params.id;
     $: trader = data.trader;
@@ -98,6 +102,7 @@
 
     // AI Analysis Modal state
     let showAiModal = false;
+    let showExportMenu = false;
 
     // Filter State
     let filterSymbol = "ALL";
@@ -1026,6 +1031,38 @@
                                 </div>
                             {/if}
                         </div>
+                        <!-- Export Dropdown -->
+                        <div class="relative">
+                            <button
+                                class="ml-1 p-2 bg-gray-100 dark:bg-dark-border hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-xl transition-all hover:scale-105 active:scale-95"
+                                on:click={() => showExportMenu = !showExportMenu}
+                                title="Export data"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                            </button>
+                            {#if showExportMenu}
+                                <div class="absolute right-0 top-full mt-1 bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-lg shadow-xl z-50 py-1 min-w-[160px]">
+                                    <a
+                                        href="/api/export?participant_id={id}&format=trades"
+                                        download
+                                        class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-bg"
+                                        on:click={() => showExportMenu = false}
+                                    >
+                                        Trades (CSV)
+                                    </a>
+                                    <a
+                                        href="/api/export?participant_id={id}&format=stats"
+                                        download
+                                        class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-bg"
+                                        on:click={() => showExportMenu = false}
+                                    >
+                                        Daily Stats (CSV)
+                                    </a>
+                                </div>
+                            {/if}
+                        </div>
                     </div>
                     <div class="text-right">
                         <p
@@ -1746,6 +1783,19 @@
                             </div>
                         </div>
 
+                        <!-- Points Breakdown -->
+                        <div class="mb-6 animate-fade-in-up stagger-5">
+                            <ScoreBreakdown
+                                totalPoints={trader.points}
+                                totalTrades={trader.stats.totalTrades}
+                                sessionAsianProfit={trader.stats.sessionAsianProfit}
+                                sessionLondonProfit={trader.stats.sessionLondonProfit}
+                                sessionNewYorkProfit={trader.stats.sessionNewYorkProfit}
+                                bestTrade={trader.stats.bestTrade}
+                                worstTrade={trader.stats.worstTrade}
+                            />
+                        </div>
+
                         <!-- Trading Performance Calendar -->
                         <div class="mb-6 animate-fade-in-up stagger-5">
                             <TradingCalendar
@@ -1814,6 +1864,16 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Advanced Analytics -->
+                {#if analytics}
+                    <div class="mt-6 animate-fade-in-up">
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                            Advanced Analytics
+                        </h2>
+                        <AnalyticsDashboard {analytics} />
+                    </div>
+                {/if}
             {/if}
         </div>
     </div>
