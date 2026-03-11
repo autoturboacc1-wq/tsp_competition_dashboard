@@ -39,16 +39,16 @@ def init_mt5() -> bool:
     print(f"MT5 Initialized: {mt5.terminal_info()}")
     return True
 
-def send_telegram_message(message: str, parse_mode: str = None):
-    """Send a message to the configured Telegram chat"""
+def send_telegram_message(message: str, parse_mode: str = None, chat_id: str = None):
+    """Send a message to a Telegram chat. Uses TELEGRAM_CHAT_ID if chat_id not specified."""
     token = os.getenv("TELEGRAM_BOT_TOKEN")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    target = chat_id or os.getenv("TELEGRAM_CHAT_ID")
 
-    if not token or not chat_id:
+    if not token or not target:
         return
 
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    data = {"chat_id": chat_id, "text": message}
+    data = {"chat_id": target, "text": message}
     if parse_mode:
         data["parse_mode"] = parse_mode
 
@@ -56,3 +56,15 @@ def send_telegram_message(message: str, parse_mode: str = None):
         requests.post(url, data=data, timeout=10)
     except Exception as e:
         print(f"Failed to send Telegram message: {e}")
+
+
+def send_telegram_to_participant(participant_id: str, message: str, parse_mode: str = "HTML"):
+    """Send a personal Telegram message to a participant if they have linked their account"""
+    supabase = get_supabase_client()
+    try:
+        res = supabase.table('participants').select('telegram_chat_id').eq('id', participant_id).single().execute()
+        chat_id = res.data.get('telegram_chat_id') if res.data else None
+        if chat_id:
+            send_telegram_message(message, parse_mode=parse_mode, chat_id=chat_id)
+    except Exception as e:
+        print(f"Failed to send personal Telegram to {participant_id}: {e}")

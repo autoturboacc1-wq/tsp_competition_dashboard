@@ -269,9 +269,9 @@
                     {/if}
                 </div>
 
-                <!-- Push Notifications -->
+                <!-- Telegram Alerts -->
                 <div class="animate-fade-in-up stagger-6">
-                    <NotificationSettings vapidPublicKey={data.vapidPublicKey || ''} />
+                    <NotificationSettings participants={data.participants || []} botUsername={data.telegramBotUsername || ''} />
                 </div>
             </div>
         </div>

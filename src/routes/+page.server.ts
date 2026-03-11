@@ -106,6 +106,12 @@ export const load: PageServerLoad = async () => {
         const todayDate = new Date(thaiDate);
         const totalDays = Math.max(1, Math.ceil((todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
+        // Participants list for Telegram linking
+        const participants = latestArray.map((entry: any) => ({
+            id: entry.participant_id,
+            nickname: (entry.participants as any)?.nickname || 'Unknown'
+        }));
+
         const result = {
             summary: {
                 totalParticipants,
@@ -134,11 +140,12 @@ export const load: PageServerLoad = async () => {
                       }
                     : null
             },
-            topFive
+            topFive,
+            participants
         };
 
         setCache(CACHE_KEY, result, CACHE_TTL);
-        return { ...result, vapidPublicKey: env.VAPID_PUBLIC_KEY || '' };
+        return { ...result, telegramBotUsername: env.TELEGRAM_BOT_USERNAME || '' };
     } catch (e) {
         console.error('Dashboard data fetch failed:', e);
         return {
@@ -147,7 +154,8 @@ export const load: PageServerLoad = async () => {
             recentTrades: [],
             competition: { totalDays: 0, startDate: '', mostActiveTrader: null },
             topFive: [],
-            vapidPublicKey: env.VAPID_PUBLIC_KEY || ''
+            participants: [],
+            telegramBotUsername: env.TELEGRAM_BOT_USERNAME || ''
         };
     }
 };

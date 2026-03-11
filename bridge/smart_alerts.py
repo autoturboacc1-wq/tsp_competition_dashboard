@@ -4,7 +4,7 @@ Detects notable events and sends Telegram notifications
 """
 import os
 from datetime import datetime, timezone
-from core import get_supabase_client, send_telegram_message
+from core import get_supabase_client, send_telegram_message, send_telegram_to_participant
 from tz_config import THAILAND_TZ
 
 # In-memory state to track changes between sync cycles
@@ -101,22 +101,37 @@ def _check_rank_changes(current_rankings, names):
         if new_rank < old_rank:
             # Find who they overtook
             overtaken = []
+            overtaken_pids = []
             for other_pid, other_new_rank in current_rankings.items():
                 other_old_rank = prev.get(other_pid)
                 if other_pid != pid and other_old_rank is not None:
                     if other_old_rank < old_rank and other_new_rank > new_rank:
                         overtaken.append(names.get(other_pid, 'Unknown'))
+                        overtaken_pids.append(other_pid)
 
             if overtaken:
                 alerts.append({
                     'type': 'rank_up',
                     'icon': '🔥',
+                    'participant_id': pid,
                     'message': f"<b>{name}</b> ขึ้นมาอันดับ {new_rank}! แซง {', '.join(overtaken)} แล้ว"
                 })
+                # Notify overtaken participants they lost rank
+                for op_pid in overtaken_pids:
+                    op_name = names.get(op_pid, 'Unknown')
+                    op_new_rank = current_rankings.get(op_pid, '?')
+                    alerts.append({
+                        'type': 'rank_down',
+                        'icon': '📉',
+                        'participant_id': op_pid,
+                        'personal_only': True,
+                        'message': f"<b>{op_name}</b> ตกลงมาอันดับ {op_new_rank} — ถูก {name} แซง"
+                    })
             else:
                 alerts.append({
                     'type': 'rank_up',
                     'icon': '📈',
+                    'participant_id': pid,
                     'message': f"<b>{name}</b> ขยับขึ้นมาอันดับ {new_rank} (จากอันดับ {old_rank})"
                 })
 
@@ -137,6 +152,7 @@ def _check_win_streaks(latest_stats, names):
             alerts.append({
                 'type': 'streak',
                 'icon': '🎯',
+                'participant_id': pid,
                 'message': f"<b>{name}</b> ชนะรวด {current_streak} ไม้ติดต่อกัน!"
             })
 
@@ -173,12 +189,14 @@ def _check_new_trades(supabase, latest_stats, names):
                         alerts.append({
                             'type': 'big_win',
                             'icon': '💰',
+                            'participant_id': pid,
                             'message': f"<b>{name}</b> ปิด {trade_type} {symbol} ({lot} lot) กำไร <b>+${profit:.2f}</b>"
                         })
                     elif profit <= BIG_TRADE_LOSS:
                         alerts.append({
                             'type': 'big_loss',
                             'icon': '📉',
+                            'participant_id': pid,
                             'message': f"<b>{name}</b> ปิด {trade_type} {symbol} ({lot} lot) ขาดทุน <b>${profit:.2f}</b>"
                         })
 
@@ -201,6 +219,7 @@ def _check_drawdown(latest_stats, names):
             alerts.append({
                 'type': 'drawdown',
                 'icon': '⚠️',
+                'participant_id': pid,
                 'message': f"<b>{name}</b> มี Max Drawdown ถึง {dd:.1f}% แล้ว!"
             })
             _previous_state['drawdown_alerted'][pid] = True
@@ -234,6 +253,7 @@ def _check_milestones(latest_stats, names):
             alerts.append({
                 'type': 'milestone',
                 'icon': '🏆',
+                'participant_id': pid,
                 'message': f"<b>{name}</b> ครบ {current_milestone} เทรดแล้ว! (Win Rate: {win_rate:.1f}%)"
             })
 
@@ -255,30 +275,46 @@ def _save_state(current_rankings, latest_stats):
 
 
 def _send_alerts(alerts):
-    """Bundle and send alerts via Telegram"""
-    # Group alerts into a single message (max 4096 chars for Telegram)
+    """Bundle and send alerts via Telegram (broadcast + personal)"""
+    time_str = datetime.now(THAILAND_TZ).strftime('%H:%M ICT')
     header = "🔔 <b>Smart Alert</b>\n"
     separator = "─" * 20
 
-    lines = [header]
+    # 1. Broadcast public alerts to group chat
+    public_alerts = [a for a in alerts if not a.get('personal_only')]
+    if public_alerts:
+        lines = [header]
+        for alert in public_alerts:
+            lines.append(f"{alert['icon']} {alert['message']}")
+        lines.append(f"\n{separator}")
+        lines.append(f"⏰ {time_str}")
+        message = "\n".join(lines)
+
+        if len(message) > 4000:
+            chunks = [public_alerts[i:i+5] for i in range(0, len(public_alerts), 5)]
+            for chunk in chunks:
+                chunk_lines = [header]
+                for alert in chunk:
+                    chunk_lines.append(f"{alert['icon']} {alert['message']}")
+                send_telegram_message("\n".join(chunk_lines), parse_mode="HTML")
+        else:
+            send_telegram_message(message, parse_mode="HTML")
+
+    # 2. Send personal notifications to each participant
+    personal_map = {}  # participant_id -> [alerts]
     for alert in alerts:
-        lines.append(f"{alert['icon']} {alert['message']}")
+        pid = alert.get('participant_id')
+        if pid:
+            if pid not in personal_map:
+                personal_map[pid] = []
+            personal_map[pid].append(alert)
 
-    lines.append(f"\n{separator}")
-    lines.append(f"⏰ {datetime.now(THAILAND_TZ).strftime('%H:%M ICT')}")
+    for pid, participant_alerts in personal_map.items():
+        lines = ["🔔 <b>แจ้งเตือนส่วนตัว</b>\n"]
+        for alert in participant_alerts:
+            lines.append(f"{alert['icon']} {alert['message']}")
+        lines.append(f"\n⏰ {time_str}")
+        personal_msg = "\n".join(lines)
+        send_telegram_to_participant(pid, personal_msg)
 
-    message = "\n".join(lines)
-
-    # Telegram message limit is 4096 chars
-    if len(message) > 4000:
-        # Split into chunks
-        chunks = [alerts[i:i+5] for i in range(0, len(alerts), 5)]
-        for chunk in chunks:
-            chunk_lines = [header]
-            for alert in chunk:
-                chunk_lines.append(f"{alert['icon']} {alert['message']}")
-            send_telegram_message("\n".join(chunk_lines), parse_mode="HTML")
-    else:
-        send_telegram_message(message, parse_mode="HTML")
-
-    print(f"[Smart Alerts] Sent {len(alerts)} alert(s)")
+    print(f"[Smart Alerts] Sent {len(alerts)} alert(s) ({len(personal_map)} personal)")
