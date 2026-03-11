@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit';
-import OpenAI from 'openai';
 import { env } from '$env/dynamic/private';
 import { supabase } from '$lib/supabase';
 import { getTodayDateThai } from '$lib/timezone';
+import { callAI, getDefaultProvider, getDefaultModel } from '$lib/server/ai-client';
 import type { RequestHandler } from './$types';
 
 // ─── In-memory cache (TTL: 30 minutes) ──────────────────────────────
@@ -21,15 +21,6 @@ function getCached(key: string): any | null {
 
 function setCache(key: string, data: any): void {
     cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────
-
-function getOpenAIClient() {
-    if (!env.OPENAI_API_KEY) {
-        throw new Error('OPENAI_API_KEY not configured');
-    }
-    return new OpenAI({ apiKey: env.OPENAI_API_KEY });
 }
 
 // ─── Request Handler ─────────────────────────────────────────────────
@@ -134,21 +125,21 @@ Write a short, engaging competition highlight in Thai language (max 200 words). 
 
 Use markdown formatting (bold, bullet points) sparingly. Do NOT use headers.`;
 
-        // 4. Call OpenAI
+        // 4. Call AI
         let highlight = '';
         try {
-            const openai = getOpenAIClient();
-            const completion = await openai.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages: [
-                    { role: 'system', content: 'You are a Thai-language Forex competition commentator. Write concise, engaging highlights.' },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 500
-            });
-
-            highlight = completion.choices[0]?.message?.content || '';
+            const provider = getDefaultProvider();
+            const model = provider === 'openai'
+                ? (env.OPENAI_MODEL ?? 'gpt-4o-mini')
+                : getDefaultModel(provider);
+            highlight = await callAI(
+                provider,
+                model,
+                'You are a Thai-language Forex competition commentator. Write concise, engaging highlights.',
+                prompt,
+                0.7,
+                500
+            );
         } catch (aiErr) {
             console.error('Daily highlight AI error:', aiErr);
             highlight = 'ไม่สามารถสร้างไฮไลท์ได้ในขณะนี้';

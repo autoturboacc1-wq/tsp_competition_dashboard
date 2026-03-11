@@ -39,7 +39,7 @@
     let analysisResult = "";
     let customPrompt = "";
     let selectedType = "";
-    let selectedProvider: "openai" | "gemini" = "openai";
+    let selectedProvider: "openai" | "gemini" | "minimax" = "openai";
     let error: AiApiError | null = null;
     let copied = false;
     let lastRequest: { type: string; prompt?: string } | null = null;
@@ -316,6 +316,22 @@
                             </button>
                         {/each}
                     </div>
+                </div>
+
+                <!-- Provider Selector -->
+                <div class="mb-4 flex items-center gap-2">
+                    <span class="text-xs text-gray-400 dark:text-gray-500">AI:</span>
+                    {#each [{ value: "openai", label: "OpenAI" }, { value: "gemini", label: "Gemini" }, { value: "minimax", label: "Minimax" }] as p}
+                        <button
+                            class="px-3 py-1 text-xs rounded-full border transition-all {selectedProvider === p.value
+                                ? 'bg-purple-600 text-white border-purple-600'
+                                : 'border-gray-200 dark:border-dark-border text-gray-500 dark:text-gray-400 hover:border-purple-400'}"
+                            on:click={() => { selectedProvider = p.value as typeof selectedProvider; analysisResult = ''; error = null; }}
+                            disabled={loading}
+                        >
+                            {p.label}
+                        </button>
+                    {/each}
                 </div>
 
                 <!-- Custom Prompt -->

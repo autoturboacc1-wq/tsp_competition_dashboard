@@ -8,6 +8,8 @@
     import DailyHighlightCard from '$lib/components/DailyHighlightCard.svelte';
     import RecentTradesFeed from '$lib/components/RecentTradesFeed.svelte';
     import NotificationSettings from '$lib/components/NotificationSettings.svelte';
+    import StockTicker from '$lib/components/StockTicker.svelte';
+    import StockBoard from '$lib/components/StockBoard.svelte';
 
     export let data;
 
@@ -27,6 +29,15 @@
             profit: number;
             closeTime: string;
         }>;
+    };
+
+    type BoardParticipant = {
+        rank: number;
+        id: string;
+        nickname: string;
+        profit: number;
+        points: number;
+        winRate: number;
     };
 
     let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
@@ -73,8 +84,15 @@
         if (realtimeChannel) supabase.removeChannel(realtimeChannel);
     });
 
-    $: ({ summary, topPerformer, recentTrades, competition, topFive } = data);
+    $: ({ summary, topPerformer, recentTrades, competition, topFive, allParticipants } = data);
     $: dailyHighlightHtml = dailyHighlight?.highlight ? renderMarkdown(dailyHighlight.highlight) : '';
+    $: boardParticipants = (allParticipants?.length
+        ? allParticipants
+        : (topFive || []).map((p: Omit<BoardParticipant, 'rank' | 'winRate'>, i: number) => ({
+                ...p,
+                rank: i + 1,
+                winRate: 0
+            }))) as BoardParticipant[];
 
     function formatNumber(n: number): string {
         if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
@@ -100,6 +118,13 @@
                 </p>
             {/if}
         </div>
+
+        <!-- Stock Ticker -->
+        {#if allParticipants?.length > 0}
+            <div class="-mx-4 sm:-mx-6 lg:-mx-8 mb-6 sm:mb-8">
+                <StockTicker participants={allParticipants} />
+            </div>
+        {/if}
 
         <!-- Summary Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
@@ -235,38 +260,9 @@
                     </div>
                 </div>
 
-                <!-- Mini Leaderboard -->
-                <div class="p-5 rounded-xl bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border animate-fade-in-up stagger-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-semibold dark:text-white">Top 5</h2>
-                        <a href="/leaderboard" class="text-xs text-gold hover:underline">Full Ranking</a>
-                    </div>
-
-                    {#if topFive.length > 0}
-                        <div class="space-y-2">
-                            {#each topFive as player, i}
-                                <a
-                                    href="/leaderboard/{player.id}"
-                                    class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-                                >
-                                    <span class="w-6 text-center text-sm font-bold {i === 0 ? 'text-amber-500' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-amber-700' : 'text-gray-400 dark:text-gray-500'}">
-                                        {i + 1}
-                                    </span>
-                                    <div class="flex-1 min-w-0">
-                                        <div class="text-sm font-medium truncate dark:text-white">{player.nickname}</div>
-                                        <div class="text-xs text-gray-400">{player.points} pts</div>
-                                    </div>
-                                    <span class="text-sm font-semibold tabular-nums {player.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
-                                        {player.profit >= 0 ? '+' : ''}{player.profit.toFixed(2)}
-                                    </span>
-                                </a>
-                            {/each}
-                        </div>
-                    {:else}
-                        <div class="text-center py-6 text-gray-400 dark:text-gray-500 text-sm">
-                            No data yet
-                        </div>
-                    {/if}
+                <!-- Stock Board (All Participants) -->
+                <div class="animate-fade-in-up stagger-6">
+                    <StockBoard participants={boardParticipants} />
                 </div>
 
                 <!-- Telegram Alerts -->

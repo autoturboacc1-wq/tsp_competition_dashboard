@@ -1,13 +1,7 @@
 import { json } from '@sveltejs/kit';
-import OpenAI from 'openai';
-import { env } from '$env/dynamic/private';
 import { supabase } from '$lib/supabase';
+import { streamAI, getDefaultProvider, getDefaultModel } from '$lib/server/ai-client';
 import type { RequestHandler } from './$types';
-
-function getOpenAIClient() {
-    if (!env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured');
-    return new OpenAI({ apiKey: env.OPENAI_API_KEY });
-}
 
 const H2H_SYSTEM_PROMPT = `คุณเป็นนักวิเคราะห์การแข่งขันเทรด Forex มืออาชีพระดับสูงสำหรับหน้า Head-to-Head
 
@@ -186,10 +180,6 @@ export const POST: RequestHandler = async ({ request }) => {
             return json({ error: { code: 'bad_request', message: 'ต้องเลือกเทรดเดอร์ 2 คน' } }, { status: 400 });
         }
 
-        if (!env.OPENAI_API_KEY) {
-            return json({ error: { code: 'misconfigured', message: 'AI ยังไม่ได้ตั้งค่า' } }, { status: 500 });
-        }
-
         let userContent: string;
 
         if (hasIds) {
@@ -207,37 +197,9 @@ export const POST: RequestHandler = async ({ request }) => {
             userContent = `${formatTraderStatsLegacy(traderA, 'Trader A')}\n\n${formatTraderStatsLegacy(traderB, 'Trader B')}`;
         }
 
-        const openai = getOpenAIClient();
-        const encoder = new TextEncoder();
-
-        const stream = new ReadableStream({
-            async start(controller) {
-                try {
-                    const response = await openai.chat.completions.create({
-                        model: 'gpt-4o',
-                        messages: [
-                            { role: 'system', content: H2H_SYSTEM_PROMPT },
-                            { role: 'user', content: userContent }
-                        ],
-                        temperature: 0.5,
-                        stream: true,
-                    });
-
-                    for await (const chunk of response) {
-                        const content = chunk.choices[0]?.delta?.content || '';
-                        if (content) {
-                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
-                        }
-                    }
-                    controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-                } catch (e) {
-                    const msg = e instanceof Error ? e.message : 'Stream error';
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
-                } finally {
-                    controller.close();
-                }
-            }
-        });
+        const provider = getDefaultProvider();
+        const model = getDefaultModel(provider);
+        const stream = streamAI(provider, model, H2H_SYSTEM_PROMPT, userContent, 0.5);
 
         return new Response(stream, {
             headers: {

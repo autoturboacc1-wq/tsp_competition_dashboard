@@ -1,13 +1,8 @@
 import { json } from '@sveltejs/kit';
-import OpenAI from 'openai';
 import { env } from '$env/dynamic/private';
 import { supabase } from '$lib/supabase';
+import { callAI, getDefaultProvider, getDefaultModel } from '$lib/server/ai-client';
 import type { RequestHandler } from './$types';
-
-function getOpenAIClient() {
-    if (!env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured');
-    return new OpenAI({ apiKey: env.OPENAI_API_KEY });
-}
 
 const COMMENTARY_PROMPT = `คุณเป็นคอมเมนเตเตอร์การแข่งขันเทรด Forex
 ให้คอมเมนต์สั้นๆ 1-2 ประโยค เกี่ยวกับเทรดที่ปิดไป
@@ -75,10 +70,6 @@ export const POST: RequestHandler = async ({ request }) => {
             return json({ error: { message: 'ไม่มีข้อมูลเทรด' } }, { status: 400 });
         }
 
-        if (!env.OPENAI_API_KEY) {
-            return json({ error: { message: 'AI ยังไม่ได้ตั้งค่า' } }, { status: 500 });
-        }
-
         const tradesToComment = trades.slice(0, 5);
 
         // Fetch rank + win rate context from DB
@@ -86,8 +77,6 @@ export const POST: RequestHandler = async ({ request }) => {
             tradesToComment.map((t: any) => t.participantId).filter(Boolean)
         )] as string[];
         const contextMap = await fetchTraderContextMap(uniqueParticipantIds);
-
-        const openai = getOpenAIClient();
 
         const tradeDescriptions = tradesToComment.map((t: any, i: number) => {
             const ctx = contextMap.get(t.participantId);
@@ -97,17 +86,19 @@ export const POST: RequestHandler = async ({ request }) => {
             return `${i + 1}. ${t.nickname}${contextStr}: ${t.type} ${t.symbol} (${t.lot} lot) P/L: $${Number(t.profit).toFixed(2)}`;
         }).join('\n');
 
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
-            messages: [
-                { role: 'system', content: COMMENTARY_PROMPT },
-                { role: 'user', content: `เทรดที่เพิ่งปิด:\n${tradeDescriptions}\n\nให้คอมเมนต์แยกแต่ละเทรด โดยใส่ตัวเลขกำกับ` }
-            ],
-            temperature: 0.8,
-            max_tokens: 500,
-        });
+        const provider = getDefaultProvider();
+        const model = provider === 'openai'
+            ? (env.OPENAI_MODEL ?? 'gpt-4o-mini')
+            : getDefaultModel(provider);
 
-        const content = response.choices[0]?.message?.content || '';
+        const content = await callAI(
+            provider,
+            model,
+            COMMENTARY_PROMPT,
+            `เทรดที่เพิ่งปิด:\n${tradeDescriptions}\n\nให้คอมเมนต์แยกแต่ละเทรด โดยใส่ตัวเลขกำกับ`,
+            0.8,
+            500
+        );
 
         // Parse numbered comments back to individual trades
         const comments: Record<number, string> = {};

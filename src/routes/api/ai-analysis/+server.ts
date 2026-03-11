@@ -1,8 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import OpenAI from 'openai';
 import { env } from '$env/dynamic/private';
 import { supabase } from '$lib/supabase';
+import { streamAI, getDefaultProvider, getDefaultModel, type AIProvider } from '$lib/server/ai-client';
 import type { RequestHandler } from './$types';
 
 function aiError(
@@ -21,21 +20,6 @@ function aiError(
         },
         { status }
     );
-}
-
-// Lazy initialization of AI clients
-function getGeminiClient() {
-    if (!env.GEMINI_API_KEY) {
-        throw new Error('GEMINI_API_KEY not configured');
-    }
-    return new GoogleGenerativeAI(env.GEMINI_API_KEY);
-}
-
-function getOpenAIClient() {
-    if (!env.OPENAI_API_KEY) {
-        throw new Error('OPENAI_API_KEY not configured');
-    }
-    return new OpenAI({ apiKey: env.OPENAI_API_KEY });
 }
 
 // ─── Database Fetching ───────────────────────────────────────────────
@@ -504,91 +488,17 @@ const ANALYSIS_PROMPTS: Record<string, string> = {
 ใช้ภาษาไทย วิเคราะห์ตรงจุด อ้างอิงข้อมูลจริง ใช้ emoji ให้เหมาะสม`
 };
 
-// ─── Streaming ───────────────────────────────────────────────────────
-
-function streamWithOpenAI(systemPrompt: string, userContent: string): ReadableStream {
-    const openai = getOpenAIClient();
-    const encoder = new TextEncoder();
-
-    return new ReadableStream({
-        async start(controller) {
-            try {
-                const stream = await openai.chat.completions.create({
-                    model: 'gpt-4o',
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: userContent }
-                    ],
-                    temperature: 0.5,
-                    stream: true,
-                });
-
-                for await (const chunk of stream) {
-                    const content = chunk.choices[0]?.delta?.content || '';
-                    if (content) {
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
-                    }
-                }
-                controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-            } catch (e) {
-                const msg = e instanceof Error ? e.message : 'Stream error';
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
-            } finally {
-                controller.close();
-            }
-        }
-    });
-}
-
-function streamWithGemini(systemPrompt: string, userContent: string): ReadableStream {
-    const genAI = getGeminiClient();
-    const encoder = new TextEncoder();
-
-    return new ReadableStream({
-        async start(controller) {
-            try {
-                const model = genAI.getGenerativeModel({
-                    model: 'gemini-flash-latest',
-                    systemInstruction: systemPrompt
-                });
-                const result = await model.generateContentStream(userContent);
-
-                for await (const chunk of result.stream) {
-                    const content = chunk.text();
-                    if (content) {
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
-                    }
-                }
-                controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-            } catch (e) {
-                const msg = e instanceof Error ? e.message : 'Stream error';
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
-            } finally {
-                controller.close();
-            }
-        }
-    });
-}
-
 // ─── Request Handler ─────────────────────────────────────────────────
 
 export const POST: RequestHandler = async ({ request }) => {
     try {
-        const { traderId, trader, analysisType, customPrompt, provider = 'openai' } = await request.json();
+        const { traderId, trader, analysisType, customPrompt, provider: requestProvider } = await request.json();
+        const provider: AIProvider = (['openai', 'gemini', 'minimax'].includes(requestProvider))
+            ? requestProvider
+            : getDefaultProvider();
 
         if (!traderId && !trader) {
             return aiError('bad_request', 'ไม่พบข้อมูลเทรดเดอร์สำหรับการวิเคราะห์', false, 400);
-        }
-
-        if (provider !== 'gemini' && provider !== 'openai') {
-            return aiError('bad_request', 'รูปแบบผู้ให้บริการ AI ไม่ถูกต้อง', false, 400);
-        }
-
-        if (provider === 'gemini' && !env.GEMINI_API_KEY) {
-            return aiError('misconfigured', 'Gemini ยังไม่ได้ตั้งค่าระบบ', false, 500);
-        }
-        if (provider === 'openai' && !env.OPENAI_API_KEY) {
-            return aiError('misconfigured', 'OpenAI ยังไม่ได้ตั้งค่าระบบ', false, 500);
         }
 
         // Prompt injection mitigation: validate custom prompt
@@ -626,9 +536,8 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         // Stream response
-        const stream = provider === 'gemini'
-            ? streamWithGemini(systemPrompt, userContent)
-            : streamWithOpenAI(systemPrompt, userContent);
+        const model = getDefaultModel(provider);
+        const stream = streamAI(provider, model, systemPrompt, userContent, 0.5);
 
         return new Response(stream, {
             headers: {

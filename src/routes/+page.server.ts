@@ -101,6 +101,18 @@ export const load: PageServerLoad = async () => {
                 profit: entry.profit
             }));
 
+        // All participants ranked (for stock ticker/board)
+        const allParticipants = [...latestArray]
+            .sort((a, b) => b.points - a.points)
+            .map((entry, index) => ({
+                rank: index + 1,
+                id: entry.participant_id,
+                nickname: (entry.participants as any)?.nickname || 'Unknown',
+                points: entry.points,
+                profit: entry.profit,
+                winRate: entry.win_rate ?? 0
+            }));
+
         // Competition days
         const startDate = new Date(firstDate);
         const todayDate = new Date(thaiDate);
@@ -141,6 +153,7 @@ export const load: PageServerLoad = async () => {
                     : null
             },
             topFive,
+            allParticipants,
             participants
         };
 
@@ -154,6 +167,7 @@ export const load: PageServerLoad = async () => {
             recentTrades: [],
             competition: { totalDays: 0, startDate: '', mostActiveTrader: null },
             topFive: [],
+            allParticipants: [],
             participants: [],
             telegramBotUsername: env.TELEGRAM_BOT_USERNAME || ''
         };

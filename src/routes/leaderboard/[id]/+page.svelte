@@ -104,6 +104,9 @@
     let showAiModal = false;
     let showExportMenu = false;
 
+    // Sidebar tab state
+    let activeTab: 'overview' | 'style' = 'overview';
+
     // Filter State
     let filterSymbol = "ALL";
     let filterType = "ALL";
@@ -1216,7 +1219,7 @@
                                                 { key: 'type', label: 'Type', align: '' },
                                                 { key: 'lot', label: 'Lot', align: 'text-right' },
                                                 { key: 'profit', label: 'P/L', align: 'text-right' },
-                                                { key: 'closeTime', label: 'Time', align: 'text-right' }
+                                                { key: 'closeTime', label: 'Date/Time', align: 'text-right' }
                                             ] as col}
                                                 <th class="px-3 py-2 {col.align}">
                                                     <button
@@ -1254,7 +1257,15 @@
                                                         {trade.profit >= 0 ? "+" : ""}{trade.profit.toFixed(2)}
                                                     </td>
                                                     <td class="px-3 py-2 text-right text-[10px] text-gray-400">
-                                                        {new Date(trade.closeTime).toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok" })}
+                                                        {(() => {
+                                                            const d = new Date(trade.closeTime);
+                                                            const bkk = new Date(d.toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
+                                                            const dd = String(bkk.getDate()).padStart(2, "0");
+                                                            const mm = String(bkk.getMonth() + 1).padStart(2, "0");
+                                                            const hh = String(bkk.getHours()).padStart(2, "0");
+                                                            const min = String(bkk.getMinutes()).padStart(2, "0");
+                                                            return `${dd}/${mm} ${hh}:${min}`;
+                                                        })()}
                                                     </td>
                                                 </tr>
                                             {/each}
@@ -1266,88 +1277,106 @@
                     </div>
 
                     <!-- 2. Sidebar Stats -->
-                    <div class="lg:col-span-1 space-y-4 h-fit">
-                        <div class="bg-white dark:bg-dark-surface rounded-lg border border-gray-200 dark:border-dark-border p-4">
-                            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Stats</h3>
-
-                            <!-- Win Rate -->
-                            <div class="mb-3">
-                                <div class="flex justify-between text-xs mb-1">
-                                    <span class="text-gray-500 dark:text-gray-400">Win Rate</span>
-                                    <span class="font-medium text-gray-900 dark:text-white">{Number(trader.stats.winRate).toFixed(1)}%</span>
-                                </div>
-                                <div class="w-full bg-gray-100 dark:bg-dark-border rounded-full h-1 overflow-hidden">
-                                    <div class="bg-blue-500 h-1 rounded-full" style="width: {trader.stats.winRate}%"></div>
-                                </div>
-                                <div class="flex justify-between text-[10px] text-gray-400 mt-1">
-                                    <span>Long {Number(trader.stats.winRateBuy).toFixed(0)}%</span>
-                                    <span>Short {Number(trader.stats.winRateSell).toFixed(0)}%</span>
-                                </div>
+                    <div class="lg:col-span-1 space-y-4 h-fit order-first lg:order-last">
+                        <!-- Tabbed Stats Card -->
+                        <div class="bg-white dark:bg-dark-surface rounded-lg border border-gray-200 dark:border-dark-border overflow-hidden">
+                            <!-- Tab buttons -->
+                            <div class="flex border-b border-gray-200 dark:border-dark-border">
+                                <button
+                                    on:click={() => activeTab = 'overview'}
+                                    class="flex-1 py-2 text-xs font-medium transition-colors
+                                        {activeTab === 'overview'
+                                            ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500 bg-blue-50/50 dark:bg-blue-900/10'
+                                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
+                                >
+                                    Overview
+                                </button>
+                                <button
+                                    on:click={() => activeTab = 'style'}
+                                    class="flex-1 py-2 text-xs font-medium transition-colors
+                                        {activeTab === 'style'
+                                            ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-500 bg-blue-50/50 dark:bg-blue-900/10'
+                                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
+                                >
+                                    Style
+                                </button>
                             </div>
 
-                            <!-- Stats Grid -->
-                            <div class="grid grid-cols-3 gap-x-3 gap-y-2.5">
-                                {#each [
-                                    { label: 'PF', value: trader.stats.profitFactor, color: '' },
-                                    { label: 'Max DD', value: `${trader.stats.maxDrawdown}%`, color: 'text-red-500' },
-                                    { label: 'Trades', value: trader.stats.totalTrades, color: '' },
-                                    { label: 'RR', value: trader.stats.rrRatio, color: trader.stats.rrRatio >= 1 ? 'text-green-600 dark:text-green-400' : 'text-red-500' },
-                                    { label: 'Avg Win', value: `$${trader.stats.avgWin}`, color: 'text-green-600 dark:text-green-400' },
-                                    { label: 'Avg Loss', value: `$${trader.stats.avgLoss}`, color: 'text-red-500' },
-                                    { label: 'Best', value: `+$${formatMoney(trader.stats.bestTrade)}`, color: 'text-green-600 dark:text-green-400' },
-                                    { label: 'Worst', value: `${trader.stats.worstTrade >= 0 ? '+' : ''}$${formatMoney(trader.stats.worstTrade)}`, color: trader.stats.worstTrade >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500' },
-                                    { label: 'Consec W/L', value: `${trader.stats.maxConsecutiveWins}/${trader.stats.maxConsecutiveLosses}`, color: '' }
-                                ] as stat}
-                                    <div>
-                                        <div class="text-[10px] text-gray-400 dark:text-gray-500">{stat.label}</div>
-                                        <div class="text-sm font-semibold tabular-nums {stat.color || 'text-gray-900 dark:text-white'}">{stat.value}</div>
+                            <div class="p-4">
+                                {#if activeTab === 'overview'}
+                                    <!-- Win Rate -->
+                                    <div class="mb-3">
+                                        <div class="flex justify-between text-xs mb-1">
+                                            <span class="text-gray-500 dark:text-gray-400">Win Rate</span>
+                                            <span class="font-medium text-gray-900 dark:text-white">{Number(trader.stats.winRate).toFixed(1)}%</span>
+                                        </div>
+                                        <div class="w-full bg-gray-100 dark:bg-dark-border rounded-full h-1 overflow-hidden">
+                                            <div class="bg-blue-500 h-1 rounded-full" style="width: {trader.stats.winRate}%"></div>
+                                        </div>
+                                        <div class="flex justify-between text-[10px] text-gray-400 mt-1">
+                                            <span>Long {Number(trader.stats.winRateBuy).toFixed(0)}%</span>
+                                            <span>Short {Number(trader.stats.winRateSell).toFixed(0)}%</span>
+                                        </div>
                                     </div>
-                                {/each}
-                            </div>
-                        </div>
 
-                        <!-- Session Performance -->
-                        <div class="bg-white dark:bg-dark-surface rounded-lg border border-gray-200 dark:border-dark-border p-4">
-                            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Sessions</h3>
-                            <div class="space-y-2">
-                                {#each sessionData as session}
-                                    {@const barWidth = Math.abs(session.profit) / maxAbsProfit * 100}
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-12 text-[10px] font-medium {session.textClass} shrink-0">{session.name}</div>
-                                        <div class="flex-1 h-4 bg-gray-100 dark:bg-dark-bg/50 rounded overflow-hidden">
-                                            <div
-                                                class="h-full rounded {session.profit >= 0 ? 'bg-green-500/25' : 'bg-red-500/25'}"
-                                                style="width: {barWidth}%"
-                                            ></div>
-                                        </div>
-                                        <div class="w-16 text-right text-[10px] font-mono tabular-nums shrink-0 {session.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}">
-                                            {session.profit >= 0 ? '+' : ''}{Number(session.profit).toFixed(0)}
-                                        </div>
-                                        <div class="w-10 text-right text-[10px] font-mono tabular-nums text-gray-400 shrink-0">
-                                            {Number(session.winRate).toFixed(0)}%
-                                        </div>
+                                    <!-- Stats Grid -->
+                                    <div class="grid grid-cols-3 gap-x-3 gap-y-2.5 mb-4">
+                                        {#each [
+                                            { label: 'PF', value: trader.stats.profitFactor, color: '' },
+                                            { label: 'Max DD', value: `${trader.stats.maxDrawdown}%`, color: 'text-red-500' },
+                                            { label: 'Trades', value: trader.stats.totalTrades, color: '' },
+                                            { label: 'RR', value: trader.stats.rrRatio, color: trader.stats.rrRatio >= 1 ? 'text-green-600 dark:text-green-400' : 'text-red-500' },
+                                            { label: 'Avg Win', value: `$${trader.stats.avgWin}`, color: 'text-green-600 dark:text-green-400' },
+                                            { label: 'Avg Loss', value: `$${trader.stats.avgLoss}`, color: 'text-red-500' },
+                                            { label: 'Best', value: `+$${formatMoney(trader.stats.bestTrade)}`, color: 'text-green-600 dark:text-green-400' },
+                                            { label: 'Worst', value: `${trader.stats.worstTrade >= 0 ? '+' : ''}$${formatMoney(trader.stats.worstTrade)}`, color: trader.stats.worstTrade >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500' },
+                                            { label: 'W/L Streak', value: `${trader.stats.maxConsecutiveWins}/${trader.stats.maxConsecutiveLosses}`, color: '' }
+                                        ] as stat}
+                                            <div>
+                                                <div class="text-[10px] text-gray-400 dark:text-gray-500">{stat.label}</div>
+                                                <div class="text-sm font-semibold tabular-nums {stat.color || 'text-gray-900 dark:text-white'}">{stat.value}</div>
+                                            </div>
+                                        {/each}
                                     </div>
-                                {/each}
-                            </div>
-                        </div>
 
-                        <!-- Trading Style -->
-                        <div class="bg-white dark:bg-dark-surface rounded-lg border border-gray-200 dark:border-dark-border p-4">
-                            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                                {trader.stats.tradingStyle}
-                            </h3>
-                            <div class="space-y-1.5">
-                                {#each [
-                                    { label: 'Favorite', value: trader.stats.favoritePair, color: '' },
-                                    { label: 'Avg Hold', value: trader.stats.avgHoldingTime, color: '' },
-                                    { label: 'Hold (W)', value: trader.stats.avgHoldingTimeWin, color: 'text-green-600 dark:text-green-400' },
-                                    { label: 'Hold (L)', value: trader.stats.avgHoldingTimeLoss, color: 'text-red-500' }
-                                ] as row}
-                                    <div class="flex items-center justify-between text-xs">
-                                        <span class="text-gray-400">{row.label}</span>
-                                        <span class="font-medium {row.color || 'text-gray-900 dark:text-white'}">{row.value}</span>
+                                    <!-- Sessions -->
+                                    <div class="border-t border-gray-100 dark:border-dark-border pt-3">
+                                        <div class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Sessions</div>
+                                        <div class="space-y-2">
+                                            {#each sessionData as session}
+                                                {@const barWidth = Math.abs(session.profit) / maxAbsProfit * 100}
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-12 text-[10px] font-medium {session.textClass} shrink-0">{session.name}</div>
+                                                    <div class="flex-1 h-4 bg-gray-100 dark:bg-dark-bg/50 rounded overflow-hidden">
+                                                        <div class="h-full rounded {session.profit >= 0 ? 'bg-green-500/25' : 'bg-red-500/25'}" style="width: {barWidth}%"></div>
+                                                    </div>
+                                                    <div class="w-16 text-right text-[10px] font-mono tabular-nums shrink-0 {session.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}">
+                                                        {session.profit >= 0 ? '+' : ''}{Number(session.profit).toFixed(0)}
+                                                    </div>
+                                                    <div class="w-10 text-right text-[10px] font-mono tabular-nums text-gray-400 shrink-0">
+                                                        {Number(session.winRate).toFixed(0)}%
+                                                    </div>
+                                                </div>
+                                            {/each}
+                                        </div>
                                     </div>
-                                {/each}
+                                {:else}
+                                    <!-- Style tab: Trading Style + Holding Times -->
+                                    <div class="text-sm font-semibold text-gray-900 dark:text-white mb-3">{trader.stats.tradingStyle}</div>
+                                    <div class="space-y-1.5">
+                                        {#each [
+                                            { label: 'Favorite', value: trader.stats.favoritePair, color: '' },
+                                            { label: 'Avg Hold', value: trader.stats.avgHoldingTime, color: '' },
+                                            { label: 'Hold (Win)', value: trader.stats.avgHoldingTimeWin, color: 'text-green-600 dark:text-green-400' },
+                                            { label: 'Hold (Loss)', value: trader.stats.avgHoldingTimeLoss, color: 'text-red-500' }
+                                        ] as row}
+                                            <div class="flex items-center justify-between text-xs">
+                                                <span class="text-gray-400">{row.label}</span>
+                                                <span class="font-medium {row.color || 'text-gray-900 dark:text-white'}">{row.value}</span>
+                                            </div>
+                                        {/each}
+                                    </div>
+                                {/if}
                             </div>
                         </div>
 
@@ -1364,13 +1393,12 @@
                             />
                         </div>
 
-                        <!-- Trading Performance Calendar -->
-                        <div>
-                            <TradingCalendar
-                                dailyData={trader.dailyHistory || []}
-                            />
-                        </div>
                     </div>
+                </div>
+
+                <!-- Trading Calendar (full width) -->
+                <div class="mt-4">
+                    <TradingCalendar dailyData={trader.dailyHistory || []} />
                 </div>
 
                 <!-- Advanced Analytics -->
