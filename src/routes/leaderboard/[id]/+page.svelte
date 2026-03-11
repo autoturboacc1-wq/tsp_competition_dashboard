@@ -16,6 +16,7 @@
     import BadgeList from "$lib/components/BadgeList.svelte";
     import ScoreBreakdown from "$lib/components/ScoreBreakdown.svelte";
     import AnalyticsDashboard from "$lib/components/AnalyticsDashboard.svelte";
+    import RecentRhythmCard from "$lib/components/RecentRhythmCard.svelte";
     import {
         DrawingManager,
         type Drawing,
@@ -1392,6 +1393,11 @@
                                 worstTrade={trader.stats.worstTrade}
                             />
                         </div>
+
+                        <RecentRhythmCard
+                            dailyHistory={trader.dailyHistory || []}
+                            history={trader.history || []}
+                        />
 
                     </div>
                 </div>
