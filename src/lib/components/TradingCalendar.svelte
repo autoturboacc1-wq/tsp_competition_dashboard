@@ -280,6 +280,20 @@
             })
         );
     }
+
+    function stopClickPropagation(node: HTMLElement) {
+        const handleClick = (event: MouseEvent) => {
+            event.stopPropagation();
+        };
+
+        node.addEventListener("click", handleClick);
+
+        return {
+            destroy() {
+                node.removeEventListener("click", handleClick);
+            }
+        };
+    }
 </script>
 
 <div
@@ -623,8 +637,7 @@
     >
         <div
             class="bg-white dark:bg-dark-surface rounded-xl shadow-2xl max-w-sm w-full overflow-hidden modal-content"
-            on:click|stopPropagation
-            on:keydown|stopPropagation
+            use:stopClickPropagation
             role="document"
         >
             <!-- Modal Header -->

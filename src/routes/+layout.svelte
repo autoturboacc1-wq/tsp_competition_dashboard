@@ -1,9 +1,39 @@
 <script>
 	import "../app.css";
+	import { browser, dev } from "$app/environment";
+	import { onMount } from "svelte";
 	import ThemeToggle from "$lib/components/ThemeToggle.svelte";
 	import { page } from "$app/stores";
 
 	$: pathname = $page.url.pathname;
+
+	onMount(() => {
+		if (!browser || !dev || !("serviceWorker" in navigator)) return;
+
+		const resetKey = "tsp-dev-sw-reset";
+
+		void (async () => {
+			const registrations = await navigator.serviceWorker.getRegistrations();
+			if (registrations.length === 0) return;
+
+			await Promise.allSettled(registrations.map((registration) => registration.unregister()));
+
+			if ("caches" in window) {
+				const cacheKeys = await caches.keys();
+				await Promise.allSettled(cacheKeys.map((cacheKey) => caches.delete(cacheKey)));
+			}
+
+			if (navigator.serviceWorker.controller && !sessionStorage.getItem(resetKey)) {
+				sessionStorage.setItem(resetKey, "1");
+				location.reload();
+				return;
+			}
+
+			sessionStorage.removeItem(resetKey);
+		})().catch((error) => {
+			console.warn("Failed to clear dev service workers", error);
+		});
+	});
 </script>
 
 <div

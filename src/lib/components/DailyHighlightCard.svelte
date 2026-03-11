@@ -1,4 +1,7 @@
 <script lang="ts">
+    import { browser } from '$app/environment';
+    import { onDestroy } from 'svelte';
+
     type TopTrader = {
         nickname: string;
         profit: number;
@@ -21,8 +24,30 @@
     export let loading = false;
     export let error = false;
 
+    let plainHighlight = '';
+    let typedHighlight = '';
+    let typingComplete = false;
+    let lastTypingSignature = '';
+    let typingTimer: ReturnType<typeof setTimeout> | null = null;
+
     $: featuredTrades = notableTrades.slice(0, 3);
     $: hasKeyMovers = featuredTrades.length > 0;
+    $: {
+        const nextSignature = loading || error ? `${loading}:${error}` : highlight;
+
+        if (nextSignature !== lastTypingSignature) {
+            lastTypingSignature = nextSignature;
+
+            if (loading || error || !highlight) {
+                clearTypingTimer();
+                plainHighlight = '';
+                typedHighlight = '';
+                typingComplete = !highlight;
+            } else {
+                startTyping(highlight);
+            }
+        }
+    }
 
     function formatSigned(value: number): string {
         return `${value >= 0 ? '+' : ''}${value.toFixed(2)}`;
@@ -45,6 +70,82 @@
             minute: '2-digit'
         }).format(dateValue);
     }
+
+    function clearTypingTimer(): void {
+        if (!typingTimer) return;
+        clearTimeout(typingTimer);
+        typingTimer = null;
+    }
+
+    function extractHighlightText(markup: string): string {
+        if (!markup) return '';
+
+        if (!browser) {
+            return markup
+                .replace(/<li>/g, '• ')
+                .replace(/<[^>]+>/g, '')
+                .replace(/\n{3,}/g, '\n\n')
+                .trim();
+        }
+
+        const container = document.createElement('div');
+        container.innerHTML = markup;
+
+        container.querySelectorAll('li').forEach((item) => {
+            item.innerHTML = `• ${item.innerHTML}`;
+        });
+
+        return (container.innerText || container.textContent || '')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+    }
+
+    function shouldReduceMotion(): boolean {
+        return browser && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    function startTyping(markup: string): void {
+        clearTypingTimer();
+
+        plainHighlight = extractHighlightText(markup);
+
+        if (!plainHighlight) {
+            typedHighlight = '';
+            typingComplete = true;
+            return;
+        }
+
+        if (shouldReduceMotion()) {
+            typedHighlight = plainHighlight;
+            typingComplete = true;
+            return;
+        }
+
+        typedHighlight = '';
+        typingComplete = false;
+
+        const totalChars = plainHighlight.length;
+        const chunkSize = Math.max(1, Math.ceil(totalChars / 170));
+
+        const tick = () => {
+            const nextLength = Math.min(totalChars, typedHighlight.length + chunkSize);
+            typedHighlight = plainHighlight.slice(0, nextLength);
+
+            if (nextLength >= totalChars) {
+                typingComplete = true;
+                clearTypingTimer();
+                return;
+            }
+
+            typingTimer = setTimeout(tick, 30);
+        };
+
+        typingTimer = setTimeout(tick, 260);
+    }
+
+    onDestroy(() => {
+        clearTypingTimer();
+    });
 </script>
 
 <article
@@ -58,23 +159,23 @@
             <div class="flex flex-wrap items-center gap-2">
                 <span class="inline-flex items-center gap-2 rounded-full border border-amber-300/70 bg-amber-100/80 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-amber-900">
                     <span class="text-sm leading-none">&#x2728;</span>
-                    Highlight of the Day
+                    <span class="typewriter-reveal typewriter-reveal--chip-primary">Highlight of the Day</span>
                 </span>
                 <span class="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/65 px-3 py-1 text-[0.65rem] font-medium uppercase tracking-[0.22em] text-slate-500 backdrop-blur-sm">
                     <span class="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_0_4px_rgba(245,158,11,0.16)]"></span>
-                    Live Editorial
+                    <span class="typewriter-reveal typewriter-reveal--chip-secondary">Live Editorial</span>
                 </span>
             </div>
 
             <div class="max-w-3xl">
                 <p class="text-[0.68rem] font-semibold uppercase tracking-[0.35em] text-amber-700/90">
-                    Market Narrative
+                    <span class="typewriter-reveal typewriter-reveal--eyebrow">Market Narrative</span>
                 </p>
                 <h2 class="mt-2 text-2xl font-semibold leading-tight text-slate-900 sm:text-[2rem]">
-                    The session&apos;s defining story
+                    <span class="typewriter-reveal typewriter-reveal--title">The session&apos;s defining story</span>
                 </h2>
                 <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-[0.95rem]">
-                    Premium recap of the most decisive moves, lead changes, and pressure points from the competition floor.
+                    <span class="typewriter-reveal typewriter-reveal--deck">Premium recap of the most decisive moves, lead changes, and pressure points from the competition floor.</span>
                 </p>
             </div>
         </header>
@@ -216,7 +317,13 @@
 
                 <div class="daily-highlight-surface narrative-panel lg:order-1">
                     <div class="highlight-prose max-w-none text-[0.98rem] leading-8 text-slate-700 sm:text-[1.02rem]">
-                        {@html highlight}
+                        {#if typingComplete}
+                            {@html highlight}
+                        {:else}
+                            <div class="highlight-typing" aria-live="polite">
+                                {typedHighlight}<span class="typing-caret" aria-hidden="true"></span>
+                            </div>
+                        {/if}
                     </div>
                 </div>
             </div>
@@ -463,6 +570,61 @@
         max-width: 68ch;
     }
 
+    .highlight-typing {
+        white-space: pre-wrap;
+    }
+
+    .typewriter-reveal {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        clip-path: inset(0 100% 0 0);
+        animation-name: typeRevealClip;
+        animation-duration: 900ms;
+        animation-timing-function: steps(28, end);
+        animation-fill-mode: forwards;
+    }
+
+    .typewriter-reveal--chip-primary {
+        animation-delay: 60ms;
+        animation-duration: 520ms;
+        animation-timing-function: steps(18, end);
+    }
+
+    .typewriter-reveal--chip-secondary {
+        animation-delay: 540ms;
+        animation-duration: 540ms;
+        animation-timing-function: steps(16, end);
+    }
+
+    .typewriter-reveal--eyebrow {
+        animation-delay: 1080ms;
+        animation-duration: 460ms;
+        animation-timing-function: steps(20, end);
+    }
+
+    .typewriter-reveal--title {
+        animation-delay: 1500ms;
+        animation-duration: 980ms;
+        animation-timing-function: steps(34, end);
+    }
+
+    .typewriter-reveal--deck {
+        animation-delay: 2360ms;
+        animation-duration: 1220ms;
+        animation-timing-function: steps(48, end);
+    }
+
+    .typing-caret {
+        display: inline-block;
+        width: 0.7ch;
+        height: 1.05em;
+        margin-left: 0.1rem;
+        border-right: 2px solid currentColor;
+        transform: translateY(0.18em);
+        animation: highlightCaret 0.95s steps(1, end) infinite;
+    }
+
     .highlight-prose :global(p) {
         margin: 0 0 0.9rem;
     }
@@ -537,6 +699,28 @@
         }
     }
 
+    @keyframes typeRevealClip {
+        from {
+            clip-path: inset(0 100% 0 0);
+        }
+
+        to {
+            clip-path: inset(0 0 0 0);
+        }
+    }
+
+    @keyframes highlightCaret {
+        0%,
+        49% {
+            opacity: 1;
+        }
+
+        50%,
+        100% {
+            opacity: 0;
+        }
+    }
+
     @media (max-width: 640px) {
         .highlight-prose {
             max-width: 100%;
@@ -551,10 +735,16 @@
 
     @media (prefers-reduced-motion: reduce) {
         .daily-highlight-card,
-        .daily-highlight-shimmer::after {
+        .daily-highlight-shimmer::after,
+        .typewriter-reveal {
             animation: none !important;
             transition: none !important;
             transform: none !important;
+            clip-path: none !important;
+        }
+
+        .typing-caret {
+            animation: none !important;
         }
     }
 </style>
