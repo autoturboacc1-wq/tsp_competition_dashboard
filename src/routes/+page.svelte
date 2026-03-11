@@ -10,6 +10,7 @@
     import NotificationSettings from '$lib/components/NotificationSettings.svelte';
     import StockTicker from '$lib/components/StockTicker.svelte';
     import StockBoard from '$lib/components/StockBoard.svelte';
+    import SentimentBoard from '$lib/components/SentimentBoard.svelte';
 
     export let data;
 
@@ -258,6 +259,11 @@
                             </div>
                         {/if}
                     </div>
+                </div>
+
+                <!-- Collective Sentiment Board -->
+                <div class="animate-fade-in-up stagger-6">
+                    <SentimentBoard data={data.sentimentBySymbol ?? []} />
                 </div>
 
                 <!-- Stock Board (All Participants) -->

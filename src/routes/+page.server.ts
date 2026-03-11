@@ -15,7 +15,7 @@ export const load: PageServerLoad = async () => {
         const thaiDate = getTodayDateThai();
 
         // First: get the earliest date (for competition days) and try today's stats
-        const [todayStatsResult, recentTradesResult, dateRangeResult] = await Promise.all([
+        const [todayStatsResult, recentTradesResult, dateRangeResult, openTradesResult] = await Promise.all([
             // Query 1: Today's daily_stats only
             supabase
                 .from('daily_stats')
@@ -35,12 +35,32 @@ export const load: PageServerLoad = async () => {
                 .from('daily_stats')
                 .select('date')
                 .order('date', { ascending: true })
-                .limit(1)
+                .limit(1),
+
+            // Query 4: Open trades for sentiment board
+            supabase
+                .from('trades')
+                .select('symbol, type, lot_size')
+                .is('close_time', null)
         ]);
 
         let latestArray = todayStatsResult.data || [];
         const recentTrades = recentTradesResult.data || [];
         const firstDate = dateRangeResult.data?.[0]?.date || thaiDate;
+
+        // Aggregate open trades by symbol for sentiment board
+        const openTrades = openTradesResult.data || [];
+        const sentimentMap = new Map<string, { symbol: string; buyLots: number; sellLots: number; buyCount: number; sellCount: number }>();
+        for (const t of openTrades) {
+            if (!sentimentMap.has(t.symbol)) {
+                sentimentMap.set(t.symbol, { symbol: t.symbol, buyLots: 0, sellLots: 0, buyCount: 0, sellCount: 0 });
+            }
+            const entry = sentimentMap.get(t.symbol)!;
+            if (t.type === 'BUY') { entry.buyLots += t.lot_size; entry.buyCount++; }
+            else { entry.sellLots += t.lot_size; entry.sellCount++; }
+        }
+        const sentimentBySymbol = [...sentimentMap.values()]
+            .sort((a, b) => (b.buyCount + b.sellCount) - (a.buyCount + a.sellCount));
 
         // Fallback: if no data for today, get the latest date's stats
         if (latestArray.length === 0) {
@@ -154,7 +174,8 @@ export const load: PageServerLoad = async () => {
             },
             topFive,
             allParticipants,
-            participants
+            participants,
+            sentimentBySymbol
         };
 
         setCache(CACHE_KEY, result, CACHE_TTL);
@@ -169,6 +190,7 @@ export const load: PageServerLoad = async () => {
             topFive: [],
             allParticipants: [],
             participants: [],
+            sentimentBySymbol: [],
             telegramBotUsername: env.TELEGRAM_BOT_USERNAME || ''
         };
     }
