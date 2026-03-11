@@ -1,4 +1,6 @@
 <script lang="ts">
+    type SentimentStatus = 'ready' | 'empty' | 'unavailable';
+
     export let data: Array<{
         symbol: string;
         buyLots: number;
@@ -6,8 +8,10 @@
         buyCount: number;
         sellCount: number;
     }> = [];
+    export let status: SentimentStatus = 'empty';
 
     $: totalPositions = data.reduce((s, d) => s + d.buyCount + d.sellCount, 0);
+    $: headerLabel = status === 'unavailable' ? 'Feed offline' : `${totalPositions} open`;
 
     function buyPct(row: typeof data[0]): number {
         const total = row.buyLots + row.sellLots;
@@ -25,17 +29,22 @@
     <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-dark-border">
         <div class="flex items-center gap-2">
             <h2 class="text-sm font-semibold dark:text-white uppercase tracking-wider">Market Sentiment</h2>
-            {#if totalPositions > 0}
+            {#if status === 'ready' && totalPositions > 0}
                 <span class="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-full">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     LIVE
                 </span>
             {/if}
         </div>
-        <span class="text-xs text-gray-400 dark:text-gray-500">{totalPositions} open</span>
+        <span class="text-xs text-gray-400 dark:text-gray-500">{headerLabel}</span>
     </div>
 
-    {#if data.length === 0}
+    {#if status === 'unavailable'}
+        <div class="px-4 py-6 text-center">
+            <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Live sentiment unavailable</div>
+            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Waiting for the open position feed to come online.</p>
+        </div>
+    {:else if data.length === 0}
         <div class="text-center py-6 text-gray-400 dark:text-gray-500 text-sm">
             No open positions
         </div>

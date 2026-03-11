@@ -41,11 +41,22 @@
         winRate: number;
     };
 
+    type SentimentStatus = 'ready' | 'empty' | 'unavailable';
+    type SentimentRow = {
+        symbol: string;
+        buyLots: number;
+        sellLots: number;
+        buyCount: number;
+        sellCount: number;
+    };
+
     let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
     let dailyHighlight: DailyHighlight | null = null;
     let dailyHighlightHtml = '';
     let highlightLoading = true;
     let highlightError = false;
+    let sentimentStatus: SentimentStatus = 'unavailable';
+    let sentimentBySymbol: SentimentRow[] = [];
 
     function renderMarkdown(text: string): string {
         const raw = marked.parse(text, { async: false }) as string;
@@ -76,6 +87,7 @@
             .channel('dashboard-changes')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_stats' }, () => invalidateAll())
             .on('postgres_changes', { event: '*', schema: 'public', table: 'trades' }, () => invalidateAll())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'open_positions' }, () => invalidateAll())
             .subscribe();
 
         fetchDailyHighlight();
@@ -85,8 +97,9 @@
         if (realtimeChannel) supabase.removeChannel(realtimeChannel);
     });
 
-    $: ({ summary, topPerformer, recentTrades, competition, topFive, allParticipants } = data);
+    $: ({ summary, topPerformer, recentTrades, competition, topFive, allParticipants, sentimentStatus } = data);
     $: dailyHighlightHtml = dailyHighlight?.highlight ? renderMarkdown(dailyHighlight.highlight) : '';
+    $: sentimentBySymbol = data.sentimentBySymbol ?? [];
     $: boardParticipants = (allParticipants?.length
         ? allParticipants
         : (topFive || []).map((p: Omit<BoardParticipant, 'rank' | 'winRate'>, i: number) => ({
@@ -263,7 +276,7 @@
 
                 <!-- Collective Sentiment Board -->
                 <div class="animate-fade-in-up stagger-6">
-                    <SentimentBoard data={data.sentimentBySymbol ?? []} />
+                    <SentimentBoard data={sentimentBySymbol} status={sentimentStatus} />
                 </div>
 
                 <!-- Stock Board (All Participants) -->

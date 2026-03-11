@@ -68,7 +68,23 @@ create table public.trades (
   unique(participant_id, position_id)
 );
 
--- 4. Market Data Table (For Charts)
+-- 4. Open Positions Table (For Live Sentiment)
+create table public.open_positions (
+  id uuid primary key default uuid_generate_v4(),
+  participant_id uuid references public.participants(id) on delete cascade not null,
+  position_id bigint not null,
+  symbol text not null,
+  type text not null, -- 'BUY' or 'SELL'
+  lot_size numeric not null,
+  open_price numeric not null,
+  open_time timestamp with time zone not null,
+  sl numeric,
+  tp numeric,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(participant_id, position_id)
+);
+
+-- 5. Market Data Table (For Charts)
 create table public.market_data (
   symbol text not null,
   time timestamp with time zone not null,
@@ -84,6 +100,7 @@ create table public.market_data (
 alter table public.participants enable row level security;
 alter table public.daily_stats enable row level security;
 alter table public.trades enable row level security;
+alter table public.open_positions enable row level security;
 alter table public.market_data enable row level security;
 
 -- Policies (Public Read, Admin Write)
@@ -97,10 +114,13 @@ create policy "Allow public read access on daily_stats"
 create policy "Allow public read access on trades"
   on public.trades for select using (true);
 
+create policy "Allow public read access on open_positions"
+  on public.open_positions for select using (true);
+
 create policy "Allow public read access on market_data"
   on public.market_data for select using (true);
 
--- 5. Achievements Table
+-- 6. Achievements Table
 create table public.achievements (
   id uuid primary key default uuid_generate_v4(),
   participant_id uuid references public.participants(id) on delete cascade not null,

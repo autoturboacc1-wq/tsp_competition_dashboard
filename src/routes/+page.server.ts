@@ -7,15 +7,58 @@ import type { PageServerLoad } from './$types';
 const CACHE_KEY = 'dashboard';
 const CACHE_TTL = 60_000; // 60 seconds
 
+type SentimentRow = {
+    symbol: string;
+    buyLots: number;
+    sellLots: number;
+    buyCount: number;
+    sellCount: number;
+};
+
+type SentimentStatus = 'ready' | 'empty' | 'unavailable';
+
+function aggregateSentimentBySymbol(openPositions: Array<{ symbol: string; type: string; lot_size: number | string | null }>): SentimentRow[] {
+    const sentimentMap = new Map<string, SentimentRow>();
+
+    for (const position of openPositions) {
+        if (!position.symbol) continue;
+
+        if (!sentimentMap.has(position.symbol)) {
+            sentimentMap.set(position.symbol, {
+                symbol: position.symbol,
+                buyLots: 0,
+                sellLots: 0,
+                buyCount: 0,
+                sellCount: 0
+            });
+        }
+
+        const entry = sentimentMap.get(position.symbol)!;
+        const lotSize = Number(position.lot_size) || 0;
+
+        if (position.type === 'BUY') {
+            entry.buyLots += lotSize;
+            entry.buyCount += 1;
+        } else if (position.type === 'SELL') {
+            entry.sellLots += lotSize;
+            entry.sellCount += 1;
+        }
+    }
+
+    return [...sentimentMap.values()].sort(
+        (a, b) => (b.buyCount + b.sellCount) - (a.buyCount + a.sellCount) || a.symbol.localeCompare(b.symbol)
+    );
+}
+
 export const load: PageServerLoad = async () => {
     const cached = getCached<any>(CACHE_KEY);
-    if (cached) return cached;
+    if (cached) return { ...cached, telegramBotUsername: env.TELEGRAM_BOT_USERNAME || '' };
 
     try {
         const thaiDate = getTodayDateThai();
 
         // First: get the earliest date (for competition days) and try today's stats
-        const [todayStatsResult, recentTradesResult, dateRangeResult, openTradesResult] = await Promise.all([
+        const [todayStatsResult, recentTradesResult, dateRangeResult, openPositionsResult] = await Promise.all([
             // Query 1: Today's daily_stats only
             supabase
                 .from('daily_stats')
@@ -39,28 +82,23 @@ export const load: PageServerLoad = async () => {
 
             // Query 4: Open trades for sentiment board
             supabase
-                .from('trades')
+                .from('open_positions')
                 .select('symbol, type, lot_size')
-                .is('close_time', null)
         ]);
 
         let latestArray = todayStatsResult.data || [];
         const recentTrades = recentTradesResult.data || [];
         const firstDate = dateRangeResult.data?.[0]?.date || thaiDate;
 
-        // Aggregate open trades by symbol for sentiment board
-        const openTrades = openTradesResult.data || [];
-        const sentimentMap = new Map<string, { symbol: string; buyLots: number; sellLots: number; buyCount: number; sellCount: number }>();
-        for (const t of openTrades) {
-            if (!sentimentMap.has(t.symbol)) {
-                sentimentMap.set(t.symbol, { symbol: t.symbol, buyLots: 0, sellLots: 0, buyCount: 0, sellCount: 0 });
-            }
-            const entry = sentimentMap.get(t.symbol)!;
-            if (t.type === 'BUY') { entry.buyLots += t.lot_size; entry.buyCount++; }
-            else { entry.sellLots += t.lot_size; entry.sellCount++; }
+        let sentimentStatus: SentimentStatus = 'empty';
+        let sentimentBySymbol: SentimentRow[] = [];
+        if (openPositionsResult.error) {
+            sentimentStatus = 'unavailable';
+            console.error('Open positions fetch failed:', openPositionsResult.error);
+        } else {
+            sentimentBySymbol = aggregateSentimentBySymbol(openPositionsResult.data || []);
+            sentimentStatus = sentimentBySymbol.length > 0 ? 'ready' : 'empty';
         }
-        const sentimentBySymbol = [...sentimentMap.values()]
-            .sort((a, b) => (b.buyCount + b.sellCount) - (a.buyCount + a.sellCount));
 
         // Fallback: if no data for today, get the latest date's stats
         if (latestArray.length === 0) {
@@ -175,7 +213,8 @@ export const load: PageServerLoad = async () => {
             topFive,
             allParticipants,
             participants,
-            sentimentBySymbol
+            sentimentBySymbol,
+            sentimentStatus
         };
 
         setCache(CACHE_KEY, result, CACHE_TTL);
@@ -191,6 +230,7 @@ export const load: PageServerLoad = async () => {
             allParticipants: [],
             participants: [],
             sentimentBySymbol: [],
+            sentimentStatus: 'unavailable' as const,
             telegramBotUsername: env.TELEGRAM_BOT_USERNAME || ''
         };
     }

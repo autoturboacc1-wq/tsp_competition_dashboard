@@ -21,10 +21,72 @@ from achievements import check_achievements
 # Load environment variables
 load_env()
 
+MT5_SERVER_OFFSET_SECONDS = 10800
+POSITION_TYPE_BUY = getattr(mt5, 'POSITION_TYPE_BUY', mt5.ORDER_TYPE_BUY)
+
 SYNC_INTERVAL = int(os.getenv("SYNC_INTERVAL", "60")) # Default 60 seconds
 
 # Initialize Supabase client
 supabase = get_supabase_client()
+
+def mt5_timestamp_to_iso(timestamp):
+    return datetime.fromtimestamp(timestamp - MT5_SERVER_OFFSET_SECONDS, tz=timezone.utc).isoformat()
+
+def sync_open_positions(participant, live_positions):
+    synced_at = datetime.now(timezone.utc).isoformat()
+    current_position_ids = set()
+    positions_data = []
+
+    for position in live_positions or []:
+        position_id = int(getattr(position, 'ticket', 0) or 0)
+        opened_at = int(getattr(position, 'time', 0) or 0)
+        symbol = getattr(position, 'symbol', None)
+
+        if position_id <= 0 or opened_at <= 0 or not symbol:
+            continue
+
+        current_position_ids.add(position_id)
+        positions_data.append({
+            "participant_id": participant['id'],
+            "position_id": position_id,
+            "symbol": symbol,
+            "type": 'BUY' if getattr(position, 'type', None) == POSITION_TYPE_BUY else 'SELL',
+            "lot_size": float(getattr(position, 'volume', 0) or 0),
+            "open_price": float(getattr(position, 'price_open', 0) or 0),
+            "open_time": mt5_timestamp_to_iso(opened_at),
+            "sl": float(getattr(position, 'sl', 0) or 0),
+            "tp": float(getattr(position, 'tp', 0) or 0),
+            "updated_at": synced_at
+        })
+
+    try:
+        existing_res = supabase.table('open_positions').select('position_id').eq('participant_id', participant['id']).execute()
+        existing_ids = {
+            int(row['position_id'])
+            for row in (existing_res.data or [])
+            if row.get('position_id') is not None
+        }
+
+        if positions_data:
+            supabase.table('open_positions').upsert(positions_data, on_conflict='participant_id,position_id').execute()
+            print(f"Synced {len(positions_data)} open positions for {participant['nickname']}")
+
+        stale_ids = existing_ids - current_position_ids
+        if not current_position_ids:
+            if existing_ids:
+                supabase.table('open_positions').delete().eq('participant_id', participant['id']).execute()
+                print(f"Cleared {len(existing_ids)} open positions for {participant['nickname']}")
+            else:
+                print(f"No open positions to sync for {participant['nickname']}")
+            return
+
+        for stale_id in stale_ids:
+            supabase.table('open_positions').delete().eq('participant_id', participant['id']).eq('position_id', stale_id).execute()
+
+        if stale_ids:
+            print(f"Removed {len(stale_ids)} stale open positions for {participant['nickname']}")
+    except Exception as e:
+        print(f"Error syncing open positions: {e}")
 
 def sync_participant(participant):
     print(f"Syncing participant: {participant['nickname']} ({participant['account_id']})")
@@ -62,11 +124,16 @@ def sync_participant(participant):
     print(f"Fetching history from {from_date} to {to_date}...")
     
     # Debug: Check positions (Open trades)
-    positions = mt5.positions_get()
-    if positions:
-        print(f"DEBUG: Found {len(positions)} open positions on account.")
+    live_positions = mt5.positions_get()
+    if live_positions is None:
+        print(f"Warning: Failed to fetch open positions, error code: {mt5.last_error()}")
+    elif live_positions:
+        print(f"DEBUG: Found {len(live_positions)} open positions on account.")
     else:
         print("DEBUG: No open positions found.")
+
+    if live_positions is not None:
+        sync_open_positions(participant, live_positions)
 
     history_deals = mt5.history_deals_get(from_date, to_date)
 
@@ -433,8 +500,8 @@ def sync_participant(participant):
                     "close_price": float(pos['close_price']),
                     "sl": float(pos.get('sl', 0)),
                     "tp": float(pos.get('tp', 0)),
-                    "open_time": datetime.fromtimestamp(pos['open_time'] - 10800, tz=timezone.utc).isoformat(), # Adjust UTC+3 to UTC
-                    "close_time": datetime.fromtimestamp(pos['close_time'] - 10800, tz=timezone.utc).isoformat(), # Adjust UTC+3 to UTC
+                    "open_time": mt5_timestamp_to_iso(pos['open_time']),
+                    "close_time": mt5_timestamp_to_iso(pos['close_time']),
                     "profit": float(pos['profit']),
                     "position_id": pid
                 })
