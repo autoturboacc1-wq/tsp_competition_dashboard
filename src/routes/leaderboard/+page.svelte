@@ -109,18 +109,19 @@
                     </p>
                 </div>
 
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-4">
                     <button
                         on:click={() => (showH2H = true)}
-                        class="px-4 py-2 bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white text-sm font-medium rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
+                        class="px-5 py-2 border border-amber-500/30 hover:border-amber-400/60 bg-transparent hover:bg-amber-500/8 text-amber-400/80 hover:text-amber-300 text-xs font-medium tracking-[0.12em] uppercase transition-all duration-300"
                     >
                         VS Head-to-Head
                     </button>
                     <a
                         href="/"
-                        class="text-sm font-medium text-blue-600 hover:text-blue-500 flex items-center gap-1"
+                        class="text-xs font-light tracking-[0.1em] uppercase text-gray-500 hover:text-gray-300 flex items-center gap-1.5 transition-colors duration-300"
                     >
-                        &larr; Back to Home
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7" /></svg>
+                        Home
                     </a>
                 </div>
             </div>

@@ -289,38 +289,36 @@
         return slot === "A"
             ? {
                   surface:
-                      "border-red-900/60 bg-red-950/20",
+                      "border-white/10 bg-white/[0.03]",
                   subtle:
-                      "bg-red-500/15 text-red-200",
-                  text: "text-red-300",
-                  ring: "ring-red-900/60",
-                  button:
-                      "from-red-600 via-red-500 to-orange-500 hover:from-red-700 hover:via-red-600 hover:to-orange-600",
+                      "bg-white/8 text-gray-300",
+                  text: "text-gray-400",
+                  ring: "ring-white/10",
+                  button: "",
               }
             : {
                   surface:
-                      "border-amber-900/60 bg-amber-950/20",
+                      "border-amber-500/20 bg-amber-500/[0.04]",
                   subtle:
-                      "bg-amber-400/15 text-amber-200",
-                  text: "text-amber-300",
-                  ring: "ring-amber-900/60",
-                  button:
-                      "from-orange-500 via-amber-500 to-yellow-500 hover:from-orange-600 hover:via-amber-500 hover:to-yellow-400",
+                      "bg-amber-500/10 text-amber-300",
+                  text: "text-amber-400/80",
+                  ring: "ring-amber-500/20",
+                  button: "",
               };
     }
 
     function getValueCellClass(winner: CompareWinner, slot: "A" | "B") {
         if (winner === slot) {
             return slot === "A"
-                ? "bg-red-600 text-white shadow-lg shadow-red-500/20 ring-1 ring-red-300/60"
-                : "bg-amber-400 text-gray-950 shadow-lg shadow-amber-500/20 ring-1 ring-amber-100/80";
+                ? "bg-white/10 text-white ring-1 ring-white/20"
+                : "bg-amber-500/15 text-amber-100 ring-1 ring-amber-400/25";
         }
 
         if (winner === "tie") {
-            return "bg-slate-800/85 text-gray-100 ring-1 ring-slate-700";
+            return "bg-slate-800/50 text-gray-400 ring-1 ring-slate-700/50";
         }
 
-        return "bg-slate-900/85 text-gray-400 ring-1 ring-slate-800";
+        return "bg-slate-900/40 text-gray-600 ring-1 ring-slate-800/50";
     }
 
     async function compare() {
@@ -438,19 +436,19 @@
             on:keydown|stopPropagation
             role="document"
         >
-            <div class="relative overflow-hidden bg-[linear-gradient(135deg,_#dc2626_0%,_#ef4444_52%,_#f97316_100%)] px-5 pb-5 pt-4 text-white sm:px-6">
-                <div class="absolute inset-0 opacity-20">
-                    <div class="duel-grid h-full w-full"></div>
-                </div>
+            <div class="relative overflow-hidden bg-[#080808] border-b border-white/[0.07] px-5 pb-5 pt-4 text-white sm:px-6">
+                <div class="duel-grid absolute inset-0 opacity-[0.35]"></div>
+                <!-- Subtle gold top line -->
+                <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent"></div>
 
                 <div class="relative flex items-start justify-between gap-3">
                     <div class="min-w-0 flex-1">
-                        <span class="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.16em] text-white/80">
+                        <span class="inline-flex items-center rounded-full border border-amber-500/25 bg-amber-500/8 px-2 py-0.5 text-[8px] font-medium uppercase tracking-[0.18em] text-amber-400/80">
                             Head-to-Head
                         </span>
                         <div class="mt-2.5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                             <div>
-                                <h2 class="text-lg font-extrabold leading-tight tracking-[-0.02em] sm:text-xl">
+                                <h2 class="text-lg font-light leading-tight tracking-[0.06em] uppercase sm:text-xl text-white/90">
                                     VS Duel Compare
                                 </h2>
                                 <p class="mt-1.5 max-w-md text-[11px] font-medium leading-4 text-white/70 sm:text-xs">
@@ -552,7 +550,7 @@
                         </div>
 
                         <div class="flex flex-col items-center justify-center gap-2 py-1 lg:py-0">
-                            <div class="flex h-16 w-16 items-center justify-center rounded-full border border-slate-700 bg-black text-base font-black tracking-[0.2em] text-white shadow-xl shadow-red-500/20 ring-4 ring-slate-900">
+                            <div class="flex h-16 w-16 items-center justify-center rounded-full border border-amber-500/20 bg-black text-base font-light tracking-[0.25em] text-amber-400/80 shadow-xl shadow-amber-500/8 ring-4 ring-black/80">
                                 VS
                             </div>
                             {#if selectedTraderAId && selectedTraderBId}
@@ -639,29 +637,29 @@
                     </div>
 
                     <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div class="flex flex-wrap items-center gap-1.5 text-xs">
-                            <div class="rounded-full bg-red-100 px-3 py-1.5 font-semibold text-red-700 dark:bg-red-900/30 dark:text-red-200">
-                                A ชนะ {winsA} metrics
+                        <div class="flex flex-wrap items-center gap-2 text-xs">
+                            <div class="border border-white/10 bg-white/5 rounded px-3 py-1 font-light tracking-wide text-gray-400">
+                                A · {winsA}
                             </div>
-                            <div class="rounded-full bg-amber-100 px-3 py-1.5 font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
-                                B ชนะ {winsB} metrics
+                            <div class="border border-amber-500/20 bg-amber-500/5 rounded px-3 py-1 font-light tracking-wide text-amber-400/80">
+                                B · {winsB}
                             </div>
-                            <div class="rounded-full bg-slate-800 px-3 py-1.5 font-semibold text-slate-200">
-                                เสมอ {ties}
+                            <div class="border border-slate-700/50 bg-transparent rounded px-3 py-1 font-light tracking-wide text-slate-500">
+                                เสมอ · {ties}
                             </div>
                         </div>
 
                         {#if loading}
                             <button
-                                class="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-bold text-slate-200 shadow transition hover:bg-slate-800 active:scale-[0.98]"
+                                class="inline-flex items-center gap-2 border border-slate-700/50 bg-transparent px-4 py-2 text-xs font-light tracking-wide text-slate-400 transition hover:text-slate-300 active:scale-[0.98]"
                                 on:click={cancelCompare}
                             >
-                                <span class="h-2 w-2 animate-pulse rounded-full bg-orange-400"></span>
-                                กำลังวิเคราะห์... (ยกเลิก)
+                                <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400"></span>
+                                กำลังวิเคราะห์ — ยกเลิก
                             </button>
                         {:else}
                             <button
-                                class={`inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r px-4 py-2 text-xs font-bold text-white shadow-lg transition hover:scale-[1.01] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${getTraderAccent("A").button}`}
+                                class="inline-flex items-center justify-center gap-1.5 border border-amber-500/30 hover:border-amber-400/60 bg-transparent hover:bg-amber-500/8 px-5 py-2 text-xs font-medium tracking-[0.1em] uppercase text-amber-400/80 hover:text-amber-300 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-30"
                                 on:click={compare}
                                 disabled={!canCompare}
                             >
@@ -843,9 +841,7 @@
                 </section>
 
                 <section class="relative mt-4 overflow-hidden rounded-[1.6rem] border border-slate-800 bg-slate-950 p-3 shadow-lg shadow-black/40 sm:p-4">
-                    <div class="absolute inset-0 opacity-20">
-                        <div class="commentary-grid h-full w-full"></div>
-                    </div>
+                    <div class="commentary-grid absolute inset-0 opacity-20"></div>
 
                     <div class="relative flex flex-col gap-3 rounded-[1.25rem] border border-slate-800 bg-black/60 p-3 backdrop-blur-sm sm:p-4">
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -854,10 +850,10 @@
                                     AI
                                 </div>
                                 <div>
-                                    <p class="text-[10px] font-semibold uppercase tracking-[0.24em] text-orange-300/80">
+                                    <p class="text-[10px] font-light uppercase tracking-[0.24em] text-amber-400/60">
                                         AI Commentary
                                     </p>
-                                    <h3 class="mt-1 text-[1.05rem] font-black tracking-[-0.02em] text-white sm:text-[1.15rem]">
+                                    <h3 class="mt-1 text-[1.05rem] font-light tracking-[0.02em] text-white/85 sm:text-[1.1rem]">
                                         Strategic read after the numbers
                                     </h3>
                                     <p class="mt-1 text-xs leading-5 text-slate-400">
@@ -867,19 +863,19 @@
                                 </div>
                             </div>
 
-                            <div class="inline-flex items-center gap-2 self-start rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-orange-200">
-                                <span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span>
+                            <div class="inline-flex items-center gap-2 self-start border border-amber-500/15 bg-amber-500/5 px-3 py-1.5 text-[8px] font-medium uppercase tracking-[0.2em] text-amber-400/60">
+                                <span class="h-1 w-1 rounded-full bg-amber-500/60"></span>
                                 Analyst Desk
                             </div>
                         </div>
 
                         {#if readyToCompare}
                             <div class="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-                                <span class="rounded-full bg-red-500/15 px-3 py-1 text-red-200">
+                                <span class="border border-white/10 bg-white/5 px-3 py-1 text-gray-300 font-light">
                                     {traderA?.nickname || "Trader A"}
                                 </span>
-                                <span class="text-slate-500">vs</span>
-                                <span class="rounded-full bg-amber-400/15 px-3 py-1 text-amber-200">
+                                <span class="text-slate-600 font-light text-[10px] tracking-widest uppercase">vs</span>
+                                <span class="border border-amber-500/20 bg-amber-500/8 px-3 py-1 text-amber-300/80 font-light">
                                     {traderB?.nickname || "Trader B"}
                                 </span>
                             </div>
@@ -940,7 +936,7 @@
                                 </div>
                             {:else}
                                 <div class="rounded-[1.2rem] border border-dashed border-slate-700 bg-black px-4 py-7 text-center">
-                                    <p class="text-[10px] font-semibold uppercase tracking-[0.25em] text-orange-300">
+                                    <p class="text-[10px] font-light uppercase tracking-[0.25em] text-amber-400/60">
                                         Ready
                                     </p>
                                     <h4 class="mt-2 text-base font-black tracking-[-0.02em] text-white">
@@ -974,17 +970,17 @@
 <style>
     .duel-grid {
         background-image:
-            linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
-        background-size: 32px 32px;
-        mask-image: radial-gradient(circle at center, black 30%, transparent 85%);
+            linear-gradient(rgba(245, 158, 11, 0.07) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(245, 158, 11, 0.07) 1px, transparent 1px);
+        background-size: 40px 40px;
+        mask-image: radial-gradient(ellipse 80% 100% at 50% 0%, black 30%, transparent 100%);
     }
     .commentary-grid {
         background-image:
-            linear-gradient(rgba(249, 115, 22, 0.08) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(249, 115, 22, 0.08) 1px, transparent 1px);
-        background-size: 24px 24px;
-        mask-image: linear-gradient(to bottom, black 18%, transparent 100%);
+            linear-gradient(rgba(245, 158, 11, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(245, 158, 11, 0.05) 1px, transparent 1px);
+        background-size: 28px 28px;
+        mask-image: linear-gradient(to bottom, black 10%, transparent 100%);
     }
     :global(.commentary-prose h1),
     :global(.commentary-prose h2),
