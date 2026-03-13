@@ -53,7 +53,8 @@
 				<span>Elite<span class="text-gold">Gold</span></span>
 			</a>
 			<nav class="hidden sm:flex items-center gap-6 ml-8">
-				<a href="/" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">Dashboard</a>
+				<a href="/" class="text-sm font-medium {pathname === '/' ? 'text-amber-500 dark:text-amber-400' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'} transition-colors">Home</a>
+				<a href="/dashboard" class="text-sm font-medium {pathname === '/dashboard' ? 'text-amber-500 dark:text-amber-400' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'} transition-colors">Dashboard</a>
 				<a href="/feed" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors flex items-center gap-1.5">
 					Live
 					<span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span>
@@ -64,7 +65,7 @@
 			</nav>
 			<div class="flex items-center gap-4">
 				<a
-					href="https://discord.gg/AyD3q3gQ"
+					href="https://discord.gg/StPwKKPPTj"
 					target="_blank"
 					rel="noopener noreferrer"
 					class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors"
@@ -95,7 +96,7 @@
 	<!-- Mobile Bottom Navigation -->
 	<nav class="fixed bottom-0 inset-x-0 z-50 bg-white dark:bg-dark-surface border-t border-gray-200 dark:border-dark-border sm:hidden pb-[env(safe-area-inset-bottom)]">
 		<div class="grid grid-cols-5 h-14">
-			<a href="/" class="flex flex-col items-center justify-center gap-0.5 transition-colors {pathname === '/' ? 'text-amber-500 bg-amber-500/10' : 'text-gray-400 dark:text-gray-500'}">
+			<a href="/dashboard" class="flex flex-col items-center justify-center gap-0.5 transition-colors {pathname === '/dashboard' ? 'text-amber-500 bg-amber-500/10' : 'text-gray-400 dark:text-gray-500'}">
 				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z" /></svg>
 				<span class="text-[10px] font-semibold">Home</span>
 			</a>

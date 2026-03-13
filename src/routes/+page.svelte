@@ -1,112 +1,53 @@
 <script lang="ts">
-    import { onMount, onDestroy } from 'svelte';
-    import { invalidateAll } from '$app/navigation';
-    import { supabase } from '$lib/supabase';
-    import { marked } from 'marked';
-    import DOMPurify from 'isomorphic-dompurify';
-    import PullToRefresh from '$lib/components/PullToRefresh.svelte';
-    import DailyHighlightCard from '$lib/components/DailyHighlightCard.svelte';
-    import RecentTradesFeed from '$lib/components/RecentTradesFeed.svelte';
-    import NotificationSettings from '$lib/components/NotificationSettings.svelte';
-    import StockTicker from '$lib/components/StockTicker.svelte';
-    import StockBoard from '$lib/components/StockBoard.svelte';
-    import SentimentBoard from '$lib/components/SentimentBoard.svelte';
+    import { onMount } from 'svelte';
+    import TopWinners from '$lib/components/TopWinners.svelte';
 
     export let data;
 
-    type DailyHighlight = {
-        highlight: string;
-        date: string;
-        topTrader: {
-            nickname: string;
-            profit: number;
-            points: number;
-        } | null;
-        notableTrades: Array<{
-            nickname: string;
-            symbol: string;
-            type: string;
-            lotSize: number;
-            profit: number;
-            closeTime: string;
-        }>;
-    };
+    const DISCORD_URL = 'https://discord.gg/StPwKKPPTj';
 
-    type BoardParticipant = {
-        rank: number;
-        id: string;
-        nickname: string;
-        profit: number;
-        points: number;
-        winRate: number;
-    };
+    const staggerClasses = ['stagger-1', 'stagger-2', 'stagger-3', 'stagger-4'];
 
-    type SentimentStatus = 'ready' | 'empty' | 'unavailable';
-    type SentimentRow = {
-        symbol: string;
-        buyLots: number;
-        sellLots: number;
-        buyCount: number;
-        sellCount: number;
-    };
+    $: ({ summary, allParticipants, topFive } = data);
 
-    let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
-    let dailyHighlight: DailyHighlight | null = null;
-    let dailyHighlightHtml = '';
-    let highlightLoading = true;
-    let highlightError = false;
-    let sentimentStatus: SentimentStatus = 'unavailable';
-    let sentimentBySymbol: SentimentRow[] = [];
+    // Adapter: TopWinners needs LeaderboardEntry shape but only reads id/nickname/points/profit/rankChange
+    $: topWinnersData = (allParticipants?.length ? allParticipants : topFive || []).map((p: any) => ({
+        ...p,
+        stats: { winRate: p.winRate ?? 0, profitFactor: 0, rrRatio: 0, maxDrawdown: 0, totalTrades: 0, avgWin: 0, avgLoss: 0 },
+        equityCurve: [],
+        history: []
+    }));
 
-    function renderMarkdown(text: string): string {
-        const raw = marked.parse(text, { async: false }) as string;
-        return DOMPurify.sanitize(raw);
-    }
+    const stats = [
+        { label: 'Active Traders', key: 'totalParticipants', format: 'number' },
+        { label: 'Total Trades', key: 'totalTrades', format: 'number' },
+        { label: 'Volume (Lots)', key: 'totalVolume', format: 'number' },
+        { label: 'Avg Win Rate', key: 'averageWinRate', format: 'percent' }
+    ] as const;
 
-    async function fetchDailyHighlight() {
-        try {
-            highlightLoading = true;
-            highlightError = false;
-            const res = await fetch('/api/daily-highlight');
-            if (!res.ok) throw new Error('Failed to fetch');
-            const json = await res.json();
-            if (json.success) {
-                dailyHighlight = json as DailyHighlight;
-            } else {
-                highlightError = true;
-            }
-        } catch {
-            highlightError = true;
-        } finally {
-            highlightLoading = false;
+    const features = [
+        {
+            title: 'Real-time Leaderboard',
+            desc: 'Live rankings update the moment trades close. Watch your position change as the market moves.',
+            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />`
+        },
+        {
+            title: 'AI-Powered Analysis',
+            desc: 'Daily AI commentary on top performers, notable trades, and market patterns across all participants.',
+            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />`
+        },
+        {
+            title: 'Live Trade Feed',
+            desc: 'Stream of every trade as it opens and closes. Filter by trader, symbol, or outcome in real time.',
+            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />`
         }
-    }
+    ];
 
-    onMount(() => {
-        realtimeChannel = supabase
-            .channel('dashboard-changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_stats' }, () => invalidateAll())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'trades' }, () => invalidateAll())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'open_positions' }, () => invalidateAll())
-            .subscribe();
-
-        fetchDailyHighlight();
-    });
-
-    onDestroy(() => {
-        if (realtimeChannel) supabase.removeChannel(realtimeChannel);
-    });
-
-    $: ({ summary, topPerformer, recentTrades, competition, topFive, allParticipants, sentimentStatus } = data);
-    $: dailyHighlightHtml = dailyHighlight?.highlight ? renderMarkdown(dailyHighlight.highlight) : '';
-    $: sentimentBySymbol = data.sentimentBySymbol ?? [];
-    $: boardParticipants = (allParticipants?.length
-        ? allParticipants
-        : (topFive || []).map((p: Omit<BoardParticipant, 'rank' | 'winRate'>, i: number) => ({
-                ...p,
-                rank: i + 1,
-                winRate: 0
-            }))) as BoardParticipant[];
+    const steps = [
+        { title: 'Join Discord', desc: 'เข้าร่วม community และลงทะเบียนเข้าแข่งขันผ่าน Discord server ของเรา', icon: '💬', cta: true },
+        { title: 'Connect MT5', desc: 'เชื่อมต่อ MetaTrader 5 account ของคุณ ระบบจะ sync trade อัตโนมัติ', icon: '🔗', cta: false },
+        { title: 'Compete & Win', desc: 'เทรด, สะสม points จาก pip ที่ได้ และปีนขึ้น leaderboard แบบ real-time', icon: '🏆', cta: false }
+    ];
 
     function formatNumber(n: number): string {
         if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
@@ -116,204 +57,222 @@
 </script>
 
 <svelte:head>
-    <title>Dashboard | EliteGold</title>
+    <title>EliteGold — Forex Trading Competition Community</title>
+    <meta name="description" content="เข้าร่วม EliteGold trading competition แข่งขันเทรดทองคำกับ traders จริงแบบ real-time บน MT5 ดู leaderboard live พร้อม AI analysis" />
 </svelte:head>
 
-<PullToRefresh on:refresh={() => invalidateAll()}>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <!-- Page Header -->
-        <div class="mb-6 sm:mb-8 animate-fade-in-down">
-            <h1 class="text-2xl sm:text-3xl font-bold dark:text-white">
-                Competition <span class="text-gold">Dashboard</span>
-            </h1>
-            {#if competition.startDate}
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Day {competition.totalDays} of competition
-                </p>
-            {/if}
+<!-- ─── HERO ─────────────────────────────────────────────────────────── -->
+<section class="relative overflow-hidden min-h-[92vh] flex items-center justify-center">
+    <!-- Background -->
+    <div class="absolute inset-0 bg-gradient-to-br from-black via-[#0a0a0a] to-[#111111]"></div>
+    <!-- Gold radial glow -->
+    <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(245,158,11,0.13) 0%, transparent 65%);"></div>
+    <!-- Grid pattern -->
+    <div class="absolute inset-0 pointer-events-none opacity-[0.03]" style="background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px); background-size: 40px 40px;"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center py-20">
+        <!-- Eyebrow badge -->
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs font-semibold uppercase tracking-widest mb-8 animate-fade-in stagger-1">
+            <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+            </span>
+            Live Competition · Season 1
         </div>
 
-        <!-- Stock Ticker -->
-        {#if allParticipants?.length > 0}
-            <div class="-mx-4 sm:-mx-6 lg:-mx-8 mb-6 sm:mb-8">
-                <StockTicker participants={allParticipants} />
-            </div>
-        {/if}
+        <!-- Headline -->
+        <h1 class="text-5xl sm:text-7xl font-extrabold tracking-tight mb-6 animate-fade-in-up stagger-2 leading-[1.1]">
+            <span class="text-white block">Trade Hard.</span>
+            <span class="hero-gold-text block">Compete Harder.</span>
+        </h1>
 
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-            <div class="summary-card p-4 sm:p-5 rounded-xl bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border animate-fade-in-up stagger-1">
-                <div class="flex items-center gap-2 mb-2">
-                    <div class="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+        <p class="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-up stagger-3">
+            EliteGold เป็น community ของนักเทรดทองคำที่จัดการแข่งขันบน MT5 แบบ real-time
+            เชื่อมต่อ account ขึ้น leaderboard และพิสูจน์ฝีมือของคุณ
+        </p>
+
+        <!-- CTAs -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up stagger-4">
+            <a
+                href={DISCORD_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-[#5865F2] hover:bg-[#4752c4] text-white font-semibold text-lg transition-all btn-press shadow-lg shadow-[#5865F2]/30"
+            >
+                <svg class="w-6 h-6 shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037 13.48 13.48 0 0 0-1.726 3.553 18.046 18.046 0 0 0-8.82 0 13.483 13.483 0 0 0-1.727-3.553.074.074 0 0 0-.079-.037 19.791 19.791 0 0 0-4.885 1.515.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.086 2.157 2.419 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.086 2.157 2.419 0 1.334-.946 2.419-2.157 2.419z" clip-rule="evenodd" />
+                </svg>
+                Join Discord
+            </a>
+            <a
+                href="/dashboard"
+                class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 font-semibold text-lg transition-all btn-press"
+            >
+                ดู Competition
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </a>
+        </div>
+    </div>
+
+    <!-- Bottom fade -->
+    <div class="absolute bottom-0 inset-x-0 h-24 pointer-events-none" style="background: linear-gradient(to bottom, transparent, #000);"></div>
+</section>
+
+<!-- ─── LIVE STATS BAR ────────────────────────────────────────────────── -->
+<section class="py-12 border-y border-dark-border bg-dark-surface/60">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-10">
+            {#each stats as stat, i}
+                <div class="text-center animate-fade-in-up {staggerClasses[i]}">
+                    <div class="text-3xl sm:text-4xl font-black text-white mb-1 tabular-nums">
+                        {stat.format === 'percent'
+                            ? (summary?.[stat.key] ?? 0) + '%'
+                            : formatNumber(summary?.[stat.key] ?? 0)}
+                    </div>
+                    <div class="text-xs text-gray-500 uppercase tracking-widest">{stat.label}</div>
+                </div>
+            {/each}
+        </div>
+    </div>
+</section>
+
+<!-- ─── FEATURE HIGHLIGHTS ────────────────────────────────────────────── -->
+<section class="py-20 sm:py-28">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14 animate-fade-in-up">
+            <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">
+                Built for <span class="text-gold">Serious Traders</span>
+            </h2>
+            <p class="text-gray-400 max-w-xl mx-auto">
+                ทุกอย่างที่คุณต้องการในการแข่งขัน วิเคราะห์ และพัฒนาตัวเอง — ในที่เดียว
+            </p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {#each features as feature, i}
+                <div class="p-6 rounded-xl bg-dark-surface border border-dark-border card-hover animate-fade-in-up {staggerClasses[i]}">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-5">
+                        <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {@html feature.icon}
                         </svg>
                     </div>
+                    <h3 class="text-lg font-semibold text-white mb-2">{feature.title}</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">{feature.desc}</p>
                 </div>
-                <div class="text-2xl sm:text-3xl font-bold dark:text-white">{summary.totalParticipants}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Participants</div>
-            </div>
+            {/each}
+        </div>
+    </div>
+</section>
 
-            <div class="summary-card p-4 sm:p-5 rounded-xl bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border animate-fade-in-up stagger-2">
-                <div class="flex items-center gap-2 mb-2">
-                    <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                    </div>
-                </div>
-                <div class="text-2xl sm:text-3xl font-bold dark:text-white">{formatNumber(summary.totalTrades)}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Total Trades</div>
-            </div>
-
-            <div class="summary-card p-4 sm:p-5 rounded-xl bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border animate-fade-in-up stagger-3">
-                <div class="flex items-center gap-2 mb-2">
-                    <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
-                    </div>
-                </div>
-                <div class="text-2xl sm:text-3xl font-bold dark:text-white">{summary.totalVolume}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Total Lots</div>
-            </div>
-
-            <div class="summary-card p-4 sm:p-5 rounded-xl bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border animate-fade-in-up stagger-4">
-                <div class="flex items-center gap-2 mb-2">
-                    <div class="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                </div>
-                <div class="text-2xl sm:text-3xl font-bold dark:text-white">{summary.averageWinRate}%</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Avg Win Rate</div>
-            </div>
+<!-- ─── TOP TRADERS PREVIEW ───────────────────────────────────────────── -->
+<section class="py-4 pb-20 sm:pb-28">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10 animate-fade-in-up">
+            <h2 class="text-3xl sm:text-4xl font-bold text-white mb-3">
+                Current <span class="text-gold">Champions</span>
+            </h2>
+            <p class="text-gray-400 text-sm">Top performers from the live competition</p>
         </div>
 
-        <!-- Main Content: Two Column Layout -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Left Column (2/3) -->
-            <div class="lg:col-span-2 space-y-6">
-                <!-- Top Performer -->
-                {#if topPerformer}
-                    <a
-                        href="/leaderboard/{topPerformer.participantId}"
-                        class="block p-5 rounded-xl border-2 border-amber-400/30 dark:border-amber-500/20 top-performer-card animate-fade-in-up stagger-5"
-                    >
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                                {topPerformer.isToday ? 'Top Performer Today' : `Top Performer · ${topPerformer.date}`}
-                            </span>
-                            <span class="text-lg">&#x1F3C6;</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="text-xl font-bold dark:text-white">{topPerformer.nickname}</div>
-                                <div class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                                    {topPerformer.points} points
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-2xl font-bold {topPerformer.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
-                                    {topPerformer.profit >= 0 ? '+' : ''}{topPerformer.profit.toFixed(2)}
-                                </div>
-                                <div class="text-xs text-gray-400">profit</div>
-                            </div>
-                        </div>
-                    </a>
-                {/if}
-
-                <!-- Highlight of the Day -->
-                <DailyHighlightCard
-                    loading={highlightLoading}
-                    error={highlightError}
-                    highlight={dailyHighlightHtml}
-                    date={dailyHighlight?.date || ''}
-                    topTrader={dailyHighlight?.topTrader || null}
-                    notableTrades={dailyHighlight?.notableTrades || []}
-                />
-
-                <!-- Recent Trades -->
-                <div class="animate-fade-in-up stagger-6">
-                    <div class="flex items-center justify-between mb-3">
-                        <h2 class="text-lg font-semibold dark:text-white">Recent Trades</h2>
-                        <a href="/trades" class="text-xs text-gold hover:underline">View All</a>
-                    </div>
-                    <RecentTradesFeed trades={recentTrades} />
-                </div>
+        {#if topWinnersData.length >= 1}
+            <TopWinners data={topWinnersData} />
+            <div class="text-center mt-8">
+                <a href="/leaderboard" class="text-sm text-amber-400 hover:text-amber-300 hover:underline transition-colors">
+                    Full Leaderboard →
+                </a>
             </div>
-
-            <!-- Right Column (1/3) -->
-            <div class="space-y-6">
-                <!-- Competition Stats -->
-                <div class="p-5 rounded-xl bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border animate-fade-in-up stagger-5">
-                    <h2 class="text-lg font-semibold dark:text-white mb-4">Competition Stats</h2>
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm text-gray-500 dark:text-gray-400">Duration</span>
-                            <span class="text-sm font-medium dark:text-white">{competition.totalDays} days</span>
-                        </div>
-                        <div class="border-t border-gray-100 dark:border-dark-border"></div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm text-gray-500 dark:text-gray-400">Start Date</span>
-                            <span class="text-sm font-medium dark:text-white">{competition.startDate}</span>
-                        </div>
-                        {#if competition.mostActiveTrader}
-                            <div class="border-t border-gray-100 dark:border-dark-border"></div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm text-gray-500 dark:text-gray-400">Most Active</span>
-                                <span class="text-sm font-medium dark:text-white">
-                                    {competition.mostActiveTrader.nickname}
-                                    <span class="text-gray-400 dark:text-gray-500 text-xs ml-1">
-                                        ({competition.mostActiveTrader.totalTrades})
-                                    </span>
-                                </span>
-                            </div>
-                        {/if}
-                    </div>
-                </div>
-
-                <!-- Collective Sentiment Board -->
-                <div class="animate-fade-in-up stagger-6">
-                    <SentimentBoard data={sentimentBySymbol} status={sentimentStatus} />
-                </div>
-
-                <!-- Stock Board (All Participants) -->
-                <div class="animate-fade-in-up stagger-6">
-                    <StockBoard participants={boardParticipants} />
-                </div>
-
-                <!-- Telegram Alerts -->
-                <div class="animate-fade-in-up stagger-6">
-                    <NotificationSettings participants={data.participants || []} botUsername={data.telegramBotUsername || ''} />
-                </div>
-            </div>
-        </div>
-
-        <!-- Empty state if no data at all -->
-        {#if summary.totalParticipants === 0 && topFive.length === 0}
-            <div class="text-center py-16 animate-fade-in">
-                <div class="text-4xl mb-4">&#x1F3C6;</div>
-                <h2 class="text-xl font-semibold dark:text-white mb-2">Competition data will appear once trading begins</h2>
-                <p class="text-gray-500 dark:text-gray-400">Stay tuned for live updates</p>
+        {:else}
+            <div class="text-center py-16 text-gray-500 bg-dark-surface rounded-xl border border-dark-border">
+                <div class="text-5xl mb-4">🏆</div>
+                <p class="font-medium">Competition rankings will appear once trading begins.</p>
+                <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" class="text-sm text-amber-400 hover:underline mt-2 inline-block">
+                    Join Discord to participate →
+                </a>
             </div>
         {/if}
     </div>
-</PullToRefresh>
+</section>
+
+<!-- ─── HOW IT WORKS ──────────────────────────────────────────────────── -->
+<section class="py-20 sm:py-28 border-t border-dark-border bg-dark-surface/30">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14 animate-fade-in-up">
+            <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">
+                เริ่มต้น <span class="text-gold">ยังไง?</span>
+            </h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-6">
+            {#each steps as step, i}
+                <div class="flex flex-col items-center text-center animate-fade-in-up {staggerClasses[i]}">
+                    <!-- Step circle -->
+                    <div class="relative w-20 h-20 rounded-full border-2 border-amber-500/30 bg-amber-500/8 flex items-center justify-center text-3xl mb-5">
+                        {step.icon}
+                        <span class="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-amber-500 text-black text-xs font-black flex items-center justify-center shadow-lg">
+                            {i + 1}
+                        </span>
+                    </div>
+                    <!-- Connector line (desktop) -->
+                    {#if i < steps.length - 1}
+                        <div class="hidden md:block absolute top-10 left-[calc(50%+4rem)] right-[calc(-50%+4rem)] h-px bg-gradient-to-r from-amber-500/30 to-transparent"></div>
+                    {/if}
+                    <h3 class="text-lg font-semibold text-white mb-2">{step.title}</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">{step.desc}</p>
+                    {#if step.cta}
+                        <a
+                            href={DISCORD_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="mt-4 text-xs text-amber-400 hover:underline"
+                        >
+                            Join now →
+                        </a>
+                    {/if}
+                </div>
+            {/each}
+        </div>
+    </div>
+</section>
+
+<!-- ─── FINAL CTA ─────────────────────────────────────────────────────── -->
+<section class="py-24 sm:py-32 relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-br from-amber-900/15 via-black to-black"></div>
+    <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse 55% 65% at 50% 50%, rgba(245,158,11,0.09) 0%, transparent 70%);"></div>
+
+    <div class="relative z-10 max-w-2xl mx-auto px-4 text-center">
+        <div class="text-6xl mb-6">👑</div>
+        <h2 class="text-4xl sm:text-5xl font-extrabold text-white mb-5 leading-tight">
+            พร้อมพิสูจน์ฝีมือแล้วหรือยัง?
+        </h2>
+        <p class="text-gray-400 text-lg mb-10 leading-relaxed">
+            เข้าร่วม EliteGold Discord ลงทะเบียนการแข่งขัน และเริ่มเทรดได้เลย
+        </p>
+        <a
+            href={DISCORD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-3 px-10 py-5 rounded-xl bg-[#5865F2] hover:bg-[#4752c4] text-white font-bold text-xl transition-all btn-press shadow-2xl shadow-[#5865F2]/25"
+        >
+            <svg class="w-7 h-7 shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill-rule="evenodd" d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037 13.48 13.48 0 0 0-1.726 3.553 18.046 18.046 0 0 0-8.82 0 13.483 13.483 0 0 0-1.727-3.553.074.074 0 0 0-.079-.037 19.791 19.791 0 0 0-4.885 1.515.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.086 2.157 2.419 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.086 2.157 2.419 0 1.334-.946 2.419-2.157 2.419z" clip-rule="evenodd" />
+            </svg>
+            Join Discord Now
+        </a>
+    </div>
+</section>
 
 <style>
-    .summary-card {
-        border-top: 2px solid transparent;
-        border-image: linear-gradient(90deg, #f59e0b, #d97706) 1;
-        border-image-slice: 1 0 0 0;
+    .hero-gold-text {
+        background: linear-gradient(135deg, #ffd700 0%, #ffed4a 30%, #ffffff 50%, #ffd700 70%, #b8860b 100%);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: hero-gold-shimmer 4s linear infinite;
     }
 
-    .top-performer-card {
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
-    }
-
-    :global(.dark) .top-performer-card {
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(17, 17, 17, 0.5) 100%);
+    @keyframes hero-gold-shimmer {
+        0% { background-position: 0% center; }
+        100% { background-position: 200% center; }
     }
 </style>
