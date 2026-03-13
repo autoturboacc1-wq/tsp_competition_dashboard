@@ -6,6 +6,7 @@
     import FeedCard from '$lib/components/FeedCard.svelte';
 
     let nicknames = new Map<string, string>();
+    let allParticipants: Array<[string, string]> = [];
     let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
 
     // Filters
@@ -37,7 +38,9 @@
         return true;
     });
 
-    $: traders = [...new Map($feedItems.map(i => [i.participantId, i.nickname])).entries()];
+    $: traders = allParticipants.length > 0
+        ? allParticipants
+        : [...new Map($feedItems.map(i => [i.participantId, i.nickname])).entries()];
 
     function toggleSound() {
         soundEnabled = !soundEnabled;
@@ -80,7 +83,7 @@
     }
 
     async function loadInitialData() {
-        // Load participants for nickname resolution
+        // Load participants for nickname resolution + dropdown
         const { data: participants } = await supabase
             .from('participants')
             .select('id, nickname');
@@ -89,18 +92,39 @@
             for (const p of participants) {
                 nicknames.set(p.id, p.nickname);
             }
+            allParticipants = participants.map(p => [p.id, p.nickname] as [string, string]);
         }
 
-        // Load recent trades
-        const { data: trades } = await supabase
-            .from('trades')
-            .select('*')
-            .not('close_time', 'is', null)
-            .order('close_time', { ascending: false })
-            .limit(50);
+        // Load recent closed trades + open positions
+        const [closedResult, openResult] = await Promise.all([
+            supabase
+                .from('trades')
+                .select('*')
+                .not('close_time', 'is', null)
+                .order('close_time', { ascending: false })
+                .limit(50),
+            supabase
+                .from('open_positions')
+                .select('position_id, participant_id, symbol, type, lot_size, open_time')
+        ]);
 
-        if (trades && trades.length > 0) {
-            const items: FeedItem[] = trades.map(t => mapTradeToFeedItem(t, 'trade_closed'));
+        const items: FeedItem[] = [];
+
+        if (closedResult.data) {
+            items.push(...closedResult.data.map(t => mapTradeToFeedItem(t, 'trade_closed')));
+        }
+        if (openResult.data) {
+            items.push(...openResult.data.map(t => mapTradeToFeedItem(t, 'trade_opened')));
+        }
+
+        // Sort by timestamp descending
+        items.sort((a, b) => {
+            const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            return tb - ta;
+        });
+
+        if (items.length > 0) {
             feedItems.seed(items);
         }
     }
@@ -124,6 +148,13 @@
                     playNotification();
                     if (userScrolledUp) newCount++;
                 }
+            })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'open_positions' }, (payload) => {
+                const trade = payload.new;
+                const item = mapTradeToFeedItem(trade, 'trade_opened');
+                feedItems.addItem(item);
+                playNotification();
+                if (userScrolledUp) newCount++;
             })
             .subscribe();
     }
