@@ -357,28 +357,28 @@
     >
         <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
         <div
-            class="animate-fade-in-up relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-[#0a0a0a] border border-white/[0.08]"
+            class="animate-fade-in-up relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/[0.08]"
             on:click|stopPropagation
             on:keydown|stopPropagation
             role="document"
         >
             <!-- Header -->
-            <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-white/[0.06]">
                 <div class="flex items-center gap-3">
-                    <h2 class="text-sm font-semibold text-white tracking-wide">Head-to-Head</h2>
+                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white tracking-wide">Head-to-Head</h2>
                     {#if readyToCompare}
-                        <div class="flex items-center gap-1.5 text-[11px] text-white/50">
-                            <span class="text-white/70">{winsA}</span>
+                        <div class="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-white/50">
+                            <span class="text-gray-700 dark:text-white/70">{winsA}</span>
                             <span>-</span>
-                            <span class="text-white/70">{winsB}</span>
+                            <span class="text-gray-700 dark:text-white/70">{winsB}</span>
                             {#if ties > 0}
-                                <span class="text-white/30 ml-1">({ties} tie)</span>
+                                <span class="text-gray-400 dark:text-white/30 ml-1">({ties} tie)</span>
                             {/if}
                         </div>
                     {/if}
                 </div>
                 <button
-                    class="text-white/40 hover:text-white/80 transition-colors p-1"
+                    class="text-gray-400 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/80 transition-colors p-1"
                     on:click={close}
                     aria-label="Close"
                 >
@@ -393,10 +393,10 @@
                 <!-- Trader Selection -->
                 <div class="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
                     <div>
-                        <label for="head-to-head-trader-a" class="block text-[10px] font-medium uppercase tracking-widest text-white/30 mb-1.5">Trader A</label>
+                        <label for="head-to-head-trader-a" class="block text-[10px] font-medium uppercase tracking-widest text-gray-400 dark:text-white/30 mb-1.5">Trader A</label>
                         <select
                             id="head-to-head-trader-a"
-                            class="w-full rounded-lg bg-white/[0.05] border border-white/[0.08] px-3 py-2 text-xs text-white outline-none transition focus:border-amber-500/50"
+                            class="w-full rounded-lg bg-gray-100 dark:bg-white/[0.05] border border-gray-300 dark:border-white/[0.08] px-3 py-2 text-xs text-gray-900 dark:text-white outline-none transition focus:border-amber-500/50"
                             bind:value={selectedTraderAId}
                             on:change={(e) => handleTraderSelect("A", e.currentTarget.value)}
                             disabled={loading}
@@ -409,7 +409,7 @@
                     </div>
 
                     <button
-                        class="mb-0.5 p-1.5 rounded-md text-white/20 hover:text-white/60 hover:bg-white/[0.05] transition-all disabled:opacity-30"
+                        class="mb-0.5 p-1.5 rounded-md text-gray-400 dark:text-white/20 hover:text-gray-600 dark:hover:text-white/60 hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-all disabled:opacity-30"
                         on:click={swapTraders}
                         disabled={loading || !selectedTraderAId || !selectedTraderBId}
                         title="สลับ"
@@ -420,10 +420,10 @@
                     </button>
 
                     <div>
-                        <label for="head-to-head-trader-b" class="block text-[10px] font-medium uppercase tracking-widest text-white/30 mb-1.5">Trader B</label>
+                        <label for="head-to-head-trader-b" class="block text-[10px] font-medium uppercase tracking-widest text-gray-400 dark:text-white/30 mb-1.5">Trader B</label>
                         <select
                             id="head-to-head-trader-b"
-                            class="w-full rounded-lg bg-white/[0.05] border border-white/[0.08] px-3 py-2 text-xs text-white outline-none transition focus:border-amber-500/50"
+                            class="w-full rounded-lg bg-gray-100 dark:bg-white/[0.05] border border-gray-300 dark:border-white/[0.08] px-3 py-2 text-xs text-gray-900 dark:text-white outline-none transition focus:border-amber-500/50"
                             bind:value={selectedTraderBId}
                             on:change={(e) => handleTraderSelect("B", e.currentTarget.value)}
                             disabled={loading}
@@ -442,26 +442,26 @@
 
                 <!-- Compare Table -->
                 {#if readyToCompare && compareRows.length > 0}
-                    <div class="rounded-xl border border-white/[0.06] overflow-hidden">
+                    <div class="rounded-xl border border-gray-200 dark:border-white/[0.06] overflow-hidden">
                         <table class="w-full text-xs">
                             <thead>
-                                <tr class="border-b border-white/[0.06] bg-white/[0.02]">
-                                    <th class="py-2 px-3 text-left text-[10px] font-medium uppercase tracking-widest text-white/30">Metric</th>
-                                    <th class="py-2 px-3 text-right text-[10px] font-medium uppercase tracking-widest text-white/30">{traderA?.nickname || 'A'}</th>
-                                    <th class="py-2 px-3 text-right text-[10px] font-medium uppercase tracking-widest text-white/30">{traderB?.nickname || 'B'}</th>
+                                <tr class="border-b border-gray-200 dark:border-white/[0.06] bg-gray-50 dark:bg-white/[0.02]">
+                                    <th class="py-2 px-3 text-left text-[10px] font-medium uppercase tracking-widest text-gray-400 dark:text-white/30">Metric</th>
+                                    <th class="py-2 px-3 text-right text-[10px] font-medium uppercase tracking-widest text-gray-400 dark:text-white/30">{traderA?.nickname || 'A'}</th>
+                                    <th class="py-2 px-3 text-right text-[10px] font-medium uppercase tracking-widest text-gray-400 dark:text-white/30">{traderB?.nickname || 'B'}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {#each compareRows as row}
-                                    <tr class="border-b border-white/[0.04] last:border-0">
-                                        <td class="py-2.5 px-3 text-white/50">
+                                    <tr class="border-b border-gray-100 dark:border-white/[0.04] last:border-0">
+                                        <td class="py-2.5 px-3 text-gray-500 dark:text-white/50">
                                             {row.label}
-                                            <span class="text-[9px] text-white/20 ml-1">{row.betterDirection === 'higher' ? '(H)' : '(L)'}</span>
+                                            <span class="text-[9px] text-gray-400 dark:text-white/20 ml-1">{row.betterDirection === 'higher' ? '(H)' : '(L)'}</span>
                                         </td>
-                                        <td class="py-2.5 px-3 text-right font-mono tabular-nums {row.winner === 'A' ? 'text-amber-400 font-semibold' : 'text-white/40'}">
+                                        <td class="py-2.5 px-3 text-right font-mono tabular-nums {row.winner === 'A' ? 'text-amber-500 dark:text-amber-400 font-semibold' : 'text-gray-400 dark:text-white/40'}">
                                             {row.formattedA}
                                         </td>
-                                        <td class="py-2.5 px-3 text-right font-mono tabular-nums {row.winner === 'B' ? 'text-amber-400 font-semibold' : 'text-white/40'}">
+                                        <td class="py-2.5 px-3 text-right font-mono tabular-nums {row.winner === 'B' ? 'text-amber-500 dark:text-amber-400 font-semibold' : 'text-gray-400 dark:text-white/40'}">
                                             {row.formattedB}
                                         </td>
                                     </tr>
@@ -470,31 +470,31 @@
                         </table>
                     </div>
                 {:else if !readyToCompare}
-                    <div class="py-10 text-center text-xs text-white/20">
+                    <div class="py-10 text-center text-xs text-gray-400 dark:text-white/20">
                         เลือกเทรดเดอร์ 2 คนเพื่อเปรียบเทียบ
                     </div>
                 {/if}
 
                 <!-- AI Commentary -->
                 {#if readyToCompare}
-                    <div class="border-t border-white/[0.06] pt-4">
+                    <div class="border-t border-gray-200 dark:border-white/[0.06] pt-4">
                         <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center gap-2">
-                                <span class="text-[10px] font-medium uppercase tracking-widest text-white/30">AI Analysis</span>
+                                <span class="text-[10px] font-medium uppercase tracking-widest text-gray-400 dark:text-white/30">AI Analysis</span>
                                 {#if loading}
                                     <span class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse"></span>
                                 {/if}
                             </div>
                             {#if loading}
                                 <button
-                                    class="text-[10px] text-white/30 hover:text-white/60 transition-colors"
+                                    class="text-[10px] text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60 transition-colors"
                                     on:click={cancelCompare}
                                 >
                                     ยกเลิก
                                 </button>
                             {:else if result}
                                 <button
-                                    class="text-[10px] text-white/30 hover:text-white/60 transition-colors"
+                                    class="text-[10px] text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60 transition-colors"
                                     on:click={compare}
                                     disabled={!canCompare}
                                 >
@@ -504,18 +504,18 @@
                         </div>
 
                         {#if result}
-                            <div class="ai-prose text-xs leading-relaxed text-white/60">
+                            <div class="ai-prose text-xs leading-relaxed text-gray-600 dark:text-white/60">
                                 {@html sanitize(result)}
                             </div>
                         {:else if loading}
                             <div class="space-y-2.5 animate-pulse">
-                                <div class="h-3 w-3/4 rounded bg-white/[0.04]"></div>
-                                <div class="h-3 w-full rounded bg-white/[0.04]"></div>
-                                <div class="h-3 w-5/6 rounded bg-white/[0.04]"></div>
-                                <div class="h-3 w-2/3 rounded bg-white/[0.04]"></div>
+                                <div class="h-3 w-3/4 rounded bg-gray-200 dark:bg-white/[0.04]"></div>
+                                <div class="h-3 w-full rounded bg-gray-200 dark:bg-white/[0.04]"></div>
+                                <div class="h-3 w-5/6 rounded bg-gray-200 dark:bg-white/[0.04]"></div>
+                                <div class="h-3 w-2/3 rounded bg-gray-200 dark:bg-white/[0.04]"></div>
                             </div>
                         {:else}
-                            <p class="text-xs text-white/20">กำลังเตรียมบทวิเคราะห์...</p>
+                            <p class="text-xs text-gray-400 dark:text-white/20">กำลังเตรียมบทวิเคราะห์...</p>
                         {/if}
 
                         {#if aiError}
@@ -536,6 +536,11 @@
         margin-bottom: 0.4rem;
         font-weight: 600;
         font-size: 0.8rem;
+        color: rgba(17, 24, 39, 0.85);
+    }
+    :global(.dark .ai-prose h1),
+    :global(.dark .ai-prose h2),
+    :global(.dark .ai-prose h3) {
         color: rgba(255 255 255 / 0.8);
     }
     :global(.ai-prose h1:first-child),
@@ -550,6 +555,9 @@
     }
     :global(.ai-prose strong) {
         font-weight: 600;
+        color: rgba(17, 24, 39, 0.85);
+    }
+    :global(.dark .ai-prose strong) {
         color: rgba(255 255 255 / 0.8);
     }
     :global(.ai-prose ul) {
@@ -560,10 +568,16 @@
         margin: 0.25rem 0;
     }
     :global(.ai-prose li::marker) {
+        color: rgba(107, 114, 128, 0.5);
+    }
+    :global(.dark .ai-prose li::marker) {
         color: rgba(255 255 255 / 0.2);
     }
     :global(.ai-prose hr) {
         margin: 0.75rem 0;
+        border-color: rgba(229, 231, 235, 0.6);
+    }
+    :global(.dark .ai-prose hr) {
         border-color: rgba(255 255 255 / 0.06);
     }
 </style>

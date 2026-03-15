@@ -3,6 +3,8 @@
     import { createChart, ColorType, LineStyle } from "lightweight-charts";
     import { THAILAND_OFFSET_SECONDS } from "$lib/timezone";
     import StatusBanner from "$lib/components/StatusBanner.svelte";
+    import { theme } from "$lib/stores/theme";
+    import { getChartColors } from "$lib/chart/chartTheme";
 
     // Props
     export let equitySnapshots: Array<{
@@ -73,13 +75,38 @@
             .sort((a, b) => a.time - b.time);
     }
 
+    let themeUnsub: (() => void) | undefined;
+
+    function applyChartTheme(isDark: boolean) {
+        if (!chart) return;
+        const c = getChartColors(isDark);
+        chart.applyOptions({
+            layout: { textColor: c.textColor },
+            grid: {
+                vertLines: { color: c.gridColor },
+                horzLines: { color: c.gridColor },
+            },
+            rightPriceScale: { borderColor: c.gridColor },
+            timeScale: { borderColor: c.gridColor },
+            crosshair: {
+                vertLine: { labelBackgroundColor: c.crosshairLabelBg },
+                horzLine: { labelBackgroundColor: c.crosshairLabelBg },
+            },
+        });
+        balanceSeries?.applyOptions({ crosshairMarkerBackgroundColor: c.crosshairLabelBg });
+        equitySeries?.applyOptions({ crosshairMarkerBackgroundColor: c.crosshairLabelBg });
+    }
+
     function initChart() {
         if (!chartContainer || chart) return;
+
+        const isDark = document.documentElement.classList.contains('dark');
+        const colors = getChartColors(isDark);
 
         chart = createChart(chartContainer, {
             layout: {
                 background: { type: ColorType.Solid, color: "transparent" },
-                textColor: "#9CA3AF",
+                textColor: colors.textColor,
                 fontFamily: "'Inter', 'IBM Plex Sans Thai', sans-serif",
             },
             localization: {
@@ -103,22 +130,22 @@
             },
             grid: {
                 vertLines: {
-                    color: "rgba(55, 65, 81, 0.5)",
+                    color: colors.gridColor,
                     style: LineStyle.Dotted,
                 },
                 horzLines: {
-                    color: "rgba(55, 65, 81, 0.5)",
+                    color: colors.gridColor,
                     style: LineStyle.Dotted,
                 },
             },
             width: chartContainer.clientWidth,
             height: 280,
             rightPriceScale: {
-                borderColor: "rgba(55, 65, 81, 0.5)",
+                borderColor: colors.gridColor,
                 scaleMargins: { top: 0.1, bottom: 0.1 },
             },
             timeScale: {
-                borderColor: "rgba(55, 65, 81, 0.5)",
+                borderColor: colors.gridColor,
                 timeVisible: true,
                 secondsVisible: false,
                 rightOffset: 5,
@@ -156,13 +183,13 @@
                     color: "rgba(59, 130, 246, 0.5)",
                     width: 1,
                     style: LineStyle.Dashed,
-                    labelBackgroundColor: "#1F2937",
+                    labelBackgroundColor: colors.crosshairLabelBg,
                 },
                 horzLine: {
                     color: "rgba(59, 130, 246, 0.5)",
                     width: 1,
                     style: LineStyle.Dashed,
-                    labelBackgroundColor: "#1F2937",
+                    labelBackgroundColor: colors.crosshairLabelBg,
                 },
             },
             handleScroll: { mouseWheel: true, pressedMouseMove: true },
@@ -186,7 +213,7 @@
             crosshairMarkerVisible: true,
             crosshairMarkerRadius: 4,
             crosshairMarkerBorderColor: "#6B7280",
-            crosshairMarkerBackgroundColor: "#1F2937",
+            crosshairMarkerBackgroundColor: colors.crosshairLabelBg,
             title: "Balance",
         });
 
@@ -198,7 +225,7 @@
             crosshairMarkerVisible: true,
             crosshairMarkerRadius: 5,
             crosshairMarkerBorderColor: "#3B82F6",
-            crosshairMarkerBackgroundColor: "#1F2937",
+            crosshairMarkerBackgroundColor: colors.crosshairLabelBg,
             title: "Equity",
             lastValueVisible: true,
             priceLineVisible: true,
@@ -308,9 +335,11 @@
 
     onMount(() => {
         initChart();
+        themeUnsub = theme.subscribe((t) => applyChartTheme(t === 'dark'));
     });
 
     onDestroy(() => {
+        themeUnsub?.();
         if (chart) {
             chart.remove();
             chart = null;

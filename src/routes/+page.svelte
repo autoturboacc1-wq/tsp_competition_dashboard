@@ -64,15 +64,15 @@
 <!-- ─── HERO ─────────────────────────────────────────────────────────── -->
 <section class="relative overflow-hidden min-h-[92vh] flex items-center justify-center">
     <!-- Background -->
-    <div class="absolute inset-0 bg-gradient-to-br from-black via-[#0a0a0a] to-[#111111]"></div>
+    <div class="absolute inset-0 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-black dark:via-[#0a0a0a] dark:to-[#111111]"></div>
     <!-- Gold radial glow -->
     <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(245,158,11,0.13) 0%, transparent 65%);"></div>
     <!-- Grid pattern -->
-    <div class="absolute inset-0 pointer-events-none opacity-[0.03]" style="background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px); background-size: 40px 40px;"></div>
+    <div class="absolute inset-0 pointer-events-none hero-grid"></div>
 
     <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center py-20">
         <!-- Eyebrow badge -->
-        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs font-semibold uppercase tracking-widest mb-8 animate-fade-in stagger-1">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-semibold uppercase tracking-widest mb-8 animate-fade-in stagger-1">
             <span class="relative flex h-2 w-2">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
@@ -82,11 +82,11 @@
 
         <!-- Headline -->
         <h1 class="text-5xl sm:text-7xl font-extrabold tracking-tight mb-6 animate-fade-in-up stagger-2 leading-[1.1]">
-            <span class="text-white block">Trade Hard.</span>
+            <span class="text-gray-900 dark:text-white block">Trade Hard.</span>
             <span class="hero-gold-text block">Compete Harder.</span>
         </h1>
 
-        <p class="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-up stagger-3">
+        <p class="text-lg sm:text-xl text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-up stagger-3">
             EliteGold เป็น community ของนักเทรดทองคำที่จัดการแข่งขันบน MT5 แบบ real-time
             เชื่อมต่อ account ขึ้น leaderboard และพิสูจน์ฝีมือของคุณ
         </p>
@@ -106,7 +106,7 @@
             </a>
             <a
                 href="/dashboard"
-                class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 font-semibold text-lg transition-all btn-press"
+                class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 hover:text-amber-500 dark:hover:text-amber-300 font-semibold text-lg transition-all btn-press"
             >
                 ดู Competition
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,16 +117,16 @@
     </div>
 
     <!-- Bottom fade -->
-    <div class="absolute bottom-0 inset-x-0 h-24 pointer-events-none" style="background: linear-gradient(to bottom, transparent, #000);"></div>
+    <div class="absolute bottom-0 inset-x-0 h-24 pointer-events-none hero-bottom-fade"></div>
 </section>
 
 <!-- ─── LIVE STATS BAR ────────────────────────────────────────────────── -->
-<section class="py-12 border-y border-dark-border bg-dark-surface/60">
+<section class="py-12 border-y border-gray-200 dark:border-dark-border bg-gray-100/60 dark:bg-dark-surface/60">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-10">
             {#each stats as stat, i}
                 <div class="text-center animate-fade-in-up {staggerClasses[i]}">
-                    <div class="text-3xl sm:text-4xl font-black text-white mb-1 tabular-nums">
+                    <div class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mb-1 tabular-nums">
                         {stat.format === 'percent'
                             ? (summary?.[stat.key] ?? 0) + '%'
                             : formatNumber(summary?.[stat.key] ?? 0)}
@@ -142,23 +142,23 @@
 <section class="py-20 sm:py-28">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 animate-fade-in-up">
-            <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">
+            <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
                 Built for <span class="text-gold">Serious Traders</span>
             </h2>
-            <p class="text-gray-400 max-w-xl mx-auto">
+            <p class="text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
                 ทุกอย่างที่คุณต้องการในการแข่งขัน วิเคราะห์ และพัฒนาตัวเอง — ในที่เดียว
             </p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             {#each features as feature, i}
-                <div class="p-6 rounded-xl bg-dark-surface border border-dark-border card-hover animate-fade-in-up {staggerClasses[i]}">
+                <div class="p-6 rounded-xl bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border card-hover animate-fade-in-up {staggerClasses[i]}">
                     <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-5">
                         <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             {@html feature.icon}
                         </svg>
                     </div>
-                    <h3 class="text-lg font-semibold text-white mb-2">{feature.title}</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed">{feature.desc}</p>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{feature.title}</h3>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{feature.desc}</p>
                 </div>
             {/each}
         </div>
@@ -169,10 +169,10 @@
 <section class="py-4 pb-20 sm:pb-28">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10 animate-fade-in-up">
-            <h2 class="text-3xl sm:text-4xl font-bold text-white mb-3">
+            <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3">
                 Current <span class="text-gold">Champions</span>
             </h2>
-            <p class="text-gray-400 text-sm">Top performers from the live competition</p>
+            <p class="text-gray-500 dark:text-gray-400 text-sm">Top performers from the live competition</p>
         </div>
 
         {#if topWinnersData.length >= 1}
@@ -183,7 +183,7 @@
                 </a>
             </div>
         {:else}
-            <div class="text-center py-16 text-gray-500 bg-dark-surface rounded-xl border border-dark-border">
+            <div class="text-center py-16 text-gray-500 bg-gray-50 dark:bg-dark-surface rounded-xl border border-gray-200 dark:border-dark-border">
                 <div class="text-5xl mb-4">🏆</div>
                 <p class="font-medium">Competition rankings will appear once trading begins.</p>
                 <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" class="text-sm text-amber-400 hover:underline mt-2 inline-block">
@@ -195,10 +195,10 @@
 </section>
 
 <!-- ─── HOW IT WORKS ──────────────────────────────────────────────────── -->
-<section class="py-20 sm:py-28 border-t border-dark-border bg-dark-surface/30">
+<section class="py-20 sm:py-28 border-t border-gray-200 dark:border-dark-border bg-gray-50/60 dark:bg-dark-surface/30">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 animate-fade-in-up">
-            <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">
+            <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
                 เริ่มต้น <span class="text-gold">ยังไง?</span>
             </h2>
         </div>
@@ -216,8 +216,8 @@
                     {#if i < steps.length - 1}
                         <div class="hidden md:block absolute top-10 left-[calc(50%+4rem)] right-[calc(-50%+4rem)] h-px bg-gradient-to-r from-amber-500/30 to-transparent"></div>
                     {/if}
-                    <h3 class="text-lg font-semibold text-white mb-2">{step.title}</h3>
-                    <p class="text-gray-400 text-sm leading-relaxed">{step.desc}</p>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{step.title}</h3>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{step.desc}</p>
                     {#if step.cta}
                         <a
                             href={DISCORD_URL}
@@ -236,15 +236,15 @@
 
 <!-- ─── FINAL CTA ─────────────────────────────────────────────────────── -->
 <section class="py-24 sm:py-32 relative overflow-hidden">
-    <div class="absolute inset-0 bg-gradient-to-br from-amber-900/15 via-black to-black"></div>
+    <div class="absolute inset-0 bg-gradient-to-br from-amber-100/50 via-white to-white dark:from-amber-900/15 dark:via-black dark:to-black"></div>
     <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse 55% 65% at 50% 50%, rgba(245,158,11,0.09) 0%, transparent 70%);"></div>
 
     <div class="relative z-10 max-w-2xl mx-auto px-4 text-center">
         <div class="text-6xl mb-6">👑</div>
-        <h2 class="text-4xl sm:text-5xl font-extrabold text-white mb-5 leading-tight">
+        <h2 class="text-4xl sm:text-5xl font-extrabold text-gray-900 dark:text-white mb-5 leading-tight">
             พร้อมพิสูจน์ฝีมือแล้วหรือยัง?
         </h2>
-        <p class="text-gray-400 text-lg mb-10 leading-relaxed">
+        <p class="text-gray-500 dark:text-gray-400 text-lg mb-10 leading-relaxed">
             เข้าร่วม EliteGold Discord ลงทะเบียนการแข่งขัน และเริ่มเทรดได้เลย
         </p>
         <a
@@ -263,12 +263,39 @@
 
 <style>
     .hero-gold-text {
-        background: linear-gradient(135deg, #ffd700 0%, #ffed4a 30%, #ffffff 50%, #ffd700 70%, #b8860b 100%);
+        background: linear-gradient(135deg, #b8860b 0%, #d4a017 30%, #ffd700 50%, #b8860b 70%, #8b6914 100%);
         background-size: 200% auto;
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
         animation: hero-gold-shimmer 4s linear infinite;
+    }
+
+    :global(.dark) .hero-gold-text {
+        background: linear-gradient(135deg, #ffd700 0%, #ffed4a 30%, #ffffff 50%, #ffd700 70%, #b8860b 100%);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .hero-grid {
+        opacity: 0.04;
+        background-image: linear-gradient(rgba(0,0,0,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.3) 1px, transparent 1px);
+        background-size: 40px 40px;
+    }
+
+    :global(.dark) .hero-grid {
+        opacity: 0.03;
+        background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px);
+    }
+
+    .hero-bottom-fade {
+        background: linear-gradient(to bottom, transparent, #f9fafb);
+    }
+
+    :global(.dark) .hero-bottom-fade {
+        background: linear-gradient(to bottom, transparent, #000);
     }
 
     @keyframes hero-gold-shimmer {

@@ -31,7 +31,7 @@
   <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
-        <tr class="border-b border-dark-border text-gray-500 text-xs">
+        <tr class="border-b border-gray-200 dark:border-dark-border text-gray-500 text-xs">
           <th class="text-left py-2">Rank</th>
           <th class="text-left py-2">Nickname</th>
           <th class="text-right py-2">Points</th>
@@ -49,7 +49,7 @@
           {#each sortedData as entry, index}
             {@const rank = index + 1}
             <tr
-              class="border-b border-dark-border/40 hover:bg-dark-border/20 cursor-pointer"
+              class="border-b border-gray-100 dark:border-dark-border/40 hover:bg-gray-50 dark:hover:bg-dark-border/20 cursor-pointer"
               on:click={() => (window.location.href = `/leaderboard/${entry.id}`)}
             >
               <td class="py-3">
@@ -61,9 +61,9 @@
                 </div>
               </td>
               <td class="py-3">
-                <div class="font-medium text-white">{entry.nickname}</div>
+                <div class="font-medium text-gray-900 dark:text-white">{entry.nickname}</div>
               </td>
-              <td class="py-3 text-right font-bold text-white">
+              <td class="py-3 text-right font-bold text-gray-900 dark:text-white">
                 {entry.points.toLocaleString()}
               </td>
               <td class="py-3 text-right font-medium {entry.profit >= 0 ? 'text-green-400' : 'text-red-400'}">
@@ -72,7 +72,7 @@
               <td class="py-3 text-right {(entry.stats?.winRate ?? 0) >= 50 ? 'text-green-400' : 'text-red-400'}">
                 {entry.stats?.winRate != null ? `${entry.stats.winRate.toFixed(1)}%` : '-'}
               </td>
-              <td class="py-3 text-right text-gray-300">
+              <td class="py-3 text-right text-gray-600 dark:text-gray-300">
                 {entry.stats?.totalTrades?.toLocaleString() ?? '-'}
               </td>
             </tr>

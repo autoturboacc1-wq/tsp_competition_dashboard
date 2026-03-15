@@ -2,6 +2,8 @@
     import { onMount, onDestroy } from "svelte";
     import { createChart, ColorType, LineStyle } from "lightweight-charts";
     import { THAILAND_OFFSET_SECONDS } from "$lib/timezone";
+    import { theme } from "$lib/stores/theme";
+    import { getChartColors } from "$lib/chart/chartTheme";
 
     type Trader = {
         id: string;
@@ -123,7 +125,7 @@
                         crosshairMarkerVisible: true,
                         crosshairMarkerRadius: 4,
                         crosshairMarkerBorderColor: color,
-                        crosshairMarkerBackgroundColor: "#1F2937",
+                        crosshairMarkerBackgroundColor: getChartColors(document.documentElement.classList.contains('dark')).crosshairLabelBg,
                         title: nickname,
                         lastValueVisible: true,
                         priceLineVisible: false,
@@ -163,35 +165,61 @@
         });
     }
 
+    let themeUnsub: (() => void) | undefined;
+
+    function applyChartTheme(isDark: boolean) {
+        if (!chart) return;
+        const c = getChartColors(isDark);
+        chart.applyOptions({
+            layout: { textColor: c.textColor },
+            grid: {
+                vertLines: { color: c.gridColor },
+                horzLines: { color: c.gridColor },
+            },
+            rightPriceScale: { borderColor: c.gridColor },
+            timeScale: { borderColor: c.gridColor },
+            crosshair: {
+                vertLine: { labelBackgroundColor: c.crosshairLabelBg },
+                horzLine: { labelBackgroundColor: c.crosshairLabelBg },
+            },
+        });
+        for (const [, series] of seriesMap) {
+            series.applyOptions({ crosshairMarkerBackgroundColor: c.crosshairLabelBg });
+        }
+    }
+
     function initChart() {
         if (!chartContainer || chart) return;
+
+        const isDark = document.documentElement.classList.contains('dark');
+        const colors = getChartColors(isDark);
 
         chart = createChart(chartContainer, {
             layout: {
                 background: { type: ColorType.Solid, color: "transparent" },
-                textColor: "#9CA3AF",
+                textColor: colors.textColor,
                 fontFamily: "'Inter', 'IBM Plex Sans Thai', sans-serif",
             },
             grid: {
-                vertLines: { color: "rgba(55, 65, 81, 0.5)", style: LineStyle.Dotted },
-                horzLines: { color: "rgba(55, 65, 81, 0.5)", style: LineStyle.Dotted },
+                vertLines: { color: colors.gridColor, style: LineStyle.Dotted },
+                horzLines: { color: colors.gridColor, style: LineStyle.Dotted },
             },
             width: chartContainer.clientWidth,
             height: Math.max(window.innerWidth < 640 ? 240 : 320, Math.min(600, traders.length * 60)),
             rightPriceScale: {
-                borderColor: "rgba(55, 65, 81, 0.5)",
+                borderColor: colors.gridColor,
                 scaleMargins: { top: 0.1, bottom: 0.1 },
             },
             timeScale: {
-                borderColor: "rgba(55, 65, 81, 0.5)",
+                borderColor: colors.gridColor,
                 timeVisible: true,
                 secondsVisible: false,
                 rightOffset: 5,
             },
             crosshair: {
                 mode: 1,
-                vertLine: { color: "rgba(59, 130, 246, 0.5)", width: 1, style: LineStyle.Dashed, labelBackgroundColor: "#1F2937" },
-                horzLine: { color: "rgba(59, 130, 246, 0.5)", width: 1, style: LineStyle.Dashed, labelBackgroundColor: "#1F2937" },
+                vertLine: { color: "rgba(59, 130, 246, 0.5)", width: 1, style: LineStyle.Dashed, labelBackgroundColor: colors.crosshairLabelBg },
+                horzLine: { color: "rgba(59, 130, 246, 0.5)", width: 1, style: LineStyle.Dashed, labelBackgroundColor: colors.crosshairLabelBg },
             },
             handleScroll: { mouseWheel: true, pressedMouseMove: true },
             handleScale: { mouseWheel: true, pinch: true },
@@ -237,9 +265,11 @@
         initChart();
         // Auto-select top 3 traders
         selectedTraders = traders.slice(0, Math.min(3, traders.length)).map((t) => t.id);
+        themeUnsub = theme.subscribe((t) => applyChartTheme(t === 'dark'));
     });
 
     onDestroy(() => {
+        themeUnsub?.();
         if (chart) {
             chart.remove();
             chart = null;

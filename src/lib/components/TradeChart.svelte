@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, onDestroy } from "svelte";
     import { ASYNC_COPY } from "$lib/async-state";
     import StatusBanner from "$lib/components/StatusBanner.svelte";
     import {
@@ -9,6 +9,8 @@
     } from "lightweight-charts";
     import type { IChartApi, ISeriesApi } from "lightweight-charts";
     import { supabase } from "$lib/supabaseClient";
+    import { theme } from "$lib/stores/theme";
+    import { getChartColors } from "$lib/chart/chartTheme";
 
     // --- Props ---
     export let trade: any; // The trade object
@@ -273,19 +275,46 @@
         fetchAndSetData(currentTimeframe);
     }
 
+    let themeUnsub: (() => void) | undefined;
+
+    function applyChartTheme(isDark: boolean) {
+        if (!chart) return;
+        const c = getChartColors(isDark);
+        chart.applyOptions({
+            layout: {
+                background: { type: ColorType.Solid, color: isDark ? '#111827' : '#ffffff' },
+                textColor: c.textColor,
+            },
+            grid: {
+                vertLines: { color: c.gridColor },
+                horzLines: { color: c.gridColor },
+            },
+            watermark: {
+                color: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+            },
+        });
+    }
+
+    onDestroy(() => {
+        themeUnsub?.();
+    });
+
     // --- Lifecycle ---
     onMount(() => {
         if (!chartContainer) return;
 
+        const isDark = document.documentElement.classList.contains('dark');
+        const colors = getChartColors(isDark);
+
         // 1. Create Chart
         const chartOptions: any = {
             layout: {
-                background: { type: ColorType.Solid, color: "#111827" },
-                textColor: "#D1D5DB",
+                background: { type: ColorType.Solid, color: isDark ? '#111827' : '#ffffff' },
+                textColor: colors.textColor,
             },
             grid: {
-                vertLines: { color: "#374151" },
-                horzLines: { color: "#374151" },
+                vertLines: { color: colors.gridColor },
+                horzLines: { color: colors.gridColor },
             },
             width: chartContainer.clientWidth,
             height: 500,
@@ -298,7 +327,7 @@
                 fontSize: 48,
                 horzAlign: "center",
                 vertAlign: "center",
-                color: "rgba(255, 255, 255, 0.1)",
+                color: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.06)",
                 text: `${trade.symbol} M15`,
             },
         };
@@ -352,6 +381,9 @@
         });
         resizeObserver.observe(chartContainer);
 
+        // 6. Theme subscription
+        themeUnsub = theme.subscribe((t) => applyChartTheme(t === 'dark'));
+
         return () => {
             resizeObserver.disconnect();
             chart.remove();
@@ -360,12 +392,12 @@
 </script>
 
 <div
-    class="relative w-full h-full flex flex-col bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-xl"
+    class="relative w-full h-full flex flex-col bg-white dark:bg-gray-900 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-xl"
 >
     <!-- Chart Container -->
     <div class="relative flex-1 min-h-[300px] sm:min-h-[500px]" bind:this={chartContainer}>
         {#if chartError && !isLoading}
-            <div class="absolute inset-0 z-20 flex items-center justify-center p-6 bg-gray-900/80">
+            <div class="absolute inset-0 z-20 flex items-center justify-center p-6 bg-white/80 dark:bg-gray-900/80">
                 <div class="w-full max-w-md">
                     <StatusBanner
                         tone="error"
@@ -377,7 +409,7 @@
                 </div>
             </div>
         {:else if emptyMessage && !isLoading}
-            <div class="absolute inset-0 z-20 flex items-center justify-center p-6 bg-gray-900/80">
+            <div class="absolute inset-0 z-20 flex items-center justify-center p-6 bg-white/80 dark:bg-gray-900/80">
                 <div class="w-full max-w-md">
                     <StatusBanner
                         tone="warning"
@@ -390,7 +422,7 @@
 
         {#if isLoading}
             <div
-                class="absolute inset-0 bg-gray-900/50 flex items-center justify-center z-10 backdrop-blur-sm"
+                class="absolute inset-0 bg-white/50 dark:bg-gray-900/50 flex items-center justify-center z-10 backdrop-blur-sm"
             >
                 <div class="flex flex-col items-center gap-3">
                     <div

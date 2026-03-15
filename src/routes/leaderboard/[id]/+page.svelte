@@ -4,6 +4,7 @@
     import { invalidateAll } from "$app/navigation";
     import { createChart, ColorType } from "lightweight-charts";
     import { THAILAND_OFFSET_SECONDS } from "$lib/timezone";
+    import { getChartColors } from "$lib/chart/chartTheme";
     import { ASYNC_COPY } from "$lib/async-state";
     import EquityChart from "$lib/components/EquityChart.svelte";
     import TradingCalendar from "$lib/components/TradingCalendar.svelte";
@@ -593,14 +594,17 @@
                 return;
             }
 
+            const isDark = document.documentElement.classList.contains('dark');
+            const chartColors = getChartColors(isDark);
+
             chart = createChart(chartContainerRef, {
                 layout: {
-                    background: { type: ColorType.Solid, color: "#111827" },
-                    textColor: "#D1D5DB",
+                    background: { type: ColorType.Solid, color: isDark ? "#111827" : "#ffffff" },
+                    textColor: chartColors.textColor,
                 },
                 grid: {
-                    vertLines: { color: "#374151" },
-                    horzLines: { color: "#374151" },
+                    vertLines: { color: chartColors.gridColor },
+                    horzLines: { color: chartColors.gridColor },
                 },
                 width: chartContainerRef.clientWidth,
                 height: 400,

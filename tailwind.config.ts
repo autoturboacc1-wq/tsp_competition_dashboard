@@ -19,9 +19,14 @@ export default {
       },
       colors: {
         dark: {
-          bg: '#000000', // Black
-          surface: '#111111', // Very dark gray
-          border: '#333333', // Dark gray
+          bg: '#000000',
+          surface: '#111111',
+          border: '#333333',
+        },
+        light: {
+          bg: '#ffffff',
+          surface: '#f9fafb',
+          border: '#e5e7eb',
         },
         gold: {
           400: '#fbbf24',

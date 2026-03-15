@@ -3,8 +3,22 @@
 @import "tailwindcss/utilities";
 
 @layer base {
+  :root {
+    --chart-bg: transparent;
+    --chart-grid: rgba(209, 213, 219, 0.5);
+    --chart-text: #6b7280;
+    --chart-crosshair-label: #f3f4f6;
+  }
+
+  .dark {
+    --chart-bg: transparent;
+    --chart-grid: rgba(55, 65, 81, 0.5);
+    --chart-text: #9CA3AF;
+    --chart-crosshair-label: #1F2937;
+  }
+
   html, body {
-    @apply bg-white font-sans;
+    @apply bg-white font-sans text-gray-900;
   }
 
   html.dark, body.dark {
@@ -42,7 +56,7 @@
 
 @layer components {
   .card {
-    @apply bg-dark-surface border border-dark-border rounded-xl p-4;
+    @apply bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-xl p-4;
   }
 
   /* ==================== ANIMATIONS ==================== */
