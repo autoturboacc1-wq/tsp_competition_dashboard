@@ -37,6 +37,7 @@ export type TraderStats = {
 export type LeaderboardEntry = {
   id: string;
   nickname: string;
+  server?: string;
   points: number;
   profit: number;
   rankChange?: number;

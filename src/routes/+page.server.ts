@@ -62,7 +62,7 @@ export const load: PageServerLoad = async () => {
             // Query 1: Today's daily_stats only
             supabase
                 .from('daily_stats')
-                .select('participant_id, date, balance, equity, profit, points, win_rate, total_trades, total_lots, participants(nickname, avatar_url)')
+                .select('participant_id, date, balance, equity, profit, points, win_rate, total_trades, total_lots, participants(nickname, avatar_url, server)')
                 .eq('date', thaiDate),
 
             // Query 2: Recent trades
@@ -112,7 +112,7 @@ export const load: PageServerLoad = async () => {
             if (latestDate) {
                 const { data } = await supabase
                     .from('daily_stats')
-                    .select('participant_id, date, balance, equity, profit, points, win_rate, total_trades, total_lots, participants(nickname, avatar_url)')
+                    .select('participant_id, date, balance, equity, profit, points, win_rate, total_trades, total_lots, participants(nickname, avatar_url, server)')
                     .eq('date', latestDate);
                 latestArray = data || [];
             }
@@ -166,6 +166,7 @@ export const load: PageServerLoad = async () => {
                 rank: index + 1,
                 id: entry.participant_id,
                 nickname: (entry.participants as any)?.nickname || 'Unknown',
+                server: (entry.participants as any)?.server || '',
                 points: entry.points,
                 profit: entry.profit,
                 winRate: entry.win_rate ?? 0

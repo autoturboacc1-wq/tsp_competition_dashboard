@@ -61,7 +61,14 @@
                 </div>
               </td>
               <td class="py-3">
-                <div class="font-medium text-gray-900 dark:text-white">{entry.nickname}</div>
+                <div class="font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
+                  {entry.nickname}
+                  {#if entry.server}
+                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full {entry.server.includes('Real') ? 'bg-green-500/15 text-green-500' : 'bg-blue-500/15 text-blue-400'}">
+                      {entry.server.includes('Real') ? 'REAL' : 'DEMO'}
+                    </span>
+                  {/if}
+                </div>
               </td>
               <td class="py-3 text-right font-bold text-gray-900 dark:text-white">
                 {entry.points.toLocaleString()}
