@@ -529,11 +529,20 @@ def sync_participant(participant):
         if all_orders:
             del all_orders
 
-def sync_participants_from_csv():
+_csv_last_mtime = 0
+
+def sync_participants_from_csv(force=False):
+    global _csv_last_mtime
     csv_file = 'participants.csv'
     if not os.path.exists(csv_file):
         print(f"Warning: {csv_file} not found. Skipping CSV sync.")
         return
+
+    # Only sync if file was modified since last check
+    current_mtime = os.path.getmtime(csv_file)
+    if not force and current_mtime == _csv_last_mtime:
+        return
+    _csv_last_mtime = current_mtime
 
     print(f"Syncing participants from {csv_file} to Supabase...")
 
@@ -578,8 +587,8 @@ def sync_participants_from_csv():
 
 
 def main():
-    # 0. Sync Participants from CSV first
-    sync_participants_from_csv()
+    # 0. Sync Participants from CSV first (force on startup)
+    sync_participants_from_csv(force=True)
 
     if not init_mt5():
         return

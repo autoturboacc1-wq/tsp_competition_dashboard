@@ -11,16 +11,23 @@ def load_env():
     """Ensure env vars are loaded (idempotent)"""
     load_dotenv()
 
+_supabase_client = None
+
 def get_supabase_client() -> Client:
-    """Initialize and return Supabase client"""
+    """Return singleton Supabase client (reused across all modules)"""
+    global _supabase_client
+    if _supabase_client is not None:
+        return _supabase_client
+
     url = os.getenv("SUPABASE_URL")
     key = os.getenv("SUPABASE_KEY")
-    
+
     if not url or not key:
         print("Error: SUPABASE_URL or SUPABASE_KEY not found in .env")
         exit(1)
-        
-    return create_client(url, key)
+
+    _supabase_client = create_client(url, key)
+    return _supabase_client
 
 def init_mt5() -> bool:
     """Initialize MetaTrader 5 connection"""
