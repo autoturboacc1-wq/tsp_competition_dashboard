@@ -3,27 +3,14 @@
 
   export let data: LeaderboardEntry[] = [];
 
-  // Sort data: Points DESC, then Profit DESC
   $: sortedData = [...data].sort((a, b) => {
-    if (b.points !== a.points) {
-      return b.points - a.points;
-    }
+    if (b.points !== a.points) return b.points - a.points;
     return b.profit - a.profit;
   });
 
   function formatProfit(profit: number): string {
     const sign = profit > 0 ? "+" : "";
     return `${sign}${profit.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }
-
-  function getRankStyle(rank: number): string {
-    if (rank === 1)
-      return "bg-yellow-100 dark:bg-yellow-400 border-yellow-400 dark:border-yellow-500 text-yellow-900 dark:text-black shadow-sm dark:shadow-yellow-500/50 font-bold";
-    if (rank === 2)
-      return "bg-gray-100 dark:bg-gray-300 border-gray-400 dark:border-gray-400 text-gray-900 dark:text-black font-bold";
-    if (rank === 3)
-      return "bg-orange-100 dark:bg-orange-400 border-orange-400 dark:border-orange-500 text-orange-900 dark:text-black font-bold";
-    return "bg-white dark:bg-dark-surface border-gray-200 dark:border-dark-border text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-dark-border/50";
   }
 
   function getRankIcon(rank: number): string {
@@ -34,124 +21,64 @@
   }
 
   function getRankChangeDisplay(change: number | undefined): { text: string; class: string } {
-    if (change == null || change === 0) return { text: '-', class: 'text-gray-400 dark:text-gray-500' };
-    if (change > 0) return { text: `▲${change}`, class: 'text-green-600 dark:text-green-400' };
-    return { text: `▼${Math.abs(change)}`, class: 'text-red-600 dark:text-red-400' };
+    if (change == null || change === 0) return { text: '-', class: 'text-gray-500' };
+    if (change > 0) return { text: `▲${change}`, class: 'text-green-400' };
+    return { text: `▼${Math.abs(change)}`, class: 'text-red-400' };
   }
 </script>
 
-<div
-  class="hidden md:block w-full overflow-x-auto shadow-xl rounded-xl border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface/50 backdrop-blur-sm animate-fade-in-up"
->
-  <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-    <thead
-      class="text-xs text-gray-700 dark:text-white uppercase bg-gray-50 dark:bg-dark-surface border-b border-gray-200 dark:border-dark-border"
-    >
-      <tr>
-        <th scope="col" class="px-6 py-3">Rank</th>
-        <th scope="col" class="px-6 py-3">Nickname</th>
-        <th scope="col" class="px-6 py-3 text-right">Points</th>
-        <th scope="col" class="px-6 py-3 text-right">Profit (USD)</th>
-        <th scope="col" class="px-6 py-3 text-right">Win Rate</th>
-        <th scope="col" class="px-6 py-3 text-right">Trades</th>
-      </tr>
-    </thead>
-    <tbody>
-      {#if sortedData.length === 0}
-        <tr>
-          <td colspan="6" class="px-6 py-4 text-center dark:text-gray-400"
-            >No participants yet.</td
-          >
+<div class="card">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-dark-border text-gray-500 text-xs">
+          <th class="text-left py-2">Rank</th>
+          <th class="text-left py-2">Nickname</th>
+          <th class="text-right py-2">Points</th>
+          <th class="text-right py-2">Profit (USD)</th>
+          <th class="text-right py-2">Win Rate</th>
+          <th class="text-right py-2">Trades</th>
         </tr>
-      {:else}
-        {#each sortedData as entry, index}
-          {@const rank = index + 1}
-          <tr
-            class="border-b dark:border-dark-border/50 {getRankStyle(
-              rank,
-            )} transition-all duration-200 cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
-            style="animation: fadeInUp 0.4s ease-out forwards; animation-delay: {index *
-              0.05}s; opacity: 0;"
-            on:click={() => (window.location.href = `/leaderboard/${entry.id}`)}
-          >
-            <td class="px-6 py-4 font-bold whitespace-nowrap">
-              <div class="flex items-center gap-2">
-                <span class="text-lg">{getRankIcon(rank)}</span>
-                <span class="text-[10px] font-semibold {getRankChangeDisplay(entry.rankChange).class}">{getRankChangeDisplay(entry.rankChange).text}</span>
-              </div>
-            </td>
-            <td class="px-6 py-4 font-medium whitespace-nowrap">
-              {entry.nickname}
-            </td>
-            <td class="px-6 py-4 text-right font-bold">
-              {entry.points.toLocaleString()}
-            </td>
-            <td
-              class="px-6 py-4 text-right font-mono {entry.profit >= 0
-                ? 'text-green-600 dark:text-green-400'
-                : 'text-red-600 dark:text-red-400'}"
-            >
-              {formatProfit(entry.profit)}
-            </td>
-            <td class="px-6 py-4 text-right font-mono {entry.stats?.winRate >= 50 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
-              {entry.stats?.winRate != null ? `${entry.stats.winRate.toFixed(1)}%` : '-'}
-            </td>
-            <td class="px-6 py-4 text-right font-mono text-gray-600 dark:text-gray-300">
-              {entry.stats?.totalTrades?.toLocaleString() ?? '-'}
-            </td>
+      </thead>
+      <tbody>
+        {#if sortedData.length === 0}
+          <tr>
+            <td colspan="6" class="py-8 text-center text-gray-500">No participants yet.</td>
           </tr>
-        {/each}
-      {/if}
-    </tbody>
-  </table>
-</div>
-
-<!-- Mobile Card View (Visible only on small screens if needed, but table with overflow-x is often enough. 
-     The user asked for "table can scroll horizontally OR turn into stacked cards". 
-     I'll stick to the scrollable table for now as it's cleaner for leaderboards, 
-     but I can add a card view if requested. 
-     Actually, let's add a simple card view for very small screens to be "mobile-friendly" as requested.) -->
-<div class="md:hidden space-y-4 mt-4">
-  {#each sortedData as entry, index}
-    {@const rank = index + 1}
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div
-      class="p-4 rounded-lg shadow border {getRankStyle(
-        rank,
-      )} flex justify-between items-center cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-      style="animation: fadeInUp 0.4s ease-out forwards; animation-delay: {index *
-        0.05}s; opacity: 0;"
-      on:click={() => (window.location.href = `/leaderboard/${entry.id}`)}
-    >
-      <div class="flex items-center gap-3">
-        <span class="text-2xl">{getRankIcon(rank)}</span>
-        <div>
-          <div class="font-bold">{entry.nickname}</div>
-          <div class="text-xs opacity-75 flex items-center gap-1">
-            Rank {rank}
-            <span class="font-semibold {getRankChangeDisplay(entry.rankChange).class}">{getRankChangeDisplay(entry.rankChange).text}</span>
-          </div>
-        </div>
-      </div>
-      <div class="text-right">
-        <div class="font-bold">{entry.points.toLocaleString()} pts</div>
-        <div
-          class="font-mono text-sm {entry.profit >= 0
-            ? 'text-green-600 dark:text-green-400'
-            : 'text-red-600 dark:text-red-400'}"
-        >
-          {formatProfit(entry.profit)}
-        </div>
-      </div>
-    </div>
-    <div class="flex justify-between mt-2 pt-2 border-t border-gray-200/50 dark:border-dark-border/30 text-xs">
-      <span class="font-mono {(entry.stats?.winRate ?? 0) >= 50 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
-        WR: {entry.stats?.winRate != null ? `${entry.stats.winRate.toFixed(1)}%` : '-'}
-      </span>
-      <span class="font-mono text-gray-500 dark:text-gray-400">
-        Trades: {entry.stats?.totalTrades?.toLocaleString() ?? '-'}
-      </span>
-    </div>
-  {/each}
+        {:else}
+          {#each sortedData as entry, index}
+            {@const rank = index + 1}
+            <tr
+              class="border-b border-dark-border/40 hover:bg-dark-border/20 cursor-pointer"
+              on:click={() => (window.location.href = `/leaderboard/${entry.id}`)}
+            >
+              <td class="py-3">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">{getRankIcon(rank)}</span>
+                  <span class="text-[10px] font-semibold {getRankChangeDisplay(entry.rankChange).class}">
+                    {getRankChangeDisplay(entry.rankChange).text}
+                  </span>
+                </div>
+              </td>
+              <td class="py-3">
+                <div class="font-medium text-white">{entry.nickname}</div>
+              </td>
+              <td class="py-3 text-right font-bold text-white">
+                {entry.points.toLocaleString()}
+              </td>
+              <td class="py-3 text-right font-medium {entry.profit >= 0 ? 'text-green-400' : 'text-red-400'}">
+                {formatProfit(entry.profit)}
+              </td>
+              <td class="py-3 text-right {(entry.stats?.winRate ?? 0) >= 50 ? 'text-green-400' : 'text-red-400'}">
+                {entry.stats?.winRate != null ? `${entry.stats.winRate.toFixed(1)}%` : '-'}
+              </td>
+              <td class="py-3 text-right text-gray-300">
+                {entry.stats?.totalTrades?.toLocaleString() ?? '-'}
+              </td>
+            </tr>
+          {/each}
+        {/if}
+      </tbody>
+    </table>
+  </div>
 </div>

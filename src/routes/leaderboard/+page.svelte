@@ -131,9 +131,7 @@
             {:else if hasLeaderboardData}
                 <TopWinners data={data.leaderboard} />
 
-                <div class="bg-white dark:bg-dark-surface rounded-lg shadow">
-                    <LeaderboardTable data={data.leaderboard} />
-                </div>
+                <LeaderboardTable data={data.leaderboard} />
 
                 <div class="mt-6">
                     <MultiEquityChart traders={chartTraders} />
