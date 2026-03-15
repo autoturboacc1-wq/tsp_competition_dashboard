@@ -24,6 +24,83 @@
 </head>
 
 <body data-sveltekit-preload-data="hover">
+	<!-- ═══ SPLASH SCREEN ═══ -->
+	<div id="splash" aria-hidden="true">
+		<style>
+			#splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#050505;overflow:hidden;transition:opacity .6s ease,visibility .6s ease}
+			#splash.hide{opacity:0;visibility:hidden;pointer-events:none}
+			/* ── ambient gold glows ── */
+			#splash-glow1,#splash-glow2,#splash-glow3{position:absolute;border-radius:50%;pointer-events:none;filter:blur(80px)}
+			#splash-glow1{width:420px;height:420px;top:-10%;left:50%;transform:translateX(-50%);background:radial-gradient(circle,rgba(255,215,0,.12) 0%,rgba(184,134,11,.06) 40%,transparent 70%);animation:splashFloat 6s ease-in-out infinite}
+			#splash-glow2{width:300px;height:300px;bottom:-5%;left:-10%;background:radial-gradient(circle,rgba(245,158,11,.08) 0%,rgba(184,134,11,.03) 50%,transparent 70%);animation:splashFloat 8s ease-in-out infinite reverse}
+			#splash-glow3{width:250px;height:250px;top:30%;right:-8%;background:radial-gradient(circle,rgba(255,237,74,.07) 0%,transparent 60%);animation:splashFloat 7s ease-in-out 1s infinite}
+			/* ── subtle grid ── */
+			#splash-grid{position:absolute;inset:0;opacity:.03;background-image:linear-gradient(rgba(255,215,0,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,215,0,.5) 1px,transparent 1px);background-size:60px 60px}
+			/* ── gold dust particles ── */
+			#splash-particles{position:absolute;inset:0;overflow:hidden}
+			.sp{position:absolute;width:2px;height:2px;border-radius:50%;background:rgba(255,215,0,.4);animation:splashRise linear infinite}
+			/* ── content ── */
+			#splash-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center}
+			#splash-logo{width:88px;height:88px;border-radius:22px;animation:splashPulse 2.5s ease-in-out infinite;filter:drop-shadow(0 0 40px rgba(255,215,0,.25)) drop-shadow(0 0 80px rgba(184,134,11,.15))}
+			#splash-title{margin-top:22px;font-family:'Inter',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.5px;color:#fff}
+			#splash-title span{background:linear-gradient(135deg,#b8860b,#d4a017,#ffd700,#ffed4a,#fff,#ffd700,#b8860b);background-size:300% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:splashGold 4s linear infinite}
+			#splash-sub{margin-top:8px;font-family:'Inter',sans-serif;font-size:11px;font-weight:500;letter-spacing:4px;text-transform:uppercase;color:rgba(255,215,0,.3)}
+			#splash-pct{margin-top:32px;font-family:'Inter',sans-serif;font-size:42px;font-weight:800;letter-spacing:-2px;line-height:1;background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,255,255,.4));-webkit-background-clip:text;background-clip:text;color:transparent;transition:opacity .3s}
+			#splash-pct .pct-sign{font-size:20px;font-weight:600;letter-spacing:0;margin-left:2px;opacity:.5}
+			#splash-status{margin-top:10px;font-family:'Inter',sans-serif;font-size:10px;font-weight:400;letter-spacing:2px;text-transform:uppercase;color:rgba(255,215,0,.25);min-height:14px;transition:opacity .2s}
+			#splash-bar-wrap{margin-top:20px;width:200px;height:2px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;box-shadow:0 0 20px rgba(255,215,0,.05);position:relative}
+			#splash-bar{height:100%;width:0%;border-radius:2px;background:linear-gradient(90deg,#8b6914,#d4a017,#ffd700,#ffed4a);box-shadow:0 0 12px rgba(255,215,0,.4),0 0 30px rgba(255,215,0,.15);transition:width .4s cubic-bezier(.4,0,.2,1)}
+			#splash-bar::after{content:'';position:absolute;top:0;right:0;width:40px;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6));filter:blur(2px);animation:splashBarShine 1.5s ease-in-out infinite}
+			@keyframes splashPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 40px rgba(255,215,0,.25)) drop-shadow(0 0 80px rgba(184,134,11,.15))}50%{transform:scale(1.04);filter:drop-shadow(0 0 50px rgba(255,215,0,.35)) drop-shadow(0 0 100px rgba(184,134,11,.2))}}
+			@keyframes splashGold{0%{background-position:0% center}100%{background-position:300% center}}
+			@keyframes splashFloat{0%,100%{transform:translateX(-50%) translateY(0) scale(1)}50%{transform:translateX(-50%) translateY(-20px) scale(1.05)}}
+			@keyframes splashRise{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:1}90%{opacity:.6}100%{transform:translateY(-10vh) scale(1);opacity:0}}
+		</style>
+		<!-- ambient glows -->
+		<div id="splash-glow1"></div>
+		<div id="splash-glow2"></div>
+		<div id="splash-glow3"></div>
+		<div id="splash-grid"></div>
+		<!-- floating gold particles -->
+		<div id="splash-particles"></div>
+		<script>
+			(function(){var c=document.getElementById('splash-particles');for(var i=0;i<20;i++){var d=document.createElement('div');d.className='sp';d.style.left=Math.random()*100+'%';d.style.animationDuration=(4+Math.random()*6)+'s';d.style.animationDelay=(Math.random()*6)+'s';d.style.width=d.style.height=(1+Math.random()*2)+'px';d.style.opacity=.2+Math.random()*.4;c.appendChild(d)}})();
+		</script>
+		<!-- main content -->
+		<div id="splash-content">
+			<img id="splash-logo" src="/logo.png" alt="" />
+			<div id="splash-title">Elite<span>Gold</span></div>
+			<div id="splash-sub">Trading Competition</div>
+			<div id="splash-bar-wrap"><div id="splash-bar"></div></div>
+		</div>
+	</div>
+	<script>
+		(function(){
+			var bar=document.getElementById('splash-bar');
+			var splash=document.getElementById('splash');
+			var p=0;
+			// Simulate progress up to 90%
+			var iv=setInterval(function(){
+				p+=Math.random()*15+5;
+				if(p>90)p=90;
+				bar.style.width=p+'%';
+			},200);
+			// When SvelteKit is ready, finish and hide
+			function finish(){
+				clearInterval(iv);
+				bar.style.width='100%';
+				setTimeout(function(){
+					splash.classList.add('hide');
+					setTimeout(function(){splash.remove()},600);
+				},400);
+			}
+			// Listen for SvelteKit hydration
+			if(document.readyState==='complete'){finish()}
+			else{window.addEventListener('load',finish)}
+		})();
+	</script>
+	<!-- ═══ END SPLASH ═══ -->
+
 	<div style="display: contents">%sveltekit.body%</div>
 </body>
 
