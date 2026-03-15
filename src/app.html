@@ -55,6 +55,7 @@
 			@keyframes splashGold{0%{background-position:0% center}100%{background-position:300% center}}
 			@keyframes splashFloat{0%,100%{transform:translateX(-50%) translateY(0) scale(1)}50%{transform:translateX(-50%) translateY(-20px) scale(1.05)}}
 			@keyframes splashRise{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:1}90%{opacity:.6}100%{transform:translateY(-10vh) scale(1);opacity:0}}
+			@keyframes splashBarShine{0%,100%{opacity:0}50%{opacity:1}}
 		</style>
 		<!-- ambient glows -->
 		<div id="splash-glow1"></div>
@@ -71,6 +72,8 @@
 			<img id="splash-logo" src="/logo.png" alt="" />
 			<div id="splash-title">Elite<span>Gold</span></div>
 			<div id="splash-sub">Trading Competition</div>
+			<div id="splash-pct"><span id="splash-num">0</span><span class="pct-sign">%</span></div>
+			<div id="splash-status">Initializing</div>
 			<div id="splash-bar-wrap"><div id="splash-bar"></div></div>
 		</div>
 	</div>
