@@ -1,4 +1,5 @@
 import os
+import gc
 import time
 import MetaTrader5 as mt5
 from datetime import datetime, timezone, timedelta
@@ -24,10 +25,16 @@ load_env()
 MT5_SERVER_OFFSET_SECONDS = 10800
 POSITION_TYPE_BUY = getattr(mt5, 'POSITION_TYPE_BUY', mt5.ORDER_TYPE_BUY)
 
-SYNC_INTERVAL = int(os.getenv("SYNC_INTERVAL", "60")) # Default 60 seconds
+SYNC_INTERVAL = int(os.getenv("SYNC_INTERVAL", "300"))  # Default 5 minutes
 
-# Initialize Supabase client
+# Competition start date (configurable via env, default 2026-01-01 for new season)
+HISTORY_START_DATE = os.getenv("HISTORY_START_DATE", "2026-01-01")
+
+# Initialize Supabase client (single instance reused throughout)
 supabase = get_supabase_client()
+
+# Global symbol cache - persists across participants and sync cycles
+_symbol_cache = {}
 
 def mt5_timestamp_to_iso(timestamp):
     return datetime.fromtimestamp(timestamp - MT5_SERVER_OFFSET_SECONDS, tz=timezone.utc).isoformat()
@@ -89,17 +96,20 @@ def sync_open_positions(participant, live_positions):
         print(f"Error syncing open positions: {e}")
 
 def sync_participant(participant):
+    """Sync a single participant's data from MT5 to Supabase."""
+    global _symbol_cache
+
     print(f"Syncing participant: {participant['nickname']} ({participant['account_id']})")
-    
+
     # 1. Login to MT5
     try:
         authorized = mt5.login(
-            int(participant['account_id']), 
-            password=participant['investor_password'], 
+            int(participant['account_id']),
+            password=participant['investor_password'],
             server=participant['server']
         )
     except Exception as e:
-        print(f"Login error: {e}")
+        print(f"Login error for {participant['nickname']}: {e}")
         return
 
     if not authorized:
@@ -116,24 +126,33 @@ def sync_participant(participant):
     if should_record_snapshot(participant['id']):
         record_equity_snapshot(participant['id'], account_info)
 
-    # 3. Get Trade History (Last 30 days for safety, or all time)
-    from_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
-    # Add 1 day to current time to avoid timezone mismatches (server time vs local time)
+    # 3. Get Trade History (from competition start date)
+    try:
+        from_date = datetime.strptime(HISTORY_START_DATE, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        from_date = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
     to_date = datetime.now(timezone.utc) + timedelta(days=1)
-    
-    print(f"Fetching history from {from_date} to {to_date}...")
-    
-    # Debug: Check positions (Open trades)
+
+    # Check positions (Open trades)
     live_positions = mt5.positions_get()
     if live_positions is None:
         print(f"Warning: Failed to fetch open positions, error code: {mt5.last_error()}")
     elif live_positions:
-        print(f"DEBUG: Found {len(live_positions)} open positions on account.")
+        print(f"Found {len(live_positions)} open positions on account.")
     else:
-        print("DEBUG: No open positions found.")
+        print("No open positions found.")
 
     if live_positions is not None:
         sync_open_positions(participant, live_positions)
+
+    # Build set of currently open position IDs (for partial close detection)
+    open_position_ids = set()
+    if live_positions:
+        for lp in live_positions:
+            ticket = int(getattr(lp, 'ticket', 0) or 0)
+            if ticket > 0:
+                open_position_ids.add(ticket)
 
     history_deals = mt5.history_deals_get(from_date, to_date)
 
@@ -149,76 +168,34 @@ def sync_participant(participant):
             for order in all_orders:
                 order_map[order.ticket] = order
 
-        # Advanced stats calculation
-        gross_profit = 0
-        gross_loss = 0
-        total_holding_time = 0
-        holding_counts = 0
-        symbols = []
-        
-        # Initializing missing variables
-        total_profit = 0
-        wins = 0
-        losses = 0
-        total_trades = 0
-        total_points = 0
-        best_trade = -float('inf')
-        worst_trade = float('inf')
-        
-        # Long/Short Stats
-        buy_trades = 0
-        buy_wins = 0
-        sell_trades = 0
-        sell_wins = 0
-        
-        symbol_cache = {}
-        
-        # For Max DD calculation (Balance based)
-        running_balance = 0 # This should ideally start from initial balance, but we can track relative DD
-        # Or better: reconstruct balance curve from history if we assume we have full history
-        # Since we might not have full history, we can't easily do accurate Max DD without initial balance.
-        # However, we can try to use the current balance and work backwards, or just use what we have.
-        # Let's use a simplified approach: Max DD of the *profit curve* within the period.
-        
-        peak_profit = -float('inf')
-        current_profit_curve = 0
-        max_drawdown_val = 0
-        
-        # To calculate holding time, we need to match entries and exits.
-        # This is complex with just deals. 
-        # Simplified approach for holding time: 
-        # If we can't easily match, we might skip or use a rough estimate if possible.
-        # MT5 deals have 'position_id'. We can group by position_id.
-        
-        positions = {} # position_id -> {open_time, close_time, ...}
-        
+        # --- Phase 1: Group all deals by position_id ---
+        positions = {}
+
         for deal in history_deals:
-            # Track symbols
-            if deal.symbol:
-                symbols.append(deal.symbol)
-                
-            # Group by position to find holding time and trade details
             pid = deal.position_id
             if pid not in positions:
                 positions[pid] = {
-                    'open_time': 0, 
-                    'close_time': 0, 
-                    'profit': 0,
+                    'open_time': 0,
+                    'close_time': 0,
+                    'total_profit': 0,
                     'symbol': deal.symbol,
                     'type': 'UNKNOWN',
-                    'lot': 0,
+                    'original_lot': 0,
                     'open_price': 0,
-                    'close_price': 0
+                    'close_price': 0,
+                    'sl': 0.0,
+                    'tp': 0.0,
+                    'partials': [],  # list of {lot, close_price, profit, time}
                 }
-            
+
             if deal.entry == mt5.DEAL_ENTRY_IN:
                 positions[pid]['open_time'] = deal.time
                 positions[pid]['open_price'] = deal.price
-                positions[pid]['lot'] = deal.volume
-                # Try to get SL/TP from deal, if not available or 0, try to fetch from the original order
+                positions[pid]['original_lot'] = deal.volume
+                positions[pid]['symbol'] = deal.symbol
                 sl = getattr(deal, 'sl', 0.0)
                 tp = getattr(deal, 'tp', 0.0)
-                
+
                 if (sl == 0.0 or tp == 0.0) and deal.order > 0:
                     order = order_map.get(deal.order)
                     if order:
@@ -227,80 +204,124 @@ def sync_participant(participant):
 
                 positions[pid]['sl'] = sl
                 positions[pid]['tp'] = tp
-                # Determine type: 0=Buy, 1=Sell
                 positions[pid]['type'] = 'BUY' if deal.type == mt5.ORDER_TYPE_BUY else 'SELL'
-                
+
             elif deal.entry == mt5.DEAL_ENTRY_OUT:
                 positions[pid]['close_time'] = deal.time
                 positions[pid]['close_price'] = deal.price
-                positions[pid]['profit'] += deal.profit
-                
-                # Stats on closed trades
-                total_trades += 1
-                total_profit += deal.profit
-                
-                if deal.profit > 0:
-                    wins += 1
-                    gross_profit += deal.profit
-                elif deal.profit < 0:
-                    losses += 1
-                    gross_loss += abs(deal.profit)
-                
-                # Track Best/Worst Trade
-                if deal.profit > best_trade:
-                    best_trade = deal.profit
-                if deal.profit < worst_trade:
-                    worst_trade = deal.profit
-                
-                # Track Long/Short Stats
-                if positions[pid]['type'] == 'BUY':
-                    buy_trades += 1
-                    if deal.profit > 0:
-                        buy_wins += 1
-                elif positions[pid]['type'] == 'SELL':
-                    sell_trades += 1
-                    if deal.profit > 0:
-                        sell_wins += 1
-                
-                # Calculate Real Points
-                if positions[pid]['open_price'] > 0:
-                    sym = deal.symbol
-                    if sym:
-                        if sym not in symbol_cache:
+                positions[pid]['total_profit'] += deal.profit
+
+                # Track each partial close
+                positions[pid]['partials'].append({
+                    'lot': deal.volume,
+                    'close_price': deal.price,
+                    'profit': deal.profit,
+                    'time': deal.time,
+                })
+
+        # --- Phase 2: Calculate stats from FULLY CLOSED positions only ---
+        # A position is fully closed if it has close deals AND is NOT in open_position_ids
+        gross_profit = 0
+        gross_loss = 0
+        total_profit = 0
+        wins = 0
+        losses = 0
+        total_trades = 0
+        total_points = 0
+        best_trade = -float('inf')
+        worst_trade = float('inf')
+        buy_trades = 0
+        buy_wins = 0
+        sell_trades = 0
+        sell_wins = 0
+        peak_profit = -float('inf')
+        current_profit_curve = 0
+        max_drawdown_val = 0
+        symbols = []
+
+        # Sort closed positions by close_time for accurate DD & consecutive calculation
+        closed_positions = []
+        for pid, pos in positions.items():
+            if pos['close_time'] > 0 and pid not in open_position_ids:
+                closed_positions.append((pid, pos))
+            if pos['symbol']:
+                symbols.append(pos['symbol'])
+
+        closed_positions.sort(key=lambda x: x[1]['close_time'])
+
+        for pid, pos in closed_positions:
+            trade_profit = pos['total_profit']
+            total_trades += 1
+            total_profit += trade_profit
+
+            if trade_profit > 0:
+                wins += 1
+                gross_profit += trade_profit
+            elif trade_profit < 0:
+                losses += 1
+                gross_loss += abs(trade_profit)
+
+            if trade_profit > best_trade:
+                best_trade = trade_profit
+            if trade_profit < worst_trade:
+                worst_trade = trade_profit
+
+            # Long/Short stats
+            if pos['type'] == 'BUY':
+                buy_trades += 1
+                if trade_profit > 0:
+                    buy_wins += 1
+            elif pos['type'] == 'SELL':
+                sell_trades += 1
+                if trade_profit > 0:
+                    sell_wins += 1
+
+            # Weighted Points calculation from partials
+            if pos['open_price'] > 0 and pos['original_lot'] > 0:
+                sym = pos['symbol']
+                if sym:
+                    if sym not in _symbol_cache:
+                        info = mt5.symbol_info(sym)
+                        if info is None:
+                            mt5.symbol_select(sym, True)
                             info = mt5.symbol_info(sym)
-                            if info is None:
-                                # Try to select the symbol in Market Watch if info is missing
-                                mt5.symbol_select(sym, True)
-                                info = mt5.symbol_info(sym)
-                            symbol_cache[sym] = info
-                        
-                        sym_info = symbol_cache[sym]
-                        
-                        if sym_info and sym_info.point > 0:
-                            if positions[pid]['type'] == 'BUY':
-                                p_diff = deal.price - positions[pid]['open_price']
+                        _symbol_cache[sym] = info
+
+                    sym_info = _symbol_cache[sym]
+
+                    if sym_info and sym_info.point > 0:
+                        for partial in pos['partials']:
+                            if pos['type'] == 'BUY':
+                                p_diff = partial['close_price'] - pos['open_price']
                             else:
-                                p_diff = positions[pid]['open_price'] - deal.price
-                            
-                            total_points += (p_diff / sym_info.point)
-                
-                # DD Calculation on closed equity/balance curve
-                current_profit_curve += deal.profit
-                if current_profit_curve > peak_profit:
-                    peak_profit = current_profit_curve
-                
-                dd = peak_profit - current_profit_curve
-                if dd > max_drawdown_val:
-                    max_drawdown_val = dd
+                                p_diff = pos['open_price'] - partial['close_price']
+
+                            raw_points = p_diff / sym_info.point
+                            # Weight by partial lot / original lot
+                            weighted_points = raw_points * (partial['lot'] / pos['original_lot'])
+                            total_points += weighted_points
+
+            # DD Calculation (ordered by close_time)
+            current_profit_curve += trade_profit
+            if current_profit_curve > peak_profit:
+                peak_profit = current_profit_curve
+
+            dd = peak_profit - current_profit_curve
+            if dd > max_drawdown_val:
+                max_drawdown_val = dd
+
+        still_open = sum(1 for pid in positions if pid in open_position_ids and positions[pid]['close_time'] > 0)
+        if still_open > 0:
+            print(f"  Skipped {still_open} partially-closed positions (still open)")
 
         # Calculate aggregates
         win_rate = (wins / total_trades * 100) if total_trades > 0 else 0
         win_rate_buy = (buy_wins / buy_trades * 100) if buy_trades > 0 else 0
         win_rate_sell = (sell_wins / sell_trades * 100) if sell_trades > 0 else 0
-        
+
         profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (gross_profit if gross_profit > 0 else 0)
-        
-        # Max DD % - Closed-trade fallback (used only when equity snapshots are insufficient)
+
+        # Max DD %
         current_balance = account_info.balance
         start_balance = current_balance - total_profit
         peak_balance = start_balance + peak_profit
@@ -310,7 +331,6 @@ def sync_participant(participant):
         else:
             closed_trade_dd = 0
 
-        # Max DD % + Peak Equity in one pass (avoids duplicate queries)
         equity_metrics = calculate_equity_metrics(participant['id'], fallback_dd=closed_trade_dd)
         max_dd_percent = equity_metrics['max_drawdown']
         peak_equity = equity_metrics['peak_equity']
@@ -318,99 +338,82 @@ def sync_participant(participant):
         # Avg Win / Loss
         avg_win = (gross_profit / wins) if wins > 0 else 0
         avg_loss = -(gross_loss / losses) if losses > 0 else 0
-        
-        # RR Ratio (Avg Win / |Avg Loss|)
+
+        # RR Ratio
         rr_ratio = abs(avg_win / avg_loss) if avg_loss != 0 else 0
 
-        # Holding Time
+        # Holding Time, Consecutive Stats, Session Stats - all from closed_positions
         total_duration = 0
         duration_count = 0
-        
         win_duration = 0
         win_duration_count = 0
         loss_duration = 0
         loss_duration_count = 0
-        
-        # Consecutive Stats
-        # We need to sort positions by close time to calculate consecutive wins/losses accurately
-        sorted_positions = sorted(
-            [p for p in positions.values() if p['close_time'] > 0],
-            key=lambda x: x['close_time']
-        )
-        
+
         max_consecutive_wins = 0
         max_consecutive_losses = 0
         current_consecutive_wins = 0
         current_consecutive_losses = 0
-        
-        for pos in sorted_positions:
-            if pos['profit'] > 0:
-                current_consecutive_wins += 1
-                current_consecutive_losses = 0
-                if current_consecutive_wins > max_consecutive_wins:
-                    max_consecutive_wins = current_consecutive_wins
-            elif pos['profit'] < 0:
-                current_consecutive_losses += 1
-                current_consecutive_wins = 0
-                if current_consecutive_losses > max_consecutive_losses:
-                    max_consecutive_losses = current_consecutive_losses
-        
-        # Session Stats
-        # Asian: 00:00 - 08:00 UTC
-        # London: 07:00 - 16:00 UTC
-        # New York: 12:00 - 21:00 UTC
-        
+
         session_stats = {
             'asian': {'profit': 0, 'wins': 0, 'total': 0},
             'london': {'profit': 0, 'wins': 0, 'total': 0},
             'newyork': {'profit': 0, 'wins': 0, 'total': 0}
         }
-        
-        for pid, pos in positions.items():
-            if pos['open_time'] > 0 and pos['close_time'] > 0:
-                # Convert timestamp to hour (UTC)
-                # Adjust UTC+3 to UTC by subtracting 10800 seconds
+
+        for pid, pos in closed_positions:
+            trade_profit = pos['total_profit']
+
+            # Consecutive wins/losses (already sorted by close_time)
+            if trade_profit > 0:
+                current_consecutive_wins += 1
+                current_consecutive_losses = 0
+                if current_consecutive_wins > max_consecutive_wins:
+                    max_consecutive_wins = current_consecutive_wins
+            elif trade_profit < 0:
+                current_consecutive_losses += 1
+                current_consecutive_wins = 0
+                if current_consecutive_losses > max_consecutive_losses:
+                    max_consecutive_losses = current_consecutive_losses
+
+            # Session stats
+            if pos['open_time'] > 0:
                 open_hour = datetime.utcfromtimestamp(pos['open_time'] - 10800).hour
-                profit = pos['profit']
-                is_win = profit > 0
-                
-                # Asian Session (0-8)
+                is_win = trade_profit > 0
+
                 if 0 <= open_hour < 8:
-                    session_stats['asian']['profit'] += profit
+                    session_stats['asian']['profit'] += trade_profit
                     session_stats['asian']['total'] += 1
                     if is_win: session_stats['asian']['wins'] += 1
-                
-                # London Session (7-16)
+
                 if 7 <= open_hour < 16:
-                    session_stats['london']['profit'] += profit
+                    session_stats['london']['profit'] += trade_profit
                     session_stats['london']['total'] += 1
                     if is_win: session_stats['london']['wins'] += 1
-                
-                # New York Session (12-21)
+
                 if 12 <= open_hour < 21:
-                    session_stats['newyork']['profit'] += profit
+                    session_stats['newyork']['profit'] += trade_profit
                     session_stats['newyork']['total'] += 1
                     if is_win: session_stats['newyork']['wins'] += 1
 
-        for pid, pos in positions.items():
+            # Holding time
             if pos['open_time'] > 0 and pos['close_time'] > 0:
                 duration = pos['close_time'] - pos['open_time']
                 if duration >= 0:
                     total_duration += duration
                     duration_count += 1
-                    
-                    if pos['profit'] > 0:
+
+                    if trade_profit > 0:
                         win_duration += duration
                         win_duration_count += 1
-                    elif pos['profit'] < 0:
+                    elif trade_profit < 0:
                         loss_duration += duration
                         loss_duration_count += 1
-        
+
         avg_holding_seconds = (total_duration / duration_count) if duration_count > 0 else 0
         avg_win_holding_seconds = (win_duration / win_duration_count) if win_duration_count > 0 else 0
         avg_loss_holding_seconds = (loss_duration / loss_duration_count) if loss_duration_count > 0 else 0
-        
-        # Format Holding Time
+
         def format_duration(seconds):
             m, s = divmod(seconds, 60)
             h, m = divmod(m, 60)
@@ -418,13 +421,12 @@ def sync_participant(participant):
             if d > 0: return f"{int(d)}d {int(h)}h"
             if h > 0: return f"{int(h)}h {int(m)}m"
             return f"{int(m)}m {int(s)}s"
-            
+
         avg_holding_time_str = format_duration(avg_holding_seconds)
         avg_holding_time_win_str = format_duration(avg_win_holding_seconds)
         avg_holding_time_loss_str = format_duration(avg_loss_holding_seconds)
-        
+
         # Trading Style
-        # Scalping < 30m, Intraday < 24h, Swing > 24h
         avg_holding_minutes = avg_holding_seconds / 60
         if avg_holding_minutes < 30:
             trading_style = "Scalping"
@@ -432,7 +434,7 @@ def sync_participant(participant):
             trading_style = "Intraday"
         else:
             trading_style = "Swing"
-            
+
         if duration_count == 0:
             trading_style = "Unknown"
 
@@ -444,14 +446,14 @@ def sync_participant(participant):
 
         # 4. Update Daily Stats in Supabase
         today = datetime.now(THAILAND_TZ).date().isoformat()
-        
+
         stats_data = {
             "participant_id": participant['id'],
             "date": today,
             "balance": account_info.balance,
             "equity": account_info.equity,
-            "profit": total_profit, 
-            "points": int(total_points), 
+            "profit": total_profit,
+            "points": int(total_points),
             "win_rate": win_rate,
             "total_trades": total_trades,
             "profit_factor": round(profit_factor, 2),
@@ -476,56 +478,56 @@ def sync_participant(participant):
             "session_asian_win_rate": round((session_stats['asian']['wins'] / session_stats['asian']['total'] * 100), 2) if session_stats['asian']['total'] > 0 else 0,
             "session_london_win_rate": round((session_stats['london']['wins'] / session_stats['london']['total'] * 100), 2) if session_stats['london']['total'] > 0 else 0,
             "session_newyork_win_rate": round((session_stats['newyork']['wins'] / session_stats['newyork']['total'] * 100), 2) if session_stats['newyork']['total'] > 0 else 0,
-            # MyFxBook-style fields
             "floating_pl": round(account_info.equity - account_info.balance, 2),
             "total_lots": calculate_total_lots(positions),
             "equity_growth_percent": calculate_equity_growth(participant['id'], account_info.equity),
             "peak_equity": peak_equity
         }
-        
-        print(f"Calculated Stats for {participant['nickname']}: WinRate={win_rate:.1f}%, HoldingTime={avg_holding_time_str}, Trades={total_trades}")
-        
-        # 5. Update Trades History in Supabase
-        
-        # 5. Update Trades History in Supabase
+
+        print(f"Stats for {participant['nickname']}: WinRate={win_rate:.1f}%, Trades={total_trades}")
+
+        # 5. Update Trades History in Supabase (fully closed positions only)
         trades_data = []
-        for pid, pos in positions.items():
-            if pos['open_time'] > 0 and pos['close_time'] > 0:
+        for pid, pos in closed_positions:
+            if pos['open_time'] > 0:
                 trades_data.append({
                     "participant_id": participant['id'],
                     "symbol": pos['symbol'],
                     "type": pos['type'],
-                    "lot_size": float(pos['lot']),
+                    "lot_size": float(pos['original_lot']),
                     "open_price": float(pos['open_price']),
                     "close_price": float(pos['close_price']),
                     "sl": float(pos.get('sl', 0)),
                     "tp": float(pos.get('tp', 0)),
                     "open_time": mt5_timestamp_to_iso(pos['open_time']),
                     "close_time": mt5_timestamp_to_iso(pos['close_time']),
-                    "profit": float(pos['profit']),
+                    "profit": float(pos['total_profit']),
                     "position_id": pid
                 })
-        
+
         if trades_data:
             try:
-                # Upsert trades (requires unique constraint on participant_id, position_id)
-                data, count = supabase.table('trades').upsert(trades_data, on_conflict='participant_id,position_id').execute()
+                supabase.table('trades').upsert(trades_data, on_conflict='participant_id,position_id').execute()
                 print(f"Synced {len(trades_data)} trades for {participant['nickname']}")
             except Exception as e:
                 print(f"Error syncing trades: {e}")
 
-        # Upsert to Supabase
+        # Upsert daily stats
         try:
-            data, count = supabase.table('daily_stats').upsert(stats_data, on_conflict='participant_id,date').execute()
+            supabase.table('daily_stats').upsert(stats_data, on_conflict='participant_id,date').execute()
             print(f"Updated stats for {participant['nickname']}")
 
-            # Check and award achievements
             try:
                 check_achievements(participant['id'], stats_data)
             except Exception as e:
                 print(f"[Achievements] Error for {participant['nickname']}: {e}")
         except Exception as e:
             print(f"Error updating stats: {e}")
+
+        # Free large data structures
+        del positions, order_map, trades_data, history_deals, closed_positions
+        if all_orders:
+            del all_orders
 
 def sync_participants_from_csv():
     csv_file = 'participants.csv'
@@ -534,50 +536,41 @@ def sync_participants_from_csv():
         return
 
     print(f"Syncing participants from {csv_file} to Supabase...")
-    
+
     try:
         with open(csv_file, mode='r', encoding='utf-8-sig') as f:
             reader = csv.DictReader(f)
             participants = list(reader)
-            
+
             if not participants:
                 print("No participants found in CSV.")
                 return
 
-            # Prepare data for upsert
-            # We need to handle this carefully. Supabase upsert works best if we have the primary key.
-            # But here we might only have account_id as a unique identifier from the user's perspective.
-            # We'll query existing participants by account_id to get their IDs if they exist.
-            
             for p in participants:
                 account_id = p['account_id']
                 nickname = p['nickname']
-                
-                # Check if exists
+
                 res = supabase.table('participants').select("id").eq('account_id', account_id).execute()
-                
+
                 data = {
                     "nickname": nickname,
                     "account_id": account_id,
                     "investor_password": p['investor_password'],
                     "server": p['server']
                 }
-                
+
                 if res.data and len(res.data) > 0:
-                    # Update existing (Use the first one found)
                     pid = res.data[0]['id']
                     supabase.table('participants').update(data).eq('id', pid).execute()
-                    
-                    # If duplicates exist, delete them (Cleanup)
+
                     if len(res.data) > 1:
                         print(f"Warning: Found duplicate entries for account {account_id}. Cleaning up...")
                         for dup in res.data[1:]:
                             supabase.table('participants').delete().eq('id', dup['id']).execute()
                 else:
-                    # Insert new
                     supabase.table('participants').insert(data).execute()
                     print(f"Registered new participant: {nickname}")
-                    
+
             print(f"Successfully synced {len(participants)} participants from CSV.")
 
     except Exception as e:
@@ -592,7 +585,7 @@ def main():
         return
 
     print(f"Starting Bridge Service... (Sync Interval: {SYNC_INTERVAL}s)")
-    send_telegram_message(f"🚀 Elite Gold Bridge Started!\nSync Interval: {SYNC_INTERVAL}s")
+    send_telegram_message(f"🚀 Elite Gold Bridge Started!\nSync Interval: {SYNC_INTERVAL}s\nHistory from: {HISTORY_START_DATE}")
 
     while True:
         start_time = time.time()
@@ -601,13 +594,16 @@ def main():
         try:
             response = supabase.table('participants').select("*").execute()
             participants = response.data
-            
+
             for p in participants:
                 if p.get('account_id') and p.get('investor_password') and p.get('server'):
-                    sync_participant(p)
+                    try:
+                        sync_participant(p)
+                    except Exception as e:
+                        print(f"[ERROR] Failed to sync {p['nickname']}: {e}")
                 else:
                     print(f"Skipping {p['nickname']} - Missing credentials")
-                    
+
         except Exception as e:
             error_msg = f"Error in sync cycle: {e}"
             print(error_msg)
@@ -616,26 +612,27 @@ def main():
         elapsed = time.time() - start_time
         print(f"--- Sync Cycle Complete in {elapsed:.2f}s ---")
 
-        # Check for smart alerts after sync
+        # Post-sync tasks
         try:
             check_alerts()
         except Exception as e:
             print(f"[Smart Alerts] Error: {e}")
 
-        # Check weekly report schedule
         try:
             check_weekly_report()
         except Exception as e:
             print(f"[Weekly Report] Error: {e}")
 
-        # Cleanup old equity snapshots (once per cycle)
         cleanup_old_snapshots()
-        
-        # Sync participants
         sync_participants_from_csv()
-        
-        print("Sleeping for 60 seconds...")
-        time.sleep(60)
+
+        # Force garbage collection after each cycle
+        gc.collect()
+
+        # Sleep for remaining time (prevent overlapping if sync took long)
+        sleep_time = max(10, SYNC_INTERVAL - (time.time() - start_time))
+        print(f"Next sync in {sleep_time:.0f}s...")
+        time.sleep(sleep_time)
 
     mt5.shutdown()
 

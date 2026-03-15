@@ -279,6 +279,7 @@ def calculate_total_lots(positions: dict) -> float:
     """
     total = 0
     for pid, pos in positions.items():
-        if pos.get('lot', 0) > 0:
-            total += pos['lot']
+        lot = pos.get('original_lot', 0) or pos.get('lot', 0)
+        if lot > 0:
+            total += lot
     return round(total, 2)
