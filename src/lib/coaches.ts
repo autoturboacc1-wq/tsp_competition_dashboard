@@ -103,7 +103,7 @@ export const coaches: Coach[] = [
 		time: '19:00-21:00',
 		startHour: 19,
 		endHour: 21,
-		channel: 'เทรดทองกับท่านสุดต๋าล',
+		channel: 'เทรดทองกับท่านสุลต่าล',
 		color: 'from-purple-500 to-violet-400',
 		colorBorder: 'border-purple-500/30',
 		colorText: 'text-purple-400',
