@@ -5,13 +5,7 @@
 
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { supabase } from '$lib/supabaseClient';
 	import { coaches } from '$lib/coaches';
-
-	function getBangkokHour(): number {
-		const now = new Date();
-		return ((now.getUTCHours() + 7) % 24) + now.getUTCMinutes() / 60;
-	}
 
 	function getBangkokTimeString(): string {
 		const now = new Date();
@@ -20,54 +14,34 @@
 		return `${h.toString().padStart(2, '0')}:${m}`;
 	}
 
-	function isLive(startHour: number, endHour: number): boolean {
-		const now = getBangkokHour();
-		if (endHour > 24) {
-			return now >= startHour || now < endHour - 24;
-		}
-		return now >= startHour && now < endHour;
-	}
-
 	let tick = $state(0);
-	let liveCoachYoutube = $state<string | null>(null);
-	let liveVideoId = $state<string | null>(null);
+	// Map of youtube handle -> videoId for all currently live coaches
+	let liveMap = $state<Map<string, string>>(new Map());
 	let showPreview = $state(true);
 
+	async function scanLive() {
+		try {
+			const testParam = new URLSearchParams(window.location.search).has('test') ? '?test' : '';
+			const res = await fetch(`/api/live-scan${testParam}`);
+			const data = await res.json();
+			const newMap = new Map<string, string>();
+			if (data.liveCoaches) {
+				for (const lc of data.liveCoaches) {
+					if (lc.videoId) newMap.set(lc.youtube, lc.videoId);
+				}
+			}
+			liveMap = newMap;
+		} catch {}
+	}
+
 	onMount(() => {
-		const interval = setInterval(() => tick++, 30000);
-
-		// Fetch initial live status
-		supabase
-			.from('live_status')
-			.select('coach_youtube, video_id')
-			.eq('id', 1)
-			.single()
-			.then(({ data }) => {
-				if (data) {
-					liveCoachYoutube = data.coach_youtube;
-					liveVideoId = data.video_id;
-				}
-			});
-
-		// Subscribe to real-time changes
-		const channel = supabase
-			.channel('live-status-schedule')
-			.on(
-				'postgres_changes',
-				{ event: '*', schema: 'public', table: 'live_status' },
-				(payload) => {
-					const row = payload.new as any;
-					if (row) {
-						liveCoachYoutube = row.coach_youtube || null;
-						liveVideoId = row.video_id || null;
-					}
-				}
-			)
-			.subscribe();
+		const tickInterval = setInterval(() => tick++, 30000);
+		scanLive();
+		const scanInterval = setInterval(scanLive, 120_000);
 
 		return () => {
-			clearInterval(interval);
-			supabase.removeChannel(channel);
+			clearInterval(tickInterval);
+			clearInterval(scanInterval);
 		};
 	});
 
@@ -76,17 +50,17 @@
 		return getBangkokTimeString();
 	});
 
-	// Live coach: Supabase override takes priority, then fallback to schedule
-	let liveCoachIndex = $derived.by(() => {
-		void tick;
-		if (liveCoachYoutube) {
-			const idx = coaches.findIndex((c) => c.youtube === liveCoachYoutube);
-			if (idx >= 0) return idx;
-		}
-		return coaches.findIndex((c) => isLive(c.startHour, c.endHour));
-	});
+	let hasAnyLive = $derived(liveMap.size > 0);
 
-	let hasLiveStream = $derived(liveCoachIndex >= 0 && !!liveVideoId);
+	// Get live coaches with their index for embed display
+	let liveCoachEntries = $derived.by(() => {
+		const entries: { coach: typeof coaches[0]; index: number; videoId: string }[] = [];
+		coaches.forEach((c, i) => {
+			const vid = liveMap.get(c.youtube);
+			if (vid) entries.push({ coach: c, index: i, videoId: vid });
+		});
+		return entries;
+	});
 </script>
 
 <section class="min-h-screen bg-gray-50 dark:bg-dark-bg">
@@ -100,7 +74,7 @@
 				<p class="text-xs text-gray-500 mt-1">ตาราง Live Trade Master ประจำวัน</p>
 			</div>
 			<div class="flex items-center gap-3">
-				{#if liveCoachIndex >= 0}
+				{#if hasAnyLive}
 					<div class="flex items-center gap-2 rounded-lg bg-green-500/10 border border-green-500/20 px-3 py-1.5">
 						<span class="relative flex h-2.5 w-2.5">
 							<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -116,14 +90,12 @@
 			</div>
 		</div>
 
-		<!-- Live Stream Preview -->
-		{#if hasLiveStream}
-			{@const coach = coaches[liveCoachIndex]}
+		<!-- Live Stream Previews (all live coaches) -->
+		{#each liveCoachEntries as { coach, videoId }}
 			<div
 				class="rounded-2xl overflow-hidden border-2 {coach.colorBorder} live-preview"
 				style="--glow-rgb: {coach.glow}"
 			>
-				<!-- Preview Header -->
 				<div class="flex items-center justify-between px-4 py-3 {coach.colorBg}">
 					<div class="flex items-center gap-3">
 						<img
@@ -151,11 +123,10 @@
 					</button>
 				</div>
 
-				<!-- YouTube Embed -->
 				{#if showPreview}
 					<div class="aspect-video bg-black">
 						<iframe
-							src="https://www.youtube.com/embed/{liveVideoId}?autoplay=1&mute=1&rel=0"
+							src="https://www.youtube.com/embed/{videoId}?autoplay=1&mute=1&rel=0"
 							title="{coach.name} Live Stream"
 							class="w-full h-full"
 							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -164,12 +135,13 @@
 					</div>
 				{/if}
 			</div>
-		{/if}
+		{/each}
 
 		<!-- Coach list -->
 		<div class="space-y-3">
 			{#each coaches as coach, i}
-				{@const live = i === liveCoachIndex}
+				{@const live = liveMap.has(coach.youtube)}
+				{@const videoId = liveMap.get(coach.youtube)}
 				<div
 					class="live-card relative rounded-2xl border transition-all duration-500
 						{live
@@ -215,7 +187,7 @@
 						<!-- Channel info -->
 						<div class="flex-1 min-w-0">
 							<h3 class="text-sm font-semibold truncate transition-colors duration-500 {live ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}">{coach.channel}</h3>
-							{#if live && liveVideoId}
+							{#if live && videoId}
 								<button
 									onclick={() => { showPreview = true; window.scrollTo({ top: 0, behavior: 'smooth' }); }}
 									class="inline-flex items-center gap-1.5 mt-1.5 rounded-full bg-green-500/10 border border-green-500/20 px-2.5 py-1 text-[11px] text-green-600 dark:text-green-400 hover:bg-green-500/20 transition-colors font-medium"
