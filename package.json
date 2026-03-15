@@ -15,6 +15,7 @@
 		"@sveltejs/adapter-auto": "^7.0.0",
 		"@sveltejs/kit": "^2.48.5",
 		"@sveltejs/vite-plugin-svelte": "^6.2.1",
+		"@types/dompurify": "^3.0.5",
 		"@vite-pwa/sveltekit": "^1.1.0",
 		"autoprefixer": "^10.4.20",
 		"svelte": "^5.43.8",
@@ -26,7 +27,7 @@
 	"dependencies": {
 		"@google/generative-ai": "^0.24.1",
 		"@supabase/supabase-js": "^2.86.0",
-		"isomorphic-dompurify": "^3.0.0",
+		"dompurify": "^3.3.3",
 		"lightweight-charts": "^4.1.1",
 		"marked": "^17.0.1",
 		"openai": "^6.10.0"

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
     import { marked } from "marked";
-    import DOMPurify from "isomorphic-dompurify";
+    import { browser } from "$app/environment";
     import type { LeaderboardEntry } from "$lib/mock/leaderboard";
 
     type Trader = LeaderboardEntry;
@@ -26,8 +26,15 @@
         winner: CompareWinner;
     };
 
-    const sanitize = (md: string) =>
-        DOMPurify.sanitize(marked.parse(md) as string);
+    let DOMPurify: any;
+    if (browser) {
+        import("dompurify").then((m) => (DOMPurify = m.default));
+    }
+
+    const sanitize = (md: string) => {
+        const html = marked.parse(md) as string;
+        return DOMPurify ? DOMPurify.sanitize(html) : html;
+    };
 
     const DUPLICATE_SELECTION_MESSAGE = "กรุณาเลือกเทรดเดอร์คนละคน";
 

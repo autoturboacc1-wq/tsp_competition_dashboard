@@ -1,9 +1,9 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import { invalidateAll } from '$app/navigation';
+    import { browser } from '$app/environment';
     import { supabase } from '$lib/supabase';
     import { marked } from 'marked';
-    import DOMPurify from 'isomorphic-dompurify';
     import PullToRefresh from '$lib/components/PullToRefresh.svelte';
     import DailyHighlightCard from '$lib/components/DailyHighlightCard.svelte';
     import RecentTradesFeed from '$lib/components/RecentTradesFeed.svelte';
@@ -58,9 +58,14 @@
     let sentimentStatus: SentimentStatus = 'unavailable';
     let sentimentBySymbol: SentimentRow[] = [];
 
+    let DOMPurify: any;
+    if (browser) {
+        import('dompurify').then((m) => (DOMPurify = m.default));
+    }
+
     function renderMarkdown(text: string): string {
         const raw = marked.parse(text, { async: false }) as string;
-        return DOMPurify.sanitize(raw);
+        return DOMPurify ? DOMPurify.sanitize(raw) : raw;
     }
 
     async function fetchDailyHighlight() {

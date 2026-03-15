@@ -1,7 +1,7 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
     import { marked } from "marked";
-    import DOMPurify from "isomorphic-dompurify";
+    import { browser } from "$app/environment";
     import {
         ASYNC_COPY,
         normalizeAiError,
@@ -9,8 +9,15 @@
     } from "$lib/async-state";
     import StatusBanner from "$lib/components/StatusBanner.svelte";
 
-    const sanitize = (md: string) =>
-        DOMPurify.sanitize(marked.parse(md) as string);
+    let DOMPurify: any;
+    if (browser) {
+        import("dompurify").then((m) => (DOMPurify = m.default));
+    }
+
+    const sanitize = (md: string) => {
+        const html = marked.parse(md) as string;
+        return DOMPurify ? DOMPurify.sanitize(html) : html;
+    };
 
     const CUSTOM_PROMPT_MAX = 500;
     const CACHE_TTL = 5 * 60 * 1000;
