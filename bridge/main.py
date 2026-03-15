@@ -18,6 +18,7 @@ from equity_service import (
 from smart_alerts import check_alerts
 from weekly_report import check_weekly_report
 from achievements import check_achievements
+from market_data_service import sync_market_data
 
 # Load environment variables
 load_env()
@@ -631,6 +632,12 @@ def main():
             check_weekly_report()
         except Exception as e:
             print(f"[Weekly Report] Error: {e}")
+
+        # Sync market data (XAUUSD candles)
+        try:
+            sync_market_data()
+        except Exception as e:
+            print(f"[Market Data] Error: {e}")
 
         cleanup_old_snapshots()
         sync_participants_from_csv()

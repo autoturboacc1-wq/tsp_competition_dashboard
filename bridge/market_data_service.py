@@ -1,27 +1,36 @@
-import time
 import MetaTrader5 as mt5
 from datetime import datetime, timezone, timedelta
-from core import init_mt5, get_supabase_client, load_env, send_telegram_message
+from core import get_supabase_client, load_env
 from tz_config import THAILAND_TZ
-import os
 
 # Load environment variables
 load_env()
 
-SYNC_INTERVAL = int(os.getenv("MARKET_DATA_SYNC_INTERVAL", "60"))  # Default 60 seconds
-
-# Initialize Supabase client
+# Initialize Supabase client (singleton from core)
 supabase = get_supabase_client()
 
 # Timeframe configuration: (MT5 timeframe, retention days, candle count to fetch)
+# Candle counts are small for periodic sync (upsert handles duplicates)
 TIMEFRAMES = {
-    'M1': (mt5.TIMEFRAME_M1, 3, 4320),      # 3 days = 4320 candles
-    'M5': (mt5.TIMEFRAME_M5, 14, 4032),     # 14 days = 4032 candles
-    'M15': (mt5.TIMEFRAME_M15, 30, 2880),   # 30 days = 2880 candles
-    'H1': (mt5.TIMEFRAME_H1, 90, 2160),     # 90 days = 2160 candles
-    'H4': (mt5.TIMEFRAME_H4, 180, 1080),    # 180 days = 1080 candles
-    'D1': (mt5.TIMEFRAME_D1, None, 365),    # Forever, 1 year of data
+    'M1': (mt5.TIMEFRAME_M1, 3, 60),        # last 1 hour
+    'M5': (mt5.TIMEFRAME_M5, 14, 60),       # last 5 hours
+    'M15': (mt5.TIMEFRAME_M15, 30, 60),     # last 15 hours
+    'H1': (mt5.TIMEFRAME_H1, 90, 48),       # last 2 days
+    'H4': (mt5.TIMEFRAME_H4, 180, 48),      # last 8 days
+    'D1': (mt5.TIMEFRAME_D1, None, 30),     # last 1 month
 }
+
+# Full backfill counts (used once on first run)
+BACKFILL_COUNTS = {
+    'M1': 4320,    # 3 days
+    'M5': 4032,    # 14 days
+    'M15': 2880,   # 30 days
+    'H1': 2160,    # 90 days
+    'H4': 1080,    # 180 days
+    'D1': 365,     # 1 year
+}
+
+_backfill_done = False
 
 def get_symbol():
     """Try multiple symbol variants and return the first available one"""
@@ -87,53 +96,30 @@ def cleanup_old_data():
             print(f"  ❌ Error cleaning {tf_name}: {e}")
 
 def sync_market_data():
-    """Sync all timeframes for XAUUSD"""
+    """Sync all timeframes for XAUUSD. First call does full backfill, subsequent calls fetch recent only."""
+    global _backfill_done
+
     symbol = get_symbol()
     if not symbol:
-        print("❌ Failed to select any gold symbol")
+        print("[Market Data] Failed to select any gold symbol")
         return
-    
-    print(f"[{datetime.now(THAILAND_TZ).strftime('%H:%M:%S')}] Syncing {symbol}...")
-    
+
+    is_backfill = not _backfill_done
+    if is_backfill:
+        print(f"[Market Data] Backfilling {symbol} (first run)...")
+    else:
+        print(f"[Market Data] Syncing {symbol}...")
+
     total_candles = 0
     for tf_name, (mt5_tf, _, count) in TIMEFRAMES.items():
-        synced = sync_timeframe(symbol, tf_name, mt5_tf, count)
+        # Use larger count for first-time backfill
+        fetch_count = BACKFILL_COUNTS[tf_name] if is_backfill else count
+        synced = sync_timeframe(symbol, tf_name, mt5_tf, fetch_count)
         if synced > 0:
-            print(f"  ✅ {tf_name}: {synced} candles")
             total_candles += synced
-    
-    print(f"  📊 Total: {total_candles} candles synced")
-    
-    # Cleanup old data every sync
+
+    print(f"[Market Data] {total_candles} candles synced")
+    _backfill_done = True
+
+    # Cleanup old data once per cycle
     cleanup_old_data()
-
-def main():
-    if not init_mt5():
-        return
-
-    print(f"🚀 Market Data Service Started!")
-    print(f"   Sync Interval: {SYNC_INTERVAL}s")
-    print(f"   Timeframes: {', '.join(TIMEFRAMES.keys())}")
-    send_telegram_message(
-        f"🚀 Market Data Service Started!\n"
-        f"Sync Interval: {SYNC_INTERVAL}s\n"
-        f"Timeframes: {', '.join(TIMEFRAMES.keys())}"
-    )
-    
-    while True:
-        try:
-            sync_market_data()
-        except Exception as e:
-            print(f"❌ Critical Error: {e}")
-            send_telegram_message(f"⚠️ Market Data Service Error:\n{e}")
-        
-        time.sleep(SYNC_INTERVAL)
-
-    mt5.shutdown()
-
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\n👋 Stopping Market Data Service...")
-        mt5.shutdown()
