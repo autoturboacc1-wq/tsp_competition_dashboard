@@ -96,7 +96,7 @@
 			<svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 			</svg>
-			<span>การแข่งขันพักชั่วคราว — ติดตามข่าวสารใน Discord</span>
+			<span>ทดสอบโปรแกรมการแข่งขัน — ติดตามข่าวสารใน Discord</span>
 		</div>
 	</div>
 	<!-- ============ END COMPETITION PAUSED BANNER ============ -->
