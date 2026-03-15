@@ -80,26 +80,78 @@
 	<script>
 		(function(){
 			var bar=document.getElementById('splash-bar');
+			var num=document.getElementById('splash-num');
+			var status=document.getElementById('splash-status');
 			var splash=document.getElementById('splash');
-			var p=0;
-			// Simulate progress up to 90%
-			var iv=setInterval(function(){
-				p+=Math.random()*15+5;
-				if(p>90)p=90;
-				bar.style.width=p+'%';
-			},200);
-			// When SvelteKit is ready, finish and hide
-			function finish(){
-				clearInterval(iv);
-				bar.style.width='100%';
-				setTimeout(function(){
-					splash.classList.add('hide');
-					setTimeout(function(){splash.remove()},600);
-				},400);
+			var current=0;
+			var target=0;
+			var done=false;
+
+			var phases=[
+				{at:0,msg:'Initializing'},
+				{at:15,msg:'Loading assets'},
+				{at:35,msg:'Connecting services'},
+				{at:55,msg:'Preparing dashboard'},
+				{at:75,msg:'Almost ready'},
+				{at:100,msg:'Welcome'}
+			];
+			var pi=0;
+
+			function setProgress(v){
+				current=v;
+				bar.style.width=v+'%';
+				num.textContent=Math.round(v);
+				while(pi<phases.length&&v>=phases[pi].at){status.textContent=phases[pi].msg;pi++}
 			}
-			// Listen for SvelteKit hydration
-			if(document.readyState==='complete'){finish()}
-			else{window.addEventListener('load',finish)}
+
+			// Phase 1: quick ramp 0→30 (~1s)
+			// Phase 2: slow crawl 30→60 (~1.5s)
+			// Phase 3: very slow 60→85 (~2s)
+			// Then wait for actual load to finish to 100
+			var started=Date.now();
+			var iv=setInterval(function(){
+				if(done)return;
+				var elapsed=Date.now()-started;
+				if(elapsed<1000){
+					target=30*(elapsed/1000);
+				}else if(elapsed<2500){
+					target=30+30*((elapsed-1000)/1500);
+				}else if(elapsed<4500){
+					target=60+25*((elapsed-2500)/2000);
+				}else{
+					target=85+5*(1-Math.exp(-(elapsed-4500)/3000));
+				}
+				if(target>92)target=92;
+				// Smooth lerp
+				current+=(target-current)*.15;
+				setProgress(current);
+			},30);
+
+			function finish(){
+				if(done)return;
+				done=true;
+				clearInterval(iv);
+				// Animate from current to 100
+				var from=current;
+				var start=Date.now();
+				var dur=500;
+				(function tick(){
+					var t=Math.min((Date.now()-start)/dur,1);
+					t=t<.5?4*t*t*t:.5*Math.pow(2*t-2,3)+1; // easeInOutCubic
+					setProgress(from+(100-from)*t);
+					if(t<1){requestAnimationFrame(tick)}
+					else{
+						setProgress(100);
+						setTimeout(function(){
+							splash.classList.add('hide');
+							setTimeout(function(){splash.remove()},700);
+						},600);
+					}
+				})();
+			}
+
+			if(document.readyState==='complete'){setTimeout(finish,800)}
+			else{window.addEventListener('load',function(){setTimeout(finish,300)})}
 		})();
 	</script>
 	<!-- ═══ END SPLASH ═══ -->
