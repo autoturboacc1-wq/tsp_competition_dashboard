@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { PageData } from './$types';
     import { invalidateAll } from '$app/navigation';
+    import { onMount } from 'svelte';
 
     export let data: PageData;
 
@@ -14,6 +15,96 @@
     function authenticate() {
         if (passwordInput === ADMIN_KEY) {
             isAuthenticated = true;
+            fetchLiveStatus();
+        }
+    }
+
+    // ── Live Control ──
+    const coachOptions = [
+        { name: 'COACH PING', youtube: '@goldwithping' },
+        { name: 'COACH BALL', youtube: '@trader10-x' },
+        { name: 'COACH PU', youtube: '@PuMoneyMind' },
+        { name: 'COACH CZECH', youtube: '@alltimehigh.official' },
+        { name: 'COACH FUTURE', youtube: '@tradethefuturebyfuture' },
+        { name: 'COACH JHEE', youtube: '@jheearoonwan' },
+        { name: 'COACH ICZ', youtube: '@portgoldtrader' },
+        { name: 'COACH DUK', youtube: '@Pidfah' },
+        { name: 'COACH MAY', youtube: '@MC.Maydaychannel' }
+    ];
+
+    let selectedCoachYoutube = '';
+    let videoIdInput = '';
+    let currentLiveCoach: string | null = null;
+    let currentLiveYoutube: string | null = null;
+    let currentVideoId: string | null = null;
+    let settingLive = false;
+    let liveError = '';
+
+    function extractVideoId(input: string): string {
+        if (!input) return '';
+        const trimmed = input.trim();
+        if (/^[\w-]{11}$/.test(trimmed)) return trimmed;
+        const match = trimmed.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|live\/)|youtu\.be\/)([\w-]{11})/);
+        return match ? match[1] : trimmed;
+    }
+
+    async function fetchLiveStatus() {
+        try {
+            const res = await fetch('/api/admin/live-status');
+            const data = await res.json();
+            currentLiveYoutube = data.coach_youtube || null;
+            currentVideoId = data.video_id || null;
+            currentLiveCoach = currentLiveYoutube
+                ? coachOptions.find(c => c.youtube === currentLiveYoutube)?.name || null
+                : null;
+        } catch {}
+    }
+
+    async function setLive() {
+        if (!selectedCoachYoutube) return;
+        settingLive = true;
+        liveError = '';
+        try {
+            const res = await fetch('/api/admin/live-status', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    coach_youtube: selectedCoachYoutube,
+                    video_id: extractVideoId(videoIdInput)
+                })
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Failed to set live');
+            }
+            await fetchLiveStatus();
+            selectedCoachYoutube = '';
+            videoIdInput = '';
+        } catch (e: any) {
+            liveError = e.message;
+        } finally {
+            settingLive = false;
+        }
+    }
+
+    async function stopLive() {
+        settingLive = true;
+        liveError = '';
+        try {
+            const res = await fetch('/api/admin/live-status', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ coach_youtube: null, video_id: null })
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Failed to stop live');
+            }
+            await fetchLiveStatus();
+        } catch (e: any) {
+            liveError = e.message;
+        } finally {
+            settingLive = false;
         }
     }
 
@@ -176,6 +267,72 @@
                     <p class="text-sm text-gray-500 dark:text-gray-400">Manage participants and monitor sync status</p>
                 </div>
                 <a href="/" class="text-sm text-blue-600 hover:text-blue-500">&larr; Back to Dashboard</a>
+            </div>
+
+            <!-- Live Control -->
+            <div class="mb-6 rounded-xl bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border p-5">
+                <div class="flex items-center gap-3 mb-4">
+                    <h2 class="font-semibold dark:text-white">Live Control</h2>
+                    {#if currentLiveCoach}
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-green-500/10 border border-green-500/20 px-2.5 py-0.5 text-xs text-green-600 dark:text-green-400 font-medium">
+                            <span class="relative flex h-2 w-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            ON AIR
+                        </span>
+                    {:else}
+                        <span class="text-xs text-gray-400 bg-gray-100 dark:bg-dark-border px-2.5 py-0.5 rounded-full">OFF AIR</span>
+                    {/if}
+                </div>
+
+                {#if currentLiveCoach}
+                    <div class="mb-4 p-3 rounded-lg bg-green-500/5 border border-green-500/20">
+                        <p class="text-sm dark:text-white">
+                            <span class="font-semibold">{currentLiveCoach}</span> กำลัง Live อยู่
+                        </p>
+                        {#if currentVideoId}
+                            <p class="text-xs text-gray-400 mt-1">Video ID: {currentVideoId}</p>
+                        {/if}
+                    </div>
+                {/if}
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="live-coach" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">เลือกโค้ช</label>
+                        <select id="live-coach" bind:value={selectedCoachYoutube} class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-dark-border bg-white dark:bg-dark-bg text-gray-900 dark:text-white text-sm">
+                            <option value="">-- เลือกโค้ช --</option>
+                            {#each coachOptions as coach}
+                                <option value={coach.youtube}>{coach.name}</option>
+                            {/each}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="live-video" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">YouTube Video ID หรือ URL</label>
+                        <input id="live-video" bind:value={videoIdInput} placeholder="เช่น dQw4w9WgXcQ หรือ youtube.com/watch?v=..." class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-dark-border bg-white dark:bg-dark-bg text-gray-900 dark:text-white text-sm" />
+                    </div>
+                </div>
+
+                {#if liveError}
+                    <p class="mt-3 text-xs text-red-500">{liveError}</p>
+                {/if}
+
+                <div class="flex gap-3 mt-4">
+                    <button
+                        on:click={setLive}
+                        disabled={!selectedCoachYoutube || settingLive}
+                        class="px-4 py-2 text-sm rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium disabled:opacity-50 transition-colors"
+                    >
+                        {settingLive ? 'Setting...' : 'Set Live'}
+                    </button>
+                    <button
+                        on:click={stopLive}
+                        disabled={!currentLiveCoach || settingLive}
+                        class="px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-50 transition-colors"
+                    >
+                        Stop Live
+                    </button>
+                </div>
             </div>
 
             <!-- Sync Status Cards -->

@@ -5,135 +5,8 @@
 
 <script lang="ts">
 	import { onMount } from 'svelte';
-
-	const coaches = [
-		{
-			name: 'COACH PING',
-			time: '05:00-07:00',
-			startHour: 5,
-			endHour: 7,
-			channel: 'Gold with Ping',
-			color: 'from-pink-500 to-rose-400',
-			colorBorder: 'border-pink-500/30',
-			colorText: 'text-pink-400',
-			colorBg: 'bg-pink-500/10',
-			youtube: '@goldwithping',
-			avatar: '/coaches/ping.png',
-			glow: '236,72,153'
-		},
-		{
-			name: 'COACH BALL',
-			time: '07:00-10:00',
-			startHour: 7,
-			endHour: 10,
-			channel: 'Trader10X',
-			color: 'from-orange-500 to-amber-400',
-			colorBorder: 'border-orange-500/30',
-			colorText: 'text-orange-400',
-			colorBg: 'bg-orange-500/10',
-			youtube: '@trader10-x',
-			avatar: '/coaches/ball.png',
-			glow: '249,115,22'
-		},
-		{
-			name: 'COACH PU',
-			time: '10:00-12:00',
-			startHour: 10,
-			endHour: 12,
-			channel: 'Pu MoneyMind',
-			color: 'from-yellow-500 to-amber-300',
-			colorBorder: 'border-yellow-500/30',
-			colorText: 'text-yellow-400',
-			colorBg: 'bg-yellow-500/10',
-			youtube: '@PuMoneyMind',
-			avatar: '/coaches/pu.png',
-			glow: '234,179,8'
-		},
-		{
-			name: 'COACH CZECH',
-			time: '12:00-14:00',
-			startHour: 12,
-			endHour: 14,
-			channel: 'ALL Time High',
-			color: 'from-green-500 to-emerald-400',
-			colorBorder: 'border-green-500/30',
-			colorText: 'text-green-400',
-			colorBg: 'bg-green-500/10',
-			youtube: '@alltimehigh.official',
-			avatar: '/coaches/czech.png',
-			glow: '34,197,94'
-		},
-		{
-			name: 'COACH FUTURE',
-			time: '14:00-16:00',
-			startHour: 14,
-			endHour: 16,
-			channel: 'Trade the Future',
-			color: 'from-teal-500 to-cyan-400',
-			colorBorder: 'border-teal-500/30',
-			colorText: 'text-teal-400',
-			colorBg: 'bg-teal-500/10',
-			youtube: '@tradethefuturebyfuture',
-			avatar: '/coaches/future.png',
-			glow: '20,184,166'
-		},
-		{
-			name: 'COACH JHEE',
-			time: '16:00-19:00',
-			startHour: 16,
-			endHour: 19,
-			channel: 'Jhee Aroonwan',
-			color: 'from-blue-500 to-indigo-400',
-			colorBorder: 'border-blue-500/30',
-			colorText: 'text-blue-400',
-			colorBg: 'bg-blue-500/10',
-			youtube: '@jheearoonwan',
-			avatar: '/coaches/jhee.png',
-			glow: '59,130,246'
-		},
-		{
-			name: 'COACH ICZ',
-			time: '19:00-21:00',
-			startHour: 19,
-			endHour: 21,
-			channel: 'เทรดทองกับท่านสุดต๋าล',
-			color: 'from-purple-500 to-violet-400',
-			colorBorder: 'border-purple-500/30',
-			colorText: 'text-purple-400',
-			colorBg: 'bg-purple-500/10',
-			youtube: '@portgoldtrader',
-			avatar: '/coaches/icz.png',
-			glow: '168,85,247'
-		},
-		{
-			name: 'COACH DUK',
-			time: '21:00-23:00',
-			startHour: 21,
-			endHour: 23,
-			channel: 'PIDFAH',
-			color: 'from-pink-500 to-fuchsia-400',
-			colorBorder: 'border-pink-500/30',
-			colorText: 'text-pink-400',
-			colorBg: 'bg-pink-500/10',
-			youtube: '@Pidfah',
-			avatar: '/coaches/duk.png',
-			glow: '217,70,239'
-		},
-		{
-			name: 'COACH MAY',
-			time: '23:00-02:00',
-			startHour: 23,
-			endHour: 26,
-			channel: 'Mayday Channel',
-			color: 'from-red-500 to-rose-400',
-			colorBorder: 'border-red-500/30',
-			colorText: 'text-red-400',
-			colorBg: 'bg-red-500/10',
-			youtube: '@MC.Maydaychannel',
-			avatar: '/coaches/may.png',
-			glow: '239,68,68'
-		}
-	];
+	import { supabase } from '$lib/supabaseClient';
+	import { coaches } from '$lib/coaches';
 
 	function getBangkokHour(): number {
 		const now = new Date();
@@ -156,10 +29,46 @@
 	}
 
 	let tick = $state(0);
+	let liveCoachYoutube = $state<string | null>(null);
+	let liveVideoId = $state<string | null>(null);
+	let showPreview = $state(true);
 
 	onMount(() => {
-		const id = setInterval(() => tick++, 30000);
-		return () => clearInterval(id);
+		const interval = setInterval(() => tick++, 30000);
+
+		// Fetch initial live status
+		supabase
+			.from('live_status')
+			.select('coach_youtube, video_id')
+			.eq('id', 1)
+			.single()
+			.then(({ data }) => {
+				if (data) {
+					liveCoachYoutube = data.coach_youtube;
+					liveVideoId = data.video_id;
+				}
+			});
+
+		// Subscribe to real-time changes
+		const channel = supabase
+			.channel('live-status-schedule')
+			.on(
+				'postgres_changes',
+				{ event: '*', schema: 'public', table: 'live_status' },
+				(payload) => {
+					const row = payload.new as any;
+					if (row) {
+						liveCoachYoutube = row.coach_youtube || null;
+						liveVideoId = row.video_id || null;
+					}
+				}
+			)
+			.subscribe();
+
+		return () => {
+			clearInterval(interval);
+			supabase.removeChannel(channel);
+		};
 	});
 
 	let currentTime = $derived.by(() => {
@@ -167,10 +76,17 @@
 		return getBangkokTimeString();
 	});
 
+	// Live coach: Supabase override takes priority, then fallback to schedule
 	let liveCoachIndex = $derived.by(() => {
 		void tick;
+		if (liveCoachYoutube) {
+			const idx = coaches.findIndex((c) => c.youtube === liveCoachYoutube);
+			if (idx >= 0) return idx;
+		}
 		return coaches.findIndex((c) => isLive(c.startHour, c.endHour));
 	});
+
+	let hasLiveStream = $derived(liveCoachIndex >= 0 && !!liveVideoId);
 </script>
 
 <section class="min-h-screen bg-gray-50 dark:bg-dark-bg">
@@ -199,6 +115,56 @@
 				</div>
 			</div>
 		</div>
+
+		<!-- Live Stream Preview -->
+		{#if hasLiveStream}
+			{@const coach = coaches[liveCoachIndex]}
+			<div
+				class="rounded-2xl overflow-hidden border-2 {coach.colorBorder} live-preview"
+				style="--glow-rgb: {coach.glow}"
+			>
+				<!-- Preview Header -->
+				<div class="flex items-center justify-between px-4 py-3 {coach.colorBg}">
+					<div class="flex items-center gap-3">
+						<img
+							src={coach.avatar}
+							alt={coach.name}
+							class="w-8 h-8 rounded-full object-cover border-2 {coach.colorBorder}"
+						/>
+						<div>
+							<div class="flex items-center gap-2">
+								<span class="relative flex h-2 w-2">
+									<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+									<span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+								</span>
+								<span class="text-sm font-bold text-gray-900 dark:text-white">{coach.name}</span>
+								<span class="text-xs {coach.colorText} font-medium">กำลัง LIVE</span>
+							</div>
+							<p class="text-[11px] text-gray-500 mt-0.5">{coach.channel}</p>
+						</div>
+					</div>
+					<button
+						onclick={() => showPreview = !showPreview}
+						class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-dark-border text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-white/50 dark:hover:bg-dark-surface/50 transition-colors"
+					>
+						{showPreview ? 'ซ่อน' : 'ดูสด'}
+					</button>
+				</div>
+
+				<!-- YouTube Embed -->
+				{#if showPreview}
+					<div class="aspect-video bg-black">
+						<iframe
+							src="https://www.youtube.com/embed/{liveVideoId}?autoplay=1&mute=1&rel=0"
+							title="{coach.name} Live Stream"
+							class="w-full h-full"
+							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+							allowfullscreen
+						></iframe>
+					</div>
+				{/if}
+			</div>
+		{/if}
 
 		<!-- Coach list -->
 		<div class="space-y-3">
@@ -249,17 +215,29 @@
 						<!-- Channel info -->
 						<div class="flex-1 min-w-0">
 							<h3 class="text-sm font-semibold truncate transition-colors duration-500 {live ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}">{coach.channel}</h3>
-							<a
-								href="https://www.youtube.com/{coach.youtube}"
-								target="_blank"
-								rel="noopener noreferrer"
-								class="inline-flex items-center gap-1.5 mt-1.5 rounded-full bg-red-500/10 border border-red-500/20 px-2.5 py-1 text-[11px] text-red-500 dark:text-red-400 hover:bg-red-500/20 hover:text-red-600 dark:hover:text-red-300 transition-colors"
-							>
-								<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-									<path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-								</svg>
-								{coach.youtube}
-							</a>
+							{#if live && liveVideoId}
+								<button
+									onclick={() => { showPreview = true; window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+									class="inline-flex items-center gap-1.5 mt-1.5 rounded-full bg-green-500/10 border border-green-500/20 px-2.5 py-1 text-[11px] text-green-600 dark:text-green-400 hover:bg-green-500/20 transition-colors font-medium"
+								>
+									<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+										<path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+									</svg>
+									ดูสด
+								</button>
+							{:else}
+								<a
+									href="https://www.youtube.com/{coach.youtube}"
+									target="_blank"
+									rel="noopener noreferrer"
+									class="inline-flex items-center gap-1.5 mt-1.5 rounded-full bg-red-500/10 border border-red-500/20 px-2.5 py-1 text-[11px] text-red-500 dark:text-red-400 hover:bg-red-500/20 hover:text-red-600 dark:hover:text-red-300 transition-colors"
+								>
+									<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+										<path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+									</svg>
+									{coach.youtube}
+								</a>
+							{/if}
 						</div>
 
 						<!-- Time display -->
@@ -298,6 +276,10 @@
 		animation: card-glow 2.5s ease-in-out infinite;
 	}
 
+	.live-preview {
+		animation: preview-glow 3s ease-in-out infinite;
+	}
+
 	@keyframes card-glow {
 		0%, 100% {
 			box-shadow:
@@ -308,6 +290,19 @@
 			box-shadow:
 				0 0 16px 2px rgba(var(--glow-rgb), 0.3),
 				0 0 40px -4px rgba(var(--glow-rgb), 0.2);
+		}
+	}
+
+	@keyframes preview-glow {
+		0%, 100% {
+			box-shadow:
+				0 0 12px 0 rgba(var(--glow-rgb), 0.2),
+				0 0 30px -4px rgba(var(--glow-rgb), 0.15);
+		}
+		50% {
+			box-shadow:
+				0 0 24px 4px rgba(var(--glow-rgb), 0.4),
+				0 0 60px -4px rgba(var(--glow-rgb), 0.25);
 		}
 	}
 
