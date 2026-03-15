@@ -17,7 +17,7 @@ export const load: PageServerLoad = async () => {
             .from('daily_stats')
             .select(`
                 *,
-                participants (nickname, avatar_url)
+                participants (nickname, avatar_url, server)
             `)
             .order('date', { ascending: false })
             .order('points', { ascending: false });
@@ -62,6 +62,7 @@ export const load: PageServerLoad = async () => {
                     return {
                         id: entry.participant_id,
                         nickname: entry.participants?.nickname || 'Unknown',
+                        server: entry.participants?.server || '',
                         points: entry.points,
                         profit: entry.profit,
                         rankChange,
