@@ -9,6 +9,7 @@ export interface Coach {
 	colorText: string;
 	colorBg: string;
 	youtube: string;
+	youtubeChannelId: string;
 	avatar: string;
 	glow: string;
 }
@@ -25,6 +26,7 @@ export const coaches: Coach[] = [
 		colorText: 'text-pink-400',
 		colorBg: 'bg-pink-500/10',
 		youtube: '@goldwithping',
+		youtubeChannelId: 'UChj0MmtkT2dz4h_haF5IJAw',
 		avatar: '/coaches/ping.png',
 		glow: '236,72,153'
 	},
@@ -39,6 +41,7 @@ export const coaches: Coach[] = [
 		colorText: 'text-orange-400',
 		colorBg: 'bg-orange-500/10',
 		youtube: '@trader10-x',
+		youtubeChannelId: 'UC49_jco-Ew1AHidkQynJFaA',
 		avatar: '/coaches/ball.png',
 		glow: '249,115,22'
 	},
@@ -53,6 +56,7 @@ export const coaches: Coach[] = [
 		colorText: 'text-yellow-400',
 		colorBg: 'bg-yellow-500/10',
 		youtube: '@PuMoneyMind',
+		youtubeChannelId: 'UCXoiCrEUCMAnBTCbsKR6iHw',
 		avatar: '/coaches/pu.png',
 		glow: '234,179,8'
 	},
@@ -67,6 +71,7 @@ export const coaches: Coach[] = [
 		colorText: 'text-green-400',
 		colorBg: 'bg-green-500/10',
 		youtube: '@alltimehigh.official',
+		youtubeChannelId: 'UCt90-PH4FWrpIF3HV7FRLgg',
 		avatar: '/coaches/czech.png',
 		glow: '34,197,94'
 	},
@@ -81,6 +86,7 @@ export const coaches: Coach[] = [
 		colorText: 'text-teal-400',
 		colorBg: 'bg-teal-500/10',
 		youtube: '@tradethefuturebyfuture',
+		youtubeChannelId: 'UC8IMqQFVa9YUE1jVFdqaVow',
 		avatar: '/coaches/future.png',
 		glow: '20,184,166'
 	},
@@ -95,6 +101,7 @@ export const coaches: Coach[] = [
 		colorText: 'text-blue-400',
 		colorBg: 'bg-blue-500/10',
 		youtube: '@jheearoonwan',
+		youtubeChannelId: 'UC0sLLg9rP_vdPvLHVPpnAvA',
 		avatar: '/coaches/jhee.png',
 		glow: '59,130,246'
 	},
@@ -109,6 +116,7 @@ export const coaches: Coach[] = [
 		colorText: 'text-purple-400',
 		colorBg: 'bg-purple-500/10',
 		youtube: '@portgoldtrader',
+		youtubeChannelId: 'UCEk782ecdOhqXbxR5cOYXkw',
 		avatar: '/coaches/icz.png',
 		glow: '168,85,247'
 	},
@@ -123,6 +131,7 @@ export const coaches: Coach[] = [
 		colorText: 'text-pink-400',
 		colorBg: 'bg-pink-500/10',
 		youtube: '@Pidfah',
+		youtubeChannelId: 'UCpXwwQb-BL-pRGcxWJY5FoQ',
 		avatar: '/coaches/duk.png',
 		glow: '217,70,239'
 	},
@@ -137,6 +146,7 @@ export const coaches: Coach[] = [
 		colorText: 'text-red-400',
 		colorBg: 'bg-red-500/10',
 		youtube: '@MC.Maydaychannel',
+		youtubeChannelId: 'UCJ9dOgwUksRFjCRRMrdVmqw',
 		avatar: '/coaches/may.png',
 		glow: '239,68,68'
 	}
