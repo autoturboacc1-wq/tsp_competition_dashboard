@@ -21,15 +21,17 @@ async function checkYoutubeLive(
 		});
 
 		const html = await res.text();
-		const isLive = html.includes('"isLive":true');
 
-		if (isLive) {
-			const canonicalMatch = html.match(
-				/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})">/
-			);
-			const videoIdMatch = html.match(/"videoId":"([\w-]{11})"/);
-			const videoId = canonicalMatch?.[1] || videoIdMatch?.[1] || null;
-			return { isLive: true, videoId };
+		// Only trust canonical URL: if YouTube redirected /{handle}/live to a
+		// /watch?v= page, the channel is actually streaming that video.
+		// If canonical is still a channel URL, the channel is NOT live —
+		// any "isLive":true in the HTML is from recommended/sidebar content.
+		const canonicalMatch = html.match(
+			/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})">/
+		);
+
+		if (canonicalMatch && html.includes('"isLive":true')) {
+			return { isLive: true, videoId: canonicalMatch[1] };
 		}
 
 		return { isLive: false, videoId: null };
