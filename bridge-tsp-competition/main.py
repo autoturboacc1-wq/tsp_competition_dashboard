@@ -210,13 +210,14 @@ def sync_participant(participant):
             elif deal.entry == mt5.DEAL_ENTRY_OUT:
                 positions[pid]['close_time'] = deal.time
                 positions[pid]['close_price'] = deal.price
-                positions[pid]['total_profit'] += deal.profit
+                deal_net = deal.profit + deal.commission + deal.swap
+                positions[pid]['total_profit'] += deal_net
 
                 # Track each partial close
                 positions[pid]['partials'].append({
                     'lot': deal.volume,
                     'close_price': deal.price,
-                    'profit': deal.profit,
+                    'profit': deal_net,
                     'time': deal.time,
                 })
 
